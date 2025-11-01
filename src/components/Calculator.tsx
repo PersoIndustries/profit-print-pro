@@ -3,7 +3,9 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator as CalcIcon, Zap, DollarSign, TrendingUp } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Calculator as CalcIcon, Zap, DollarSign, TrendingUp, Info, Package, Clock, Wrench } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Material {
   name: string;
@@ -57,8 +59,9 @@ export const Calculator = () => {
   const costs = calculateCosts();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 py-8 px-4">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <TooltipProvider>
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 py-8 px-4">
+        <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-2 animate-in fade-in slide-in-from-top duration-700">
           <div className="flex items-center justify-center gap-2 mb-4">
@@ -82,9 +85,24 @@ export const Calculator = () => {
               <h2 className="text-2xl font-semibold">Datos de la Impresión</h2>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="weight">Peso del Material (gramos)</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="weight" className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-primary" />
+                    Peso del Material (gramos)
+                  </Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full">
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Peso total del material utilizado en la impresión. Puedes obtenerlo de tu software de laminado (Cura, PrusaSlicer, etc.)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <Input
                   id="weight"
                   type="number"
@@ -96,7 +114,19 @@ export const Calculator = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="material">Tipo de Material</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="material">Tipo de Material</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full">
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Selecciona el tipo de filamento utilizado. Los precios son aproximados por kg. Puedes personalizarlos en el siguiente campo.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <Select value={materialType} onValueChange={setMaterialType}>
                   <SelectTrigger id="material" className="border-border/50">
                     <SelectValue />
@@ -112,10 +142,23 @@ export const Calculator = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="customPrice">Precio Personalizado del Material (€/kg) - Opcional</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="customPrice" className="text-sm">Precio Personalizado del Material (€/kg)</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full">
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Opcional: Ingresa el precio real que pagaste por tu filamento si es diferente al predeterminado.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <Input
                   id="customPrice"
                   type="number"
+                  step="0.01"
                   value={customPrice}
                   onChange={(e) => setCustomPrice(e.target.value)}
                   placeholder="Dejar vacío para usar precio por defecto"
@@ -124,10 +167,26 @@ export const Calculator = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="printTime">Tiempo de Impresión (horas)</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="printTime" className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-primary" />
+                    Tiempo de Impresión (horas)
+                  </Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full">
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Duración estimada de la impresión. Consulta tu software de laminado para obtener este dato.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <Input
                   id="printTime"
                   type="number"
+                  step="0.1"
                   value={printTime}
                   onChange={(e) => setPrintTime(e.target.value)}
                   placeholder="5"
@@ -136,7 +195,22 @@ export const Calculator = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="electricity">Coste de Electricidad (€/kWh)</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="electricity" className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-primary" />
+                    Coste de Electricidad (€/kWh)
+                  </Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full">
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Precio de tu tarifa eléctrica por kWh. En España suele estar entre €0.10 y €0.30. Consulta tu factura para el dato exacto.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <Input
                   id="electricity"
                   type="number"
@@ -149,7 +223,22 @@ export const Calculator = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="maintenance">Coste de Mantenimiento/Desgaste (€)</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="maintenance" className="flex items-center gap-2">
+                    <Wrench className="w-4 h-4 text-primary" />
+                    Coste de Mantenimiento/Desgaste (€)
+                  </Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full">
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Coste estimado de desgaste de la impresora (boquillas, rodamientos, etc.) y tiempo dedicado por impresión. Recomendado: €1-5 por pieza.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <Input
                   id="maintenance"
                   type="number"
@@ -162,10 +251,26 @@ export const Calculator = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="margin">Margen de Ganancia (%)</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="margin" className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-primary" />
+                    Margen de Ganancia (%)
+                  </Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full">
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Porcentaje de beneficio que deseas obtener sobre los costes totales. Típicamente entre 20% y 50% según complejidad.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <Input
                   id="margin"
                   type="number"
+                  step="1"
                   value={margin}
                   onChange={(e) => setMargin(e.target.value)}
                   placeholder="30"
@@ -177,63 +282,116 @@ export const Calculator = () => {
 
           {/* Resultados */}
           <div className="space-y-4 animate-in fade-in slide-in-from-right duration-700">
-            <Card className="p-6 shadow-[var(--shadow-card)] border-border/50 backdrop-blur-sm bg-card/95">
+            <Card className="p-6 shadow-[var(--shadow-card)] border-border/50 backdrop-blur-sm bg-card/95 hover:shadow-[var(--shadow-elegant)] transition-all duration-300">
               <div className="flex items-center gap-2 pb-4 border-b border-border mb-4">
-                <DollarSign className="w-5 h-5 text-primary" />
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <DollarSign className="w-5 h-5 text-primary" />
+                </div>
                 <h2 className="text-2xl font-semibold">Desglose de Costes</h2>
               </div>
 
               <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50 transition-all hover:bg-muted">
-                  <span className="text-muted-foreground">Material</span>
-                  <span className="font-semibold">€{costs.materialCost}</span>
+                <div className="flex justify-between items-center p-4 rounded-xl bg-gradient-to-r from-muted/50 to-muted/30 transition-all hover:from-muted hover:to-muted/50 hover:scale-[1.02] duration-200">
+                  <span className="text-muted-foreground flex items-center gap-2">
+                    <Package className="w-4 h-4" />
+                    Material
+                  </span>
+                  <span className="font-semibold text-lg">€{costs.materialCost}</span>
                 </div>
 
-                <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50 transition-all hover:bg-muted">
+                <div className="flex justify-between items-center p-4 rounded-xl bg-gradient-to-r from-muted/50 to-muted/30 transition-all hover:from-muted hover:to-muted/50 hover:scale-[1.02] duration-200">
                   <span className="text-muted-foreground flex items-center gap-2">
-                    <Zap className="w-4 h-4" />
+                    <Zap className="w-4 h-4 text-yellow-500" />
                     Electricidad
                   </span>
-                  <span className="font-semibold">€{costs.electricityCostTotal}</span>
+                  <span className="font-semibold text-lg">€{costs.electricityCostTotal}</span>
                 </div>
 
-                <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50 transition-all hover:bg-muted">
-                  <span className="text-muted-foreground">Mantenimiento</span>
-                  <span className="font-semibold">€{costs.maintenanceCost}</span>
+                <div className="flex justify-between items-center p-4 rounded-xl bg-gradient-to-r from-muted/50 to-muted/30 transition-all hover:from-muted hover:to-muted/50 hover:scale-[1.02] duration-200">
+                  <span className="text-muted-foreground flex items-center gap-2">
+                    <Wrench className="w-4 h-4" />
+                    Mantenimiento
+                  </span>
+                  <span className="font-semibold text-lg">€{costs.maintenanceCost}</span>
                 </div>
 
-                <div className="flex justify-between items-center p-4 rounded-lg bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20">
-                  <span className="font-semibold">Coste Total</span>
-                  <span className="text-xl font-bold text-primary">€{costs.totalCost}</span>
+                <div className="flex justify-between items-center p-5 rounded-xl bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 border-2 border-primary/30 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] duration-200">
+                  <span className="font-bold text-lg">Coste Total</span>
+                  <span className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">€{costs.totalCost}</span>
                 </div>
               </div>
             </Card>
 
-            <Card className="p-6 shadow-[var(--shadow-elegant)] border-2 border-primary/20 backdrop-blur-sm bg-gradient-to-br from-card via-card to-primary/5">
+            <Card className="p-6 shadow-[var(--shadow-elegant)] border-2 border-primary/20 backdrop-blur-sm bg-gradient-to-br from-card via-card to-primary/5 hover:shadow-2xl transition-all duration-300">
               <div className="flex items-center gap-2 pb-4 border-b border-border mb-4">
-                <TrendingUp className="w-5 h-5 text-primary" />
+                <div className="p-2 rounded-lg bg-gradient-to-br from-primary to-secondary">
+                  <TrendingUp className="w-5 h-5 text-primary-foreground" />
+                </div>
                 <h2 className="text-2xl font-semibold">Precio y Ganancia</h2>
               </div>
 
               <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-gradient-to-r from-primary to-secondary text-primary-foreground">
-                  <div className="text-sm opacity-90 mb-1">Precio de Venta Sugerido</div>
-                  <div className="text-3xl font-bold">€{costs.suggestedPrice}</div>
+                <div className="group p-6 rounded-xl bg-gradient-to-br from-primary via-primary to-secondary text-primary-foreground shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
+                  <div className="flex items-center gap-2 mb-2 opacity-90">
+                    <DollarSign className="w-4 h-4" />
+                    <div className="text-sm font-medium">Precio de Venta Sugerido</div>
+                  </div>
+                  <div className="text-4xl font-bold tracking-tight">€{costs.suggestedPrice}</div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-gradient-to-r from-secondary to-primary text-primary-foreground">
-                  <div className="text-sm opacity-90 mb-1">Tu Ganancia</div>
-                  <div className="text-3xl font-bold">€{costs.profit}</div>
+                <div className="group p-6 rounded-xl bg-gradient-to-br from-secondary via-secondary to-primary text-primary-foreground shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
+                  <div className="flex items-center gap-2 mb-2 opacity-90">
+                    <TrendingUp className="w-4 h-4" />
+                    <div className="text-sm font-medium">Tu Ganancia Neta</div>
+                  </div>
+                  <div className="text-4xl font-bold tracking-tight">€{costs.profit}</div>
+                  <div className="text-xs mt-2 opacity-75">
+                    Margen: {margin}% sobre costes
+                  </div>
                 </div>
 
-                <div className="text-center text-sm text-muted-foreground pt-2">
-                  Margen aplicado: {margin}%
+                <div className="p-4 rounded-lg bg-muted/50 text-center">
+                  <div className="text-xs text-muted-foreground mb-1">Rentabilidad</div>
+                  <div className="text-2xl font-bold text-primary">
+                    {((parseFloat(costs.profit) / parseFloat(costs.totalCost)) * 100).toFixed(0)}%
+                  </div>
                 </div>
               </div>
             </Card>
           </div>
         </div>
+
+        {/* Footer con consejos */}
+        <Card className="p-6 shadow-[var(--shadow-card)] border-border/50 backdrop-blur-sm bg-card/95 animate-in fade-in slide-in-from-bottom duration-700">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-lg bg-primary/10 shrink-0">
+              <Info className="w-6 h-6 text-primary" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-semibold text-lg">Consejos para optimizar tus precios</h3>
+              <ul className="space-y-1 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="text-primary mt-0.5">•</span>
+                  <span>Ajusta el margen según la complejidad y demanda de cada pieza</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary mt-0.5">•</span>
+                  <span>Impresiones más largas o complejas justifican márgenes más altos (40-60%)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary mt-0.5">•</span>
+                  <span>Revisa periódicamente tus costes de material y electricidad para mantener precios competitivos</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary mt-0.5">•</span>
+                  <span>No olvides incluir el tiempo de post-procesado (lijado, pintura) en tus costes de mantenimiento</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </Card>
       </div>
     </div>
+    </TooltipProvider>
   );
 };
