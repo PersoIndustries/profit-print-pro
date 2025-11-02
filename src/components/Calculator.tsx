@@ -39,6 +39,14 @@ interface SavedProject {
   date: string;
 }
 
+interface AmortizationProduct {
+  id: string;
+  name: string;
+  cost: number;
+  monthlyPrints: number;
+  avgPrintProfit: number;
+}
+
 const materials: Material[] = [
   { name: "PLA", pricePerKg: 20 },
   { name: "ABS", pricePerKg: 25 },
@@ -59,10 +67,12 @@ export const Calculator = () => {
   const [maintenanceCost, setMaintenanceCost] = useState<string>("2");
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
   
-  // Amortización
-  const [printerCost, setPrinterCost] = useState<string>("300");
-  const [monthlyPrints, setMonthlyPrints] = useState<string>("20");
-  const [avgPrintProfit, setAvgPrintProfit] = useState<string>("10");
+  // Amortización - Lista de productos
+  const [amortizationProducts, setAmortizationProducts] = useState<AmortizationProduct[]>([]);
+  const [newProductName, setNewProductName] = useState<string>("");
+  const [newProductCost, setNewProductCost] = useState<string>("");
+  const [newProductMonthlyPrints, setNewProductMonthlyPrints] = useState<string>("");
+  const [newProductAvgProfit, setNewProductAvgProfit] = useState<string>("");
   
   // Multicolor
   const [isMulticolor, setIsMulticolor] = useState<boolean>(false);
@@ -75,6 +85,11 @@ export const Calculator = () => {
     const stored = localStorage.getItem("3d-calculator-projects");
     if (stored) {
       setSavedProjects(JSON.parse(stored));
+    }
+    
+    const storedAmortization = localStorage.getItem("3d-calculator-amortization");
+    if (storedAmortization) {
+      setAmortizationProducts(JSON.parse(storedAmortization));
     }
   }, []);
 
@@ -138,13 +153,9 @@ export const Calculator = () => {
 
   const costs = calculateCosts();
 
-  const calculateAmortization = () => {
-    const cost = parseFloat(printerCost) || 0;
-    const prints = parseFloat(monthlyPrints) || 0;
-    const profit = parseFloat(avgPrintProfit) || 0;
-    
-    const monthlyProfit = prints * profit;
-    const monthsToAmortize = cost / monthlyProfit;
+  const calculateAmortization = (product: AmortizationProduct) => {
+    const monthlyProfit = product.monthlyPrints * product.avgPrintProfit;
+    const monthsToAmortize = product.cost / monthlyProfit;
     const yearlyProfit = monthlyProfit * 12;
     
     return {
@@ -154,7 +165,51 @@ export const Calculator = () => {
     };
   };
 
-  const amortization = calculateAmortization();
+  const addAmortizationProduct = () => {
+    if (!newProductName.trim()) {
+      toast.error("Por favor, ingresa un nombre para el producto");
+      return;
+    }
+    if (!newProductCost || parseFloat(newProductCost) <= 0) {
+      toast.error("Por favor, ingresa un coste válido");
+      return;
+    }
+    if (!newProductMonthlyPrints || parseFloat(newProductMonthlyPrints) <= 0) {
+      toast.error("Por favor, ingresa un número válido de impresiones mensuales");
+      return;
+    }
+    if (!newProductAvgProfit || parseFloat(newProductAvgProfit) <= 0) {
+      toast.error("Por favor, ingresa una ganancia promedio válida");
+      return;
+    }
+
+    const newProduct: AmortizationProduct = {
+      id: Date.now().toString(),
+      name: newProductName,
+      cost: parseFloat(newProductCost),
+      monthlyPrints: parseFloat(newProductMonthlyPrints),
+      avgPrintProfit: parseFloat(newProductAvgProfit),
+    };
+
+    const updated = [...amortizationProducts, newProduct];
+    setAmortizationProducts(updated);
+    localStorage.setItem("3d-calculator-amortization", JSON.stringify(updated));
+    
+    // Limpiar formulario
+    setNewProductName("");
+    setNewProductCost("");
+    setNewProductMonthlyPrints("");
+    setNewProductAvgProfit("");
+    
+    toast.success(`Producto "${newProductName}" agregado`);
+  };
+
+  const deleteAmortizationProduct = (id: string) => {
+    const updated = amortizationProducts.filter(p => p.id !== id);
+    setAmortizationProducts(updated);
+    localStorage.setItem("3d-calculator-amortization", JSON.stringify(updated));
+    toast.success("Producto eliminado");
+  };
 
   const saveProject = () => {
     if (!projectName.trim()) {
@@ -792,17 +847,47 @@ export const Calculator = () => {
 
             {/* Tab: Amortización */}
             <TabsContent value="amortization" className="space-y-6 animate-in fade-in duration-500">
-              <div className="grid lg:grid-cols-2 gap-6">
-                <Card className="p-6 space-y-6 shadow-[var(--shadow-card)] border-border/50 backdrop-blur-sm bg-card/95">
-                  <div className="flex items-center gap-2 pb-4 border-b border-border">
-                    <TrendingUp className="w-5 h-5 text-primary" />
-                    <h2 className="text-2xl font-semibold">Calculadora de Amortización</h2>
-                  </div>
+              <Card className="p-6 shadow-[var(--shadow-card)] border-border/50 backdrop-blur-sm bg-card/95">
+                <div className="flex items-center gap-2 pb-4 border-b border-border">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                  <h2 className="text-2xl font-semibold">Gestión de Amortización de Productos</h2>
+                </div>
 
-                  <div className="space-y-5">
+                {/* Formulario para agregar productos */}
+                <div className="mt-6 space-y-4">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <Plus className="w-5 h-5 text-primary" />
+                    Agregar Producto
+                  </h3>
+                  
+                  <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Label htmlFor="printerCost">Coste de la Impresora (€)</Label>
+                        <Label htmlFor="newProductName">Nombre del Producto</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full">
+                              <Info className="h-3 w-3 text-muted-foreground" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>El nombre de tu impresora o equipo. Ej: "Ender 3 Pro", "Elegoo Mars 3"</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Input
+                        id="newProductName"
+                        type="text"
+                        value={newProductName}
+                        onChange={(e) => setNewProductName(e.target.value)}
+                        placeholder="Ej: Ender 3 Pro"
+                        className="border-border/50 focus:border-primary transition-colors"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="newProductCost">Coste del Producto (€)</Label>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full">
@@ -815,10 +900,11 @@ export const Calculator = () => {
                         </Tooltip>
                       </div>
                       <Input
-                        id="printerCost"
+                        id="newProductCost"
                         type="number"
-                        value={printerCost}
-                        onChange={(e) => setPrinterCost(e.target.value)}
+                        step="0.01"
+                        value={newProductCost}
+                        onChange={(e) => setNewProductCost(e.target.value)}
                         placeholder="300"
                         className="border-border/50 focus:border-primary transition-colors"
                       />
@@ -826,7 +912,7 @@ export const Calculator = () => {
 
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Label htmlFor="monthlyPrints">Impresiones al Mes</Label>
+                        <Label htmlFor="newProductMonthlyPrints">Impresiones al Mes</Label>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full">
@@ -834,15 +920,15 @@ export const Calculator = () => {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
-                            <p>Número estimado de proyectos o piezas que imprimes mensualmente. Sé realista con tu capacidad y demanda.</p>
+                            <p>Número estimado de proyectos o piezas que imprimes mensualmente con este equipo. Sé realista con tu capacidad y demanda.</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
                       <Input
-                        id="monthlyPrints"
+                        id="newProductMonthlyPrints"
                         type="number"
-                        value={monthlyPrints}
-                        onChange={(e) => setMonthlyPrints(e.target.value)}
+                        value={newProductMonthlyPrints}
+                        onChange={(e) => setNewProductMonthlyPrints(e.target.value)}
                         placeholder="20"
                         className="border-border/50 focus:border-primary transition-colors"
                       />
@@ -850,7 +936,7 @@ export const Calculator = () => {
 
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Label htmlFor="avgPrintProfit">Ganancia Promedio por Impresión (€)</Label>
+                        <Label htmlFor="newProductAvgProfit">Ganancia Promedio (€/impresión)</Label>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full">
@@ -858,66 +944,115 @@ export const Calculator = () => {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
-                            <p>Beneficio neto promedio que obtienes por cada proyecto. Puedes calcularlo con la pestaña de calculadora y hacer un promedio de tus proyectos típicos.</p>
+                            <p>Beneficio neto promedio que obtienes por cada proyecto con este equipo. Puedes calcularlo con la pestaña de calculadora y hacer un promedio.</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
                       <Input
-                        id="avgPrintProfit"
+                        id="newProductAvgProfit"
                         type="number"
                         step="0.01"
-                        value={avgPrintProfit}
-                        onChange={(e) => setAvgPrintProfit(e.target.value)}
+                        value={newProductAvgProfit}
+                        onChange={(e) => setNewProductAvgProfit(e.target.value)}
                         placeholder="10"
                         className="border-border/50 focus:border-primary transition-colors"
                       />
                     </div>
                   </div>
-                </Card>
 
-                <div className="space-y-4">
-                  <Card className="p-6 shadow-[var(--shadow-elegant)] border-2 border-primary/20 backdrop-blur-sm bg-gradient-to-br from-card via-card to-primary/5">
-                    <h3 className="font-semibold text-xl mb-4 flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-primary" />
-                      Resultados de Amortización
-                    </h3>
-
-                    <div className="space-y-4">
-                      <div className="p-5 rounded-xl bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20">
-                        <div className="text-sm text-muted-foreground mb-1">Ganancia Mensual</div>
-                        <div className="text-3xl font-bold text-primary">€{amortization.monthlyProfit}</div>
-                      </div>
-
-                      <div className="p-5 rounded-xl bg-gradient-to-r from-secondary/10 to-primary/10 border border-secondary/20">
-                        <div className="text-sm text-muted-foreground mb-1">Meses para Amortizar</div>
-                        <div className="text-3xl font-bold text-secondary">{amortization.monthsToAmortize}</div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          ({(parseFloat(amortization.monthsToAmortize) / 12).toFixed(1)} años)
-                        </div>
-                      </div>
-
-                      <div className="p-5 rounded-xl bg-gradient-to-r from-primary to-secondary text-primary-foreground">
-                        <div className="text-sm opacity-90 mb-1">Ganancia Anual Proyectada</div>
-                        <div className="text-3xl font-bold">€{amortization.yearlyProfit}</div>
-                      </div>
-                    </div>
-                  </Card>
-
-                  <Card className="p-5 bg-muted/50">
-                    <div className="flex items-start gap-3">
-                      <Info className="w-5 h-5 text-primary mt-0.5 shrink-0" />
-                      <div className="text-sm text-muted-foreground space-y-2">
-                        <p>
-                          <strong className="text-foreground">¿Qué es la amortización?</strong> Es el tiempo que tardas en recuperar la inversión inicial de tu impresora a través de las ganancias.
-                        </p>
-                        <p>
-                          Una vez amortizada, todas las ganancias futuras son beneficio neto (descontando costes operativos).
-                        </p>
-                      </div>
-                    </div>
-                  </Card>
+                  <Button 
+                    onClick={addAmortizationProduct}
+                    className="w-full md:w-auto"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Agregar Producto
+                  </Button>
                 </div>
-              </div>
+              </Card>
+
+              {/* Lista de productos */}
+              {amortizationProducts.length === 0 ? (
+                <Card className="p-8 text-center bg-muted/30">
+                  <Package className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+                  <p className="text-muted-foreground">No tienes productos agregados</p>
+                  <p className="text-sm text-muted-foreground mt-1">Agrega tu primera impresora o equipo para calcular su amortización</p>
+                </Card>
+              ) : (
+                <div className="grid lg:grid-cols-2 gap-6">
+                  {amortizationProducts.map((product) => {
+                    const amortization = calculateAmortization(product);
+                    return (
+                      <Card key={product.id} className="p-6 space-y-4 shadow-[var(--shadow-elegant)] border-2 border-primary/20 backdrop-blur-sm bg-gradient-to-br from-card via-card to-primary/5">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="text-xl font-bold text-foreground">{product.name}</h3>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Inversión inicial: <span className="font-semibold text-foreground">€{product.cost.toFixed(2)}</span>
+                            </p>
+                          </div>
+                          <Button
+                            onClick={() => deleteAmortizationProduct(product.id)}
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="p-3 rounded-lg bg-muted/50">
+                            <div className="text-muted-foreground">Impresiones/mes</div>
+                            <div className="font-semibold text-foreground">{product.monthlyPrints}</div>
+                          </div>
+                          <div className="p-3 rounded-lg bg-muted/50">
+                            <div className="text-muted-foreground">Ganancia/impresión</div>
+                            <div className="font-semibold text-foreground">€{product.avgPrintProfit.toFixed(2)}</div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 pt-3 border-t border-border">
+                          <div className="p-4 rounded-xl bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20">
+                            <div className="text-xs text-muted-foreground mb-1">Ganancia Mensual</div>
+                            <div className="text-2xl font-bold text-primary">€{amortization.monthlyProfit}</div>
+                          </div>
+
+                          <div className="p-4 rounded-xl bg-gradient-to-r from-secondary/10 to-primary/10 border border-secondary/20">
+                            <div className="text-xs text-muted-foreground mb-1">Meses para Amortizar</div>
+                            <div className="text-2xl font-bold text-secondary">{amortization.monthsToAmortize}</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              ({(parseFloat(amortization.monthsToAmortize) / 12).toFixed(1)} años)
+                            </div>
+                          </div>
+
+                          <div className="p-4 rounded-xl bg-gradient-to-r from-primary to-secondary text-primary-foreground">
+                            <div className="text-xs opacity-90 mb-1">Ganancia Anual Proyectada</div>
+                            <div className="text-2xl font-bold">€{amortization.yearlyProfit}</div>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Info Card */}
+              <Card className="p-5 bg-muted/50">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p>
+                      <strong className="text-foreground">¿Qué es la amortización?</strong> Es el tiempo que tardas en recuperar la inversión inicial de tu impresora a través de las ganancias.
+                    </p>
+                    <p>
+                      Una vez amortizada, todas las ganancias futuras son beneficio neto (descontando costes operativos).
+                    </p>
+                    <p>
+                      <strong className="text-foreground">Consejo:</strong> Gestiona varios equipos de forma independiente para tener un control preciso de tu negocio.
+                    </p>
+                  </div>
+                </div>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>
