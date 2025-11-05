@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calculator as CalcIcon, Zap, DollarSign, TrendingUp, Info, Package, Clock, Wrench, Save, List, Trash2, Plus, X } from "lucide-react";
+import { Calculator as CalcIcon, Zap, DollarSign, TrendingUp, Info, Package, Clock, Wrench, Save, List, Trash2, Plus, X, ShoppingCart, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -47,6 +47,21 @@ interface AmortizationProduct {
   avgPrintProfit: number;
 }
 
+interface OrderItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+interface Order {
+  id: string;
+  name: string;
+  items: OrderItem[];
+  total: number;
+  date: string;
+}
+
 const materials: Material[] = [
   { name: "PLA", pricePerKg: 20 },
   { name: "ABS", pricePerKg: 25 },
@@ -74,6 +89,14 @@ export const Calculator = () => {
   const [newProductMonthlyPrints, setNewProductMonthlyPrints] = useState<string>("");
   const [newProductAvgProfit, setNewProductAvgProfit] = useState<string>("");
   
+  // Pedidos
+  const [currentOrder, setCurrentOrder] = useState<OrderItem[]>([]);
+  const [savedOrders, setSavedOrders] = useState<Order[]>([]);
+  const [orderName, setOrderName] = useState<string>("");
+  const [newItemName, setNewItemName] = useState<string>("");
+  const [newItemQuantity, setNewItemQuantity] = useState<string>("1");
+  const [newItemPrice, setNewItemPrice] = useState<string>("");
+  
   // Multicolor
   const [isMulticolor, setIsMulticolor] = useState<boolean>(false);
   const [colorLayers, setColorLayers] = useState<ColorLayer[]>([
@@ -90,6 +113,11 @@ export const Calculator = () => {
     const storedAmortization = localStorage.getItem("3d-calculator-amortization");
     if (storedAmortization) {
       setAmortizationProducts(JSON.parse(storedAmortization));
+    }
+    
+    const storedOrders = localStorage.getItem("3d-calculator-orders");
+    if (storedOrders) {
+      setSavedOrders(JSON.parse(storedOrders));
     }
   }, []);
 
@@ -264,6 +292,102 @@ export const Calculator = () => {
     toast.success(`Proyecto "${project.name}" cargado`);
   };
 
+  // Funciones de pedidos
+  const addItemToOrder = () => {
+    if (!newItemName.trim()) {
+      toast.error("Por favor, ingresa un nombre para el item");
+      return;
+    }
+    if (!newItemPrice || parseFloat(newItemPrice) <= 0) {
+      toast.error("Por favor, ingresa un precio válido");
+      return;
+    }
+    if (!newItemQuantity || parseFloat(newItemQuantity) <= 0) {
+      toast.error("Por favor, ingresa una cantidad válida");
+      return;
+    }
+
+    const newItem: OrderItem = {
+      id: Date.now().toString(),
+      name: newItemName,
+      quantity: parseFloat(newItemQuantity),
+      unitPrice: parseFloat(newItemPrice),
+    };
+
+    setCurrentOrder([...currentOrder, newItem]);
+    setNewItemName("");
+    setNewItemQuantity("1");
+    setNewItemPrice("");
+    toast.success(`"${newItemName}" agregado al pedido`);
+  };
+
+  const addCurrentCalculationToOrder = () => {
+    if (!projectName.trim()) {
+      toast.error("Por favor, ingresa un nombre para el item");
+      return;
+    }
+
+    const newItem: OrderItem = {
+      id: Date.now().toString(),
+      name: projectName,
+      quantity: 1,
+      unitPrice: parseFloat(costs.suggestedPrice),
+    };
+
+    setCurrentOrder([...currentOrder, newItem]);
+    toast.success(`"${projectName}" agregado al pedido`);
+  };
+
+  const removeItemFromOrder = (id: string) => {
+    setCurrentOrder(currentOrder.filter(item => item.id !== id));
+    toast.success("Item eliminado del pedido");
+  };
+
+  const calculateOrderTotal = () => {
+    return currentOrder.reduce((total, item) => total + (item.quantity * item.unitPrice), 0).toFixed(2);
+  };
+
+  const saveOrder = () => {
+    if (!orderName.trim()) {
+      toast.error("Por favor, ingresa un nombre para el pedido");
+      return;
+    }
+    if (currentOrder.length === 0) {
+      toast.error("El pedido está vacío");
+      return;
+    }
+
+    const newOrder: Order = {
+      id: Date.now().toString(),
+      name: orderName,
+      items: [...currentOrder],
+      total: parseFloat(calculateOrderTotal()),
+      date: new Date().toISOString(),
+    };
+
+    const updated = [...savedOrders, newOrder];
+    setSavedOrders(updated);
+    localStorage.setItem("3d-calculator-orders", JSON.stringify(updated));
+    toast.success(`Pedido "${orderName}" guardado exitosamente`);
+    
+    // Limpiar pedido actual
+    setCurrentOrder([]);
+    setOrderName("");
+  };
+
+  const deleteOrder = (id: string) => {
+    const updated = savedOrders.filter(o => o.id !== id);
+    setSavedOrders(updated);
+    localStorage.setItem("3d-calculator-orders", JSON.stringify(updated));
+    toast.success("Pedido eliminado");
+  };
+
+  const loadOrder = (order: Order) => {
+    setCurrentOrder([...order.items]);
+    setOrderName(order.name + " (copia)");
+    toast.success(`Pedido "${order.name}" cargado`);
+  };
+
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 py-8 px-4">
@@ -284,10 +408,14 @@ export const Calculator = () => {
           </div>
 
           <Tabs defaultValue="calculator" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 max-w-2xl mx-auto mb-6">
+            <TabsList className="grid w-full grid-cols-4 max-w-3xl mx-auto mb-6">
               <TabsTrigger value="calculator" className="flex items-center gap-2">
                 <CalcIcon className="w-4 h-4" />
                 Calculadora
+              </TabsTrigger>
+              <TabsTrigger value="orders" className="flex items-center gap-2">
+                <ShoppingCart className="w-4 h-4" />
+                Pedidos
               </TabsTrigger>
               <TabsTrigger value="projects" className="flex items-center gap-2">
                 <List className="w-4 h-4" />
@@ -758,6 +886,249 @@ export const Calculator = () => {
                   </Card>
                 </div>
               </div>
+            </TabsContent>
+
+            {/* Tab: Pedidos */}
+            <TabsContent value="orders" className="space-y-6 animate-in fade-in duration-500">
+              <div className="grid lg:grid-cols-2 gap-6">
+                {/* Formulario de Pedido Actual */}
+                <Card className="p-6 space-y-6 shadow-[var(--shadow-card)] border-border/50 backdrop-blur-sm bg-card/95">
+                  <div className="flex items-center gap-2 pb-4 border-b border-border">
+                    <ShoppingCart className="w-5 h-5 text-primary" />
+                    <h2 className="text-2xl font-semibold">Preparar Pedido</h2>
+                  </div>
+
+                  {/* Nombre del pedido */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="orderName" className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-primary" />
+                        Nombre del Pedido
+                      </Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full">
+                            <Info className="h-3 w-3 text-muted-foreground" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>Nombre identificativo del pedido para poder guardarlo y consultarlo después. Ej: "Pedido Cliente Juan - 15/11"</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <Input
+                      id="orderName"
+                      type="text"
+                      value={orderName}
+                      onChange={(e) => setOrderName(e.target.value)}
+                      placeholder="Ej: Pedido María - Noviembre"
+                      className="border-border/50 focus:border-primary transition-colors"
+                    />
+                  </div>
+
+                  {/* Botón para agregar cálculo actual */}
+                  <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                    <p className="text-sm text-muted-foreground mb-2">¿Quieres agregar tu cálculo actual al pedido?</p>
+                    <Button 
+                      onClick={addCurrentCalculationToOrder}
+                      variant="outline"
+                      className="w-full gap-2"
+                      disabled={!projectName.trim()}
+                    >
+                      <Plus className="w-4 h-4" />
+                      Agregar Cálculo Actual (€{costs.suggestedPrice})
+                    </Button>
+                  </div>
+
+                  {/* Agregar item manual */}
+                  <div className="space-y-4">
+                    <Label className="text-base font-semibold">O agregar item manualmente</Label>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="itemName">Nombre del Item</Label>
+                      <Input
+                        id="itemName"
+                        type="text"
+                        value={newItemName}
+                        onChange={(e) => setNewItemName(e.target.value)}
+                        placeholder="Ej: Figura Yoda"
+                        className="border-border/50 focus:border-primary transition-colors"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="itemQuantity">Cantidad</Label>
+                        <Input
+                          id="itemQuantity"
+                          type="number"
+                          step="1"
+                          min="1"
+                          value={newItemQuantity}
+                          onChange={(e) => setNewItemQuantity(e.target.value)}
+                          placeholder="1"
+                          className="border-border/50 focus:border-primary transition-colors"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="itemPrice">Precio Unitario (€)</Label>
+                        <Input
+                          id="itemPrice"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={newItemPrice}
+                          onChange={(e) => setNewItemPrice(e.target.value)}
+                          placeholder="10.00"
+                          className="border-border/50 focus:border-primary transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <Button 
+                      onClick={addItemToOrder}
+                      className="w-full gap-2 bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Agregar Item al Pedido
+                    </Button>
+                  </div>
+                </Card>
+
+                {/* Pedido Actual */}
+                <Card className="p-6 space-y-4 shadow-[var(--shadow-card)] border-border/50 backdrop-blur-sm bg-card/95">
+                  <div className="flex items-center gap-2 pb-4 border-b border-border">
+                    <List className="w-5 h-5 text-primary" />
+                    <h2 className="text-2xl font-semibold">Items del Pedido</h2>
+                  </div>
+
+                  {currentOrder.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>No hay items en el pedido</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                        {currentOrder.map((item) => (
+                          <div 
+                            key={item.id}
+                            className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex-1">
+                              <p className="font-semibold">{item.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {item.quantity} × €{item.unitPrice.toFixed(2)}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="font-bold text-lg">
+                                €{(item.quantity * item.unitPrice).toFixed(2)}
+                              </span>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => removeItemFromOrder(item.id)}
+                                className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="pt-4 border-t border-border space-y-4">
+                        <div className="flex justify-between items-center p-5 rounded-xl bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 border-2 border-primary/30">
+                          <span className="font-bold text-lg">Total del Pedido</span>
+                          <span className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                            €{calculateOrderTotal()}
+                          </span>
+                        </div>
+
+                        <Button 
+                          onClick={saveOrder}
+                          className="w-full gap-2 bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity"
+                          disabled={currentOrder.length === 0 || !orderName.trim()}
+                        >
+                          <Save className="w-4 h-4" />
+                          Guardar Pedido
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </Card>
+              </div>
+
+              {/* Pedidos Guardados */}
+              {savedOrders.length > 0 && (
+                <Card className="p-6 space-y-4">
+                  <div className="flex items-center gap-2 pb-4 border-b border-border">
+                    <FileText className="w-5 h-5 text-primary" />
+                    <h2 className="text-2xl font-semibold">Pedidos Guardados</h2>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {savedOrders.map((order) => (
+                      <Card key={order.id} className="p-5 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] bg-muted/20">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="font-bold text-lg mb-1">{order.name}</h3>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(order.date).toLocaleDateString('es-ES', { 
+                                day: '2-digit', 
+                                month: 'short', 
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => deleteOrder(order.id)}
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+
+                        <div className="space-y-2 mb-4">
+                          <div className="text-sm">
+                            <span className="text-muted-foreground">Items: </span>
+                            <span className="font-medium">{order.items.length}</span>
+                          </div>
+                          <div className="max-h-32 overflow-y-auto space-y-1">
+                            {order.items.map((item) => (
+                              <div key={item.id} className="text-xs text-muted-foreground pl-2 border-l-2 border-muted">
+                                {item.quantity}× {item.name} - €{(item.quantity * item.unitPrice).toFixed(2)}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 pt-3 border-t border-border">
+                          <div className="flex justify-between items-center p-3 rounded-lg bg-primary/10">
+                            <span className="font-semibold">Total:</span>
+                            <span className="text-xl font-bold text-primary">€{order.total.toFixed(2)}</span>
+                          </div>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => loadOrder(order)}
+                            className="w-full gap-2"
+                          >
+                            <List className="w-3 h-3" />
+                            Cargar Pedido
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </Card>
+              )}
             </TabsContent>
 
             {/* Tab: Proyectos */}
