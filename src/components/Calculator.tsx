@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calculator as CalcIcon, Zap, DollarSign, TrendingUp, Info, Package, Clock, Wrench, Save, List, Trash2, Plus, X, ShoppingCart, FileText } from "lucide-react";
+import { Calculator as CalcIcon, Zap, DollarSign, TrendingUp, Info, Package, Clock, Wrench, Save, List, Trash2, Plus, X, ShoppingCart, FileText, Download, Upload, Eraser } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -386,6 +386,105 @@ export const Calculator = () => {
     setCurrentOrder([...order.items]);
     setOrderName(order.name + " (copia)");
     toast.success(`Pedido "${order.name}" cargado`);
+  };
+
+  const clearCurrentOrder = () => {
+    setCurrentOrder([]);
+    setOrderName("");
+    setNewItemName("");
+    setNewItemQuantity("1");
+    setNewItemPrice("");
+    toast.success("Pedido limpiado");
+  };
+
+  const exportOrders = () => {
+    if (savedOrders.length === 0) {
+      toast.error("No hay pedidos guardados para exportar");
+      return;
+    }
+
+    const dataStr = JSON.stringify(savedOrders, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `pedidos-3d-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Pedidos exportados exitosamente");
+  };
+
+  const exportCurrentOrder = () => {
+    if (currentOrder.length === 0) {
+      toast.error("El pedido actual está vacío");
+      return;
+    }
+
+    const orderToExport: Order = {
+      id: Date.now().toString(),
+      name: orderName || "Pedido sin nombre",
+      items: [...currentOrder],
+      total: parseFloat(calculateOrderTotal()),
+      date: new Date().toISOString(),
+    };
+
+    const dataStr = JSON.stringify(orderToExport, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `pedido-${orderName || 'actual'}-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Pedido actual exportado");
+  };
+
+  const importOrders = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const importedData = JSON.parse(content);
+        
+        // Verificar si es un array de pedidos o un solo pedido
+        if (Array.isArray(importedData)) {
+          // Es un array de pedidos
+          const validOrders = importedData.filter(order => 
+            order.id && order.name && order.items && Array.isArray(order.items)
+          );
+          
+          if (validOrders.length === 0) {
+            toast.error("El archivo no contiene pedidos válidos");
+            return;
+          }
+
+          const updated = [...savedOrders, ...validOrders];
+          setSavedOrders(updated);
+          localStorage.setItem("3d-calculator-orders", JSON.stringify(updated));
+          toast.success(`${validOrders.length} pedido(s) importado(s) exitosamente`);
+        } else if (importedData.id && importedData.items) {
+          // Es un solo pedido
+          const updated = [...savedOrders, importedData];
+          setSavedOrders(updated);
+          localStorage.setItem("3d-calculator-orders", JSON.stringify(updated));
+          toast.success("Pedido importado exitosamente");
+        } else {
+          toast.error("Formato de archivo inválido");
+        }
+      } catch (error) {
+        toast.error("Error al importar el archivo. Verifica que sea un JSON válido.");
+      }
+    };
+    reader.readAsText(file);
+    // Resetear el input para permitir importar el mismo archivo nuevamente
+    event.target.value = '';
   };
 
   return (
@@ -1046,13 +1145,34 @@ export const Calculator = () => {
                           </span>
                         </div>
 
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button 
+                            onClick={saveOrder}
+                            className="gap-2 bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity"
+                            disabled={currentOrder.length === 0 || !orderName.trim()}
+                          >
+                            <Save className="w-4 h-4" />
+                            Guardar
+                          </Button>
+                          <Button 
+                            onClick={exportCurrentOrder}
+                            variant="outline"
+                            className="gap-2"
+                            disabled={currentOrder.length === 0}
+                          >
+                            <Download className="w-4 h-4" />
+                            Exportar
+                          </Button>
+                        </div>
+                        
                         <Button 
-                          onClick={saveOrder}
-                          className="w-full gap-2 bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity"
-                          disabled={currentOrder.length === 0 || !orderName.trim()}
+                          onClick={clearCurrentOrder}
+                          variant="outline"
+                          className="w-full gap-2 text-destructive hover:bg-destructive/10"
+                          disabled={currentOrder.length === 0 && !orderName.trim()}
                         >
-                          <Save className="w-4 h-4" />
-                          Guardar Pedido
+                          <Eraser className="w-4 h-4" />
+                          Limpiar Pedido
                         </Button>
                       </div>
                     </>
@@ -1061,12 +1181,49 @@ export const Calculator = () => {
               </div>
 
               {/* Pedidos Guardados */}
-              {savedOrders.length > 0 && (
-                <Card className="p-6 space-y-4">
-                  <div className="flex items-center gap-2 pb-4 border-b border-border">
+              <Card className="p-6 space-y-4">
+                <div className="flex items-center justify-between pb-4 border-b border-border">
+                  <div className="flex items-center gap-2">
                     <FileText className="w-5 h-5 text-primary" />
                     <h2 className="text-2xl font-semibold">Pedidos Guardados</h2>
                   </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={exportOrders}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      disabled={savedOrders.length === 0}
+                    >
+                      <Download className="w-4 h-4" />
+                      Exportar Todos
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => document.getElementById('import-orders')?.click()}
+                    >
+                      <Upload className="w-4 h-4" />
+                      Importar
+                    </Button>
+                    <input
+                      id="import-orders"
+                      type="file"
+                      accept=".json"
+                      onChange={importOrders}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+
+                {savedOrders.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No hay pedidos guardados</p>
+                    <p className="text-sm mt-2">Los pedidos guardados aparecerán aquí</p>
+                  </div>
+                ) : (
 
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {savedOrders.map((order) => (
@@ -1127,8 +1284,8 @@ export const Calculator = () => {
                       </Card>
                     ))}
                   </div>
-                </Card>
-              )}
+                )}
+              </Card>
             </TabsContent>
 
             {/* Tab: Proyectos */}
