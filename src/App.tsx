@@ -11,6 +11,8 @@ import Projects from "./pages/Projects";
 import Orders from "./pages/Orders";
 import CalculatorPage from "./pages/CalculatorPage";
 import Pricing from "./pages/Pricing";
+import Settings from "./pages/Settings";
+import ResetPassword from "./pages/ResetPassword";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -31,6 +33,8 @@ const App = () => (
           <Route path="/orders" element={<Orders />} />
           <Route path="/calculator" element={<CalculatorPage />} />
           <Route path="/pricing" element={<Pricing />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
