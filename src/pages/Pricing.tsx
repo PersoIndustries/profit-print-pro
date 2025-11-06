@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Check } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { Header } from '@/components/Header';
 import { useAuth } from '@/hooks/useAuth';
 
 const Pricing = () => {
@@ -76,22 +76,7 @@ const Pricing = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-primary">Print3D Manager</h1>
-          <div className="flex items-center gap-4">
-            <LanguageSwitcher />
-            <Button variant="ghost" onClick={() => navigate('/')}>
-              {t('nav.dashboard')}
-            </Button>
-            {!user && (
-              <Button onClick={() => navigate('/auth')}>
-                {t('nav.login')}
-              </Button>
-            )}
-          </div>
-        </div>
-      </nav>
+      <Header variant="landing" />
 
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">

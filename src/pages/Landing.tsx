@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Printer, TrendingUp, Package, Calculator } from "lucide-react";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { Header } from "@/components/Header";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -10,21 +10,7 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <nav className="container mx-auto px-4 py-6 flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Print3D Manager</h1>
-        <div className="flex items-center gap-4">
-          <LanguageSwitcher />
-          <Button variant="ghost" onClick={() => navigate("/pricing")}>
-            {t('nav.pricing')}
-          </Button>
-          <Button variant="ghost" onClick={() => navigate("/auth")}>
-            {t('nav.login')}
-          </Button>
-          <Button onClick={() => navigate("/auth")}>
-            {t('nav.signup')}
-          </Button>
-        </div>
-      </nav>
+      <Header variant="landing" />
 
       <main className="container mx-auto px-4 py-20">
         <div className="text-center max-w-3xl mx-auto mb-20">

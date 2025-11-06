@@ -3,13 +3,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Loader2, Package, Printer, TrendingUp, DollarSign, LogOut, Calculator as CalculatorIcon } from "lucide-react";
+import { Loader2, Package, Printer, TrendingUp, DollarSign, Calculator as CalculatorIcon } from "lucide-react";
 import { toast } from "sonner";
+import { Header } from "@/components/Header";
+import { useTranslation } from "react-i18next";
 
 const Dashboard = () => {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [stats, setStats] = useState({
     totalProjects: 0,
     totalMaterials: 0,
@@ -67,84 +69,65 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <nav className="border-b bg-card/50 backdrop-blur">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Print3D Manager</h1>
-          <div className="flex gap-4">
-            <Button variant="ghost" onClick={() => navigate("/materials")}>
-              Materiales
-            </Button>
-            <Button variant="ghost" onClick={() => navigate("/projects")}>
-              Proyectos
-            </Button>
-            <Button variant="ghost" onClick={() => navigate("/calculator")}>
-              Calculadora
-            </Button>
-            <Button variant="outline" onClick={signOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Salir
-            </Button>
-          </div>
-        </div>
-      </nav>
+      <Header variant="app" />
 
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">Dashboard</h2>
+          <h2 className="text-3xl font-bold mb-2">{t('dashboard.title')}</h2>
           <p className="text-muted-foreground">
-            Resumen de tu negocio de impresión 3D
+            {t('dashboard.subtitle')}
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Proyectos</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('dashboard.totalProjects')}</CardTitle>
               <Printer className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalProjects}</div>
               <p className="text-xs text-muted-foreground">
-                Trabajos completados
+                {t('dashboard.completedJobs')}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Materiales</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('dashboard.materialsCount')}</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalMaterials}</div>
               <p className="text-xs text-muted-foreground">
-                En inventario
+                {t('dashboard.inInventory')}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('dashboard.totalRevenue')}</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">€{stats.totalRevenue.toFixed(2)}</div>
               <p className="text-xs text-muted-foreground">
-                De todos los proyectos
+                {t('dashboard.fromAllProjects')}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Precio Promedio</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('dashboard.avgPrice')}</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">€{stats.avgProjectCost.toFixed(2)}</div>
               <p className="text-xs text-muted-foreground">
-                Por proyecto
+                {t('dashboard.perProject')}
               </p>
             </CardContent>
           </Card>
@@ -155,12 +138,12 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CalculatorIcon className="w-5 h-5" />
-                Calculadora
+                {t('dashboard.calculator')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Calcula el precio de tus impresiones 3D
+                {t('dashboard.calculatorDesc')}
               </p>
             </CardContent>
           </Card>
@@ -169,12 +152,12 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="w-5 h-5" />
-                Gestionar Materiales
+                {t('dashboard.manageMaterials')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Añade y administra tus materiales
+                {t('dashboard.manageMaterialsDesc')}
               </p>
             </CardContent>
           </Card>
@@ -183,12 +166,12 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Printer className="w-5 h-5" />
-                Ver Proyectos
+                {t('dashboard.viewProjects')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Revisa todos tus proyectos guardados
+                {t('dashboard.viewProjectsDesc')}
               </p>
             </CardContent>
           </Card>
