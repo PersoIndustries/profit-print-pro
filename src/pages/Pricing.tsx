@@ -62,7 +62,7 @@ const Pricing = () => {
     if (tier.tier === 'free') return '0€';
     
     if (isAnnual) {
-      return `${tier.annualPrice}€`;
+      return `${(tier.annualPrice / 12).toFixed(2)}€`;
     }
     return `${tier.monthlyPrice}€`;
   };
@@ -139,10 +139,15 @@ const Pricing = () => {
                         <span className="text-4xl font-bold text-foreground">{getDisplayPrice(tier)}</span>
                         {tier.tier !== 'free' && (
                           <span className="text-muted-foreground">
-                            {isAnnual ? '/year' : t('pricing.monthly')}
+                            {t('pricing.monthly')}
                           </span>
                         )}
                       </div>
+                      {isAnnual && tier.tier !== 'free' && (
+                        <div className="text-sm text-muted-foreground">
+                          {tier.annualPrice}€ billed annually
+                        </div>
+                      )}
                       {isAnnual && savings && (
                         <div className="text-sm text-green-600 font-semibold">
                           Save {savings}€/year
