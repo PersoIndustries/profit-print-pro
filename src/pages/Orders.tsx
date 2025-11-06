@@ -61,10 +61,12 @@ const Orders = () => {
 
   const fetchOrders = async () => {
     try {
+      if (!user) return;
+      
       const { data, error } = await supabase
         .from("orders")
         .select("*")
-        .eq("user_id", user?.id)
+        .eq("user_id", user.id)
         .order("order_date", { ascending: false });
 
       if (error) throw error;
@@ -79,10 +81,12 @@ const Orders = () => {
 
   const fetchProjects = async () => {
     try {
+      if (!user) return;
+      
       const { data, error } = await supabase
         .from("projects")
         .select("id, name")
-        .eq("user_id", user?.id);
+        .eq("user_id", user.id);
 
       if (error) throw error;
       setProjects(data || []);
@@ -100,9 +104,11 @@ const Orders = () => {
     }
 
     try {
+      if (!user) return;
+      
       const { error } = await supabase.from("orders").insert([
         {
-          user_id: user?.id,
+          user_id: user.id,
           order_number: formData.order_number,
           customer_name: formData.customer_name,
           customer_email: formData.customer_email,
