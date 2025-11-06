@@ -14,7 +14,125 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      materials: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          id: string
+          name: string
+          price_per_kg: number
+          type: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          price_per_kg: number
+          type?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          price_per_kg?: number
+          type?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          company_name: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          created_at: string | null
+          electricity_cost: number | null
+          id: string
+          labor_cost: number | null
+          material_cost: number | null
+          material_id: string | null
+          name: string
+          notes: string | null
+          print_time_hours: number
+          profit_margin: number | null
+          total_price: number | null
+          updated_at: string | null
+          user_id: string
+          weight_grams: number
+        }
+        Insert: {
+          created_at?: string | null
+          electricity_cost?: number | null
+          id?: string
+          labor_cost?: number | null
+          material_cost?: number | null
+          material_id?: string | null
+          name: string
+          notes?: string | null
+          print_time_hours: number
+          profit_margin?: number | null
+          total_price?: number | null
+          updated_at?: string | null
+          user_id: string
+          weight_grams: number
+        }
+        Update: {
+          created_at?: string | null
+          electricity_cost?: number | null
+          id?: string
+          labor_cost?: number | null
+          material_cost?: number | null
+          material_id?: string | null
+          name?: string
+          notes?: string | null
+          print_time_hours?: number
+          profit_margin?: number | null
+          total_price?: number | null
+          updated_at?: string | null
+          user_id?: string
+          weight_grams?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
