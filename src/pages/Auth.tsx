@@ -21,10 +21,11 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (user && !loading) {
+    // Don't redirect if we're in forgot password mode
+    if (user && !loading && mode !== "forgot") {
       navigate("/dashboard");
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, mode]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();

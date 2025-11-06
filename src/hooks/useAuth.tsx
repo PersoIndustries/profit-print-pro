@@ -11,10 +11,17 @@ export const useAuth = () => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
+        console.log("Auth event:", event, "Session:", session);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Don't auto-redirect on password recovery - let the reset password page handle it
+        if (event === 'PASSWORD_RECOVERY') {
+          console.log("Password recovery detected, staying on current page");
+          return;
+        }
       }
     );
 
