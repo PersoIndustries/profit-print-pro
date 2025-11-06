@@ -64,8 +64,18 @@ const ResetPassword = () => {
               This password reset link is invalid or has expired. Please request a new one.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button className="w-full" onClick={() => navigate("/auth")}>
+          <CardContent className="space-y-3">
+            <Button 
+              className="w-full" 
+              onClick={() => navigate("/auth?mode=forgot")}
+            >
+              Request New Reset Link
+            </Button>
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={() => navigate("/auth")}
+            >
               Back to Login
             </Button>
           </CardContent>

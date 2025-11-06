@@ -52,6 +52,8 @@ const Auth = () => {
     setIsLoading(false);
   };
 
+  const [emailSent, setEmailSent] = useState(false);
+
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -61,6 +63,7 @@ const Auth = () => {
     if (error) {
       toast.error(error.message);
     } else {
+      setEmailSent(true);
       toast.success("Email de recuperación enviado. Revisa tu bandeja de entrada.");
     }
     setIsLoading(false);
@@ -81,34 +84,77 @@ const Auth = () => {
           <CardHeader>
             <CardTitle>Recuperar Contraseña</CardTitle>
             <CardDescription>
-              Ingresa tu email y te enviaremos un link para restablecer tu contraseña
+              {emailSent 
+                ? "¡Email enviado! Revisa tu bandeja de entrada y carpeta de spam."
+                : "Ingresa tu email y te enviaremos un link para restablecer tu contraseña"
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleResetPassword} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
+            {emailSent ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    📧 Hemos enviado un email a <strong>{email}</strong>
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Haz clic en el link del email para restablecer tu contraseña. El link expira en 1 hora.
+                  </p>
+                </div>
+                <div className="text-sm text-muted-foreground space-y-2">
+                  <p className="font-semibold">¿No recibiste el email?</p>
+                  <ul className="list-disc list-inside space-y-1 pl-2">
+                    <li>Revisa tu carpeta de spam</li>
+                    <li>Verifica que el email sea correcto</li>
+                    <li>Espera unos minutos, puede tardar</li>
+                  </ul>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setEmailSent(false);
+                    setEmail("");
+                  }}
+                >
+                  Intentar con otro email
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => navigate("/auth")}
+                >
+                  Volver al Login
+                </Button>
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Enviar Email de Recuperación
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full"
-                onClick={() => navigate("/auth")}
-              >
-                Volver al Login
-              </Button>
-            </form>
+            ) : (
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Enviar Email de Recuperación
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => navigate("/auth")}
+                >
+                  Volver al Login
+                </Button>
+              </form>
+            )}
           </CardContent>
         </Card>
       </div>
