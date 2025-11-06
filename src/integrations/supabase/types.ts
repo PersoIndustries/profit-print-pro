@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      invoices: {
+        Row: {
+          amount: number
+          billing_period: string | null
+          created_at: string | null
+          currency: string | null
+          id: string
+          invoice_number: string
+          issued_date: string | null
+          notes: string | null
+          paid_date: string | null
+          status: string | null
+          subscription_id: string | null
+          tier: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          billing_period?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          invoice_number: string
+          issued_date?: string | null
+          notes?: string | null
+          paid_date?: string | null
+          status?: string | null
+          subscription_id?: string | null
+          tier?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          billing_period?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          invoice_number?: string
+          issued_date?: string | null
+          notes?: string | null
+          paid_date?: string | null
+          status?: string | null
+          subscription_id?: string | null
+          tier?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "user_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       materials: {
         Row: {
           color: string | null
@@ -102,6 +158,10 @@ export type Database = {
       }
       profiles: {
         Row: {
+          billing_address: string | null
+          billing_city: string | null
+          billing_country: string | null
+          billing_postal_code: string | null
           company_name: string | null
           created_at: string | null
           email: string
@@ -110,6 +170,10 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          billing_address?: string | null
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_postal_code?: string | null
           company_name?: string | null
           created_at?: string | null
           email: string
@@ -118,6 +182,10 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          billing_address?: string | null
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_postal_code?: string | null
           company_name?: string | null
           created_at?: string | null
           email?: string
@@ -186,6 +254,46 @@ export type Database = {
           },
         ]
       }
+      subscription_changes: {
+        Row: {
+          admin_id: string | null
+          change_type: string
+          created_at: string | null
+          id: string
+          new_tier: Database["public"]["Enums"]["subscription_tier"] | null
+          notes: string | null
+          previous_tier: Database["public"]["Enums"]["subscription_tier"] | null
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          admin_id?: string | null
+          change_type: string
+          created_at?: string | null
+          id?: string
+          new_tier?: Database["public"]["Enums"]["subscription_tier"] | null
+          notes?: string | null
+          previous_tier?:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          admin_id?: string | null
+          change_type?: string
+          created_at?: string | null
+          id?: string
+          new_tier?: Database["public"]["Enums"]["subscription_tier"] | null
+          notes?: string | null
+          previous_tier?:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -209,28 +317,43 @@ export type Database = {
       }
       user_subscriptions: {
         Row: {
+          billing_period: string | null
           created_at: string | null
           expires_at: string | null
           id: string
+          last_payment_date: string | null
+          next_billing_date: string | null
+          price_paid: number | null
           starts_at: string
+          status: string | null
           tier: Database["public"]["Enums"]["subscription_tier"]
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          billing_period?: string | null
           created_at?: string | null
           expires_at?: string | null
           id?: string
+          last_payment_date?: string | null
+          next_billing_date?: string | null
+          price_paid?: number | null
           starts_at?: string
+          status?: string | null
           tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          billing_period?: string | null
           created_at?: string | null
           expires_at?: string | null
           id?: string
+          last_payment_date?: string | null
+          next_billing_date?: string | null
+          price_paid?: number | null
           starts_at?: string
+          status?: string | null
           tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string | null
           user_id?: string
@@ -246,6 +369,7 @@ export type Database = {
         Args: { _resource_type: string; _user_id: string }
         Returns: boolean
       }
+      generate_invoice_number: { Args: never; Returns: string }
       get_user_tier: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["subscription_tier"]
