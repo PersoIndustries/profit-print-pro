@@ -15,6 +15,14 @@ interface Project {
   total_price: number;
   notes: string | null;
   created_at: string;
+  project_materials?: {
+    material_id: string;
+    weight_grams: number;
+    materials: {
+      name: string;
+      color: string;
+    };
+  }[];
 }
 
 interface ProjectMaterial {

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, ArrowLeft, Save } from "lucide-react";
+import { Loader2, ArrowLeft, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Material {
@@ -276,17 +276,14 @@ const CalculatorPage = () => {
             </div>
 
             <div className="space-y-2">
-
-              <div className="space-y-2">
-                <Label htmlFor="printTime">Tiempo de Impresión (horas) *</Label>
-                <Input
-                  id="printTime"
-                  type="number"
-                  step="0.1"
-                  value={printTimeHours}
-                  onChange={(e) => setPrintTimeHours(e.target.value)}
-                />
-              </div>
+              <Label htmlFor="printTime">Tiempo de Impresión (horas) *</Label>
+              <Input
+                id="printTime"
+                type="number"
+                step="0.1"
+                value={printTimeHours}
+                onChange={(e) => setPrintTimeHours(e.target.value)}
+              />
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
