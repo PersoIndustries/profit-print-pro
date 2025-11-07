@@ -18,9 +18,10 @@ const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Check if we have a recovery token in the URL
+  // Check if we have a recovery token in the URL (can be in hash or query params)
   const searchParams = new URLSearchParams(location.search);
-  const hasToken = searchParams.get('type') === 'recovery';
+  const hashParams = new URLSearchParams(location.hash.substring(1));
+  const hasToken = searchParams.get('type') === 'recovery' || hashParams.get('type') === 'recovery';
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
