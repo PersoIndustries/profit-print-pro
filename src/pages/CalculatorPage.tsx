@@ -17,13 +17,19 @@ interface Material {
   price_per_kg: number;
 }
 
+interface ProjectMaterial {
+  materialId: string;
+  weightGrams: string;
+}
+
 const CalculatorPage = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [materials, setMaterials] = useState<Material[]>([]);
-  const [selectedMaterialId, setSelectedMaterialId] = useState("");
+  const [projectMaterials, setProjectMaterials] = useState<ProjectMaterial[]>([
+    { materialId: "", weightGrams: "" }
+  ]);
   const [projectName, setProjectName] = useState("");
-  const [weightGrams, setWeightGrams] = useState("");
   const [printTimeHours, setPrintTimeHours] = useState("");
   const [electricityCostPerKwh, setElectricityCostPerKwh] = useState("0.15");
   const [printerWattage, setPrinterWattage] = useState("250");
@@ -58,15 +64,38 @@ const CalculatorPage = () => {
     }
   };
 
+  const addMaterialRow = () => {
+    setProjectMaterials([...projectMaterials, { materialId: "", weightGrams: "" }]);
+  };
+
+  const removeMaterialRow = (index: number) => {
+    if (projectMaterials.length > 1) {
+      setProjectMaterials(projectMaterials.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateMaterialRow = (index: number, field: keyof ProjectMaterial, value: string) => {
+    const updated = [...projectMaterials];
+    updated[index][field] = value;
+    setProjectMaterials(updated);
+  };
+
   const calculatePrice = () => {
-    const material = materials.find(m => m.id === selectedMaterialId);
-    if (!material || !weightGrams || !printTimeHours) {
+    // Validar que todos los materiales tengan material y peso
+    const hasEmptyFields = projectMaterials.some(pm => !pm.materialId || !pm.weightGrams);
+    if (hasEmptyFields || !printTimeHours) {
       toast.error("Completa todos los campos obligatorios");
       return;
     }
 
-    const weightKg = parseFloat(weightGrams) / 1000;
-    const materialCost = weightKg * material.price_per_kg;
+    // Calcular costo total de materiales
+    let totalMaterialCost = 0;
+    for (const pm of projectMaterials) {
+      const material = materials.find(m => m.id === pm.materialId);
+      if (!material) continue;
+      const weightKg = parseFloat(pm.weightGrams) / 1000;
+      totalMaterialCost += weightKg * material.price_per_kg;
+    }
 
     const hours = parseFloat(printTimeHours);
     const kwh = (parseFloat(printerWattage) / 1000) * hours;
@@ -74,7 +103,7 @@ const CalculatorPage = () => {
 
     const laborCost = hours * parseFloat(laborCostPerHour);
 
-    const totalCost = materialCost + electricityCost + laborCost;
+    const totalCost = totalMaterialCost + electricityCost + laborCost;
     const finalPrice = totalCost * (1 + parseFloat(profitMargin) / 100);
 
     setCalculatedPrice(finalPrice);
@@ -86,37 +115,68 @@ const CalculatorPage = () => {
       return;
     }
 
-    const material = materials.find(m => m.id === selectedMaterialId);
-    if (!material) return;
-
-    const weightKg = parseFloat(weightGrams) / 1000;
-    const materialCost = weightKg * material.price_per_kg;
+    // Calcular costos
     const hours = parseFloat(printTimeHours);
     const kwh = (parseFloat(printerWattage) / 1000) * hours;
     const electricityCost = kwh * parseFloat(electricityCostPerKwh);
     const laborCost = hours * parseFloat(laborCostPerHour);
+    
+    // Calcular peso total y costo total de materiales
+    let totalWeightGrams = 0;
+    let totalMaterialCost = 0;
+    
+    for (const pm of projectMaterials) {
+      const material = materials.find(m => m.id === pm.materialId);
+      if (!material) continue;
+      const weightKg = parseFloat(pm.weightGrams) / 1000;
+      totalWeightGrams += parseFloat(pm.weightGrams);
+      totalMaterialCost += weightKg * material.price_per_kg;
+    }
 
     try {
-      const { error } = await supabase.from("projects").insert({
-        user_id: user.id,
-        name: projectName,
-        material_id: selectedMaterialId,
-        weight_grams: parseFloat(weightGrams),
-        print_time_hours: parseFloat(printTimeHours),
-        electricity_cost: electricityCost,
-        material_cost: materialCost,
-        labor_cost: laborCost,
-        profit_margin: parseFloat(profitMargin),
-        total_price: calculatedPrice,
-        notes: notes || null,
-      });
+      // Insertar proyecto
+      const { data: project, error: projectError } = await supabase
+        .from("projects")
+        .insert({
+          user_id: user.id,
+          name: projectName,
+          weight_grams: totalWeightGrams,
+          print_time_hours: parseFloat(printTimeHours),
+          electricity_cost: electricityCost,
+          material_cost: totalMaterialCost,
+          labor_cost: laborCost,
+          profit_margin: parseFloat(profitMargin),
+          total_price: calculatedPrice,
+          notes: notes || null,
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (projectError) throw projectError;
+
+      // Insertar materiales del proyecto
+      const projectMaterialsData = projectMaterials.map(pm => {
+        const material = materials.find(m => m.id === pm.materialId);
+        if (!material) return null;
+        const weightKg = parseFloat(pm.weightGrams) / 1000;
+        return {
+          project_id: project.id,
+          material_id: pm.materialId,
+          weight_grams: parseFloat(pm.weightGrams),
+          material_cost: weightKg * material.price_per_kg,
+        };
+      }).filter(Boolean);
+
+      const { error: materialsError } = await supabase
+        .from("project_materials")
+        .insert(projectMaterialsData);
+
+      if (materialsError) throw materialsError;
 
       toast.success("Proyecto guardado");
       navigate("/projects");
     } catch (error: any) {
-      toast.error("Error al guardar proyecto");
+      toast.error("Error al guardar proyecto: " + error.message);
     }
   };
 
@@ -155,38 +215,67 @@ const CalculatorPage = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="material">Material *</Label>
-              <Select value={selectedMaterialId} onValueChange={setSelectedMaterialId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un material" />
-                </SelectTrigger>
-                <SelectContent>
-                  {materials.length === 0 ? (
-                    <div className="p-4 text-center text-muted-foreground">
-                      No hay materiales. <Button variant="link" onClick={() => navigate("/materials")}>Añadir material</Button>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Label>Materiales *</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addMaterialRow}>
+                  + Añadir Material
+                </Button>
+              </div>
+              
+              {projectMaterials.map((pm, index) => (
+                <div key={index} className="grid md:grid-cols-2 gap-4 p-4 border rounded-lg">
+                  <div className="space-y-2">
+                    <Label>Material</Label>
+                    <Select 
+                      value={pm.materialId} 
+                      onValueChange={(value) => updateMaterialRow(index, 'materialId', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona material" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {materials.length === 0 ? (
+                          <div className="p-4 text-center text-muted-foreground">
+                            No hay materiales. <Button variant="link" onClick={() => navigate("/materials")}>Añadir material</Button>
+                          </div>
+                        ) : (
+                          materials.map((material) => (
+                            <SelectItem key={material.id} value={material.id}>
+                              {material.name} - €{material.price_per_kg}/kg
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label>Peso (gramos)</Label>
+                      {projectMaterials.length > 1 && (
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => removeMaterialRow(index)}
+                        >
+                          Eliminar
+                        </Button>
+                      )}
                     </div>
-                  ) : (
-                    materials.map((material) => (
-                      <SelectItem key={material.id} value={material.id}>
-                        {material.name} - €{material.price_per_kg}/kg
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+                    <Input
+                      type="number"
+                      value={pm.weightGrams}
+                      onChange={(e) => updateMaterialRow(index, 'weightGrams', e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="weight">Peso (gramos) *</Label>
-                <Input
-                  id="weight"
-                  type="number"
-                  value={weightGrams}
-                  onChange={(e) => setWeightGrams(e.target.value)}
-                />
-              </div>
+            <div className="space-y-2">
 
               <div className="space-y-2">
                 <Label htmlFor="printTime">Tiempo de Impresión (horas) *</Label>

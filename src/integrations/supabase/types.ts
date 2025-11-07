@@ -195,6 +195,48 @@ export type Database = {
         }
         Relationships: []
       }
+      project_materials: {
+        Row: {
+          created_at: string | null
+          id: string
+          material_cost: number
+          material_id: string
+          project_id: string
+          weight_grams: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          material_cost: number
+          material_id: string
+          project_id: string
+          weight_grams: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          material_cost?: number
+          material_id?: string
+          project_id?: string
+          weight_grams?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_materials_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_materials_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           created_at: string | null
