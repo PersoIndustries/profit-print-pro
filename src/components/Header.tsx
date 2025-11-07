@@ -26,6 +26,9 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
           </h1>
           <div className="flex items-center gap-4">
             <LanguageSwitcher />
+            <Button variant="ghost" onClick={() => navigate('/')}>
+              {t('nav.home')}
+            </Button>
             <Button variant="ghost" onClick={() => navigate('/pricing')}>
               {t('nav.pricing')}
             </Button>

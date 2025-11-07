@@ -24,9 +24,6 @@ const Landing = () => {
             <Button size="lg" onClick={() => navigate("/auth")}>
               {t('landing.hero.cta')}
             </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate("/pricing")}>
-              {t('landing.hero.ctaSecondary')}
-            </Button>
           </div>
         </div>
 
