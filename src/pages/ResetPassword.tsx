@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { KeyRound } from "lucide-react";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { Header } from "@/components/Header";
 
 const ResetPassword = () => {
   const { t } = useTranslation();
@@ -87,12 +87,7 @@ const ResetPassword = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <nav className="border-b bg-background/95 backdrop-blur">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-primary">Print3D Manager</h1>
-          <LanguageSwitcher />
-        </div>
-      </nav>
+      <Header variant="auth" />
 
       <div className="container mx-auto px-4 py-16 flex items-center justify-center">
         <Card className="w-full max-w-md">

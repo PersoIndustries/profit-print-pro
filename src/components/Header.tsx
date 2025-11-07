@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { LogOut, Settings, LayoutDashboard } from 'lucide-react';
 
 interface HeaderProps {
-  variant?: 'landing' | 'app';
+  variant?: 'landing' | 'app' | 'auth';
 }
 
 export const Header = ({ variant = 'landing' }: HeaderProps) => {
@@ -14,24 +14,51 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
   const { t } = useTranslation();
   const { user, signOut } = useAuth();
 
-  if (variant === 'landing') {
+  // Auth variant for login/signup pages
+  if (variant === 'auth') {
     return (
       <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 
-            className="text-2xl font-bold text-primary cursor-pointer" 
-            onClick={() => navigate('/')}
-          >
-            Print3D Manager
-          </h1>
           <div className="flex items-center gap-4">
-            <LanguageSwitcher />
+            <h1 
+              className="text-2xl font-bold text-primary cursor-pointer" 
+              onClick={() => navigate('/')}
+            >
+              Print3D Manager
+            </h1>
             <Button variant="ghost" onClick={() => navigate('/')}>
               {t('nav.home')}
             </Button>
             <Button variant="ghost" onClick={() => navigate('/pricing')}>
               {t('nav.pricing')}
             </Button>
+          </div>
+          <LanguageSwitcher />
+        </div>
+      </nav>
+    );
+  }
+
+  if (variant === 'landing') {
+    return (
+      <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <h1 
+              className="text-2xl font-bold text-primary cursor-pointer" 
+              onClick={() => navigate('/')}
+            >
+              Print3D Manager
+            </h1>
+            <Button variant="ghost" onClick={() => navigate('/')}>
+              {t('nav.home')}
+            </Button>
+            <Button variant="ghost" onClick={() => navigate('/pricing')}>
+              {t('nav.pricing')}
+            </Button>
+          </div>
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher />
             {!user && (
               <>
                 <Button variant="ghost" onClick={() => navigate('/auth')}>
@@ -58,14 +85,13 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
   return (
     <nav className="border-b bg-card/50 backdrop-blur">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <h1 
-          className="text-2xl font-bold text-primary cursor-pointer" 
-          onClick={() => navigate('/dashboard')}
-        >
-          Print3D Manager
-        </h1>
         <div className="flex items-center gap-4">
-          <LanguageSwitcher />
+          <h1 
+            className="text-2xl font-bold text-primary cursor-pointer" 
+            onClick={() => navigate('/dashboard')}
+          >
+            Print3D Manager
+          </h1>
           <Button variant="ghost" onClick={() => navigate('/dashboard')}>
             {t('nav.dashboard')}
           </Button>
@@ -81,6 +107,9 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
           <Button variant="ghost" onClick={() => navigate('/orders')}>
             {t('nav.orders')}
           </Button>
+        </div>
+        <div className="flex items-center gap-4">
+          <LanguageSwitcher />
           <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
             <Settings className="w-4 h-4" />
           </Button>

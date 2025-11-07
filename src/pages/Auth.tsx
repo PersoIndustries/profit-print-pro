@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff } from "lucide-react";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { Header } from "@/components/Header";
 
 const Auth = () => {
   const { user, loading, signUp, signIn, resetPassword } = useAuth();
@@ -90,11 +90,10 @@ const Auth = () => {
 
   if (mode === "forgot") {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-background via-background to-muted">
-        <div className="absolute top-4 right-4">
-          <LanguageSwitcher />
-        </div>
-        <Card className="w-full max-w-md mx-4">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+        <Header variant="auth" />
+        <div className="container mx-auto px-4 py-16 flex items-center justify-center">
+          <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Recuperar Contraseña</CardTitle>
             <CardDescription>
@@ -169,18 +168,18 @@ const Auth = () => {
                 </Button>
               </form>
             )}
-          </CardContent>
+           </CardContent>
         </Card>
       </div>
+    </div>
     );
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <div className="absolute top-4 right-4">
-        <LanguageSwitcher />
-      </div>
-      <Card className="w-full max-w-md mx-4">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+      <Header variant="auth" />
+      <div className="container mx-auto px-4 py-16 flex items-center justify-center">
+        <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Print3D Manager</CardTitle>
           <CardDescription>Gestiona tu emprendimiento de impresión 3D</CardDescription>
@@ -320,8 +319,9 @@ const Auth = () => {
             </TabsContent>
           </Tabs>
         </CardContent>
-      </Card>
+       </Card>
     </div>
+  </div>
   );
 };
 
