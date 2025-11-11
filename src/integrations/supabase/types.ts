@@ -592,6 +592,42 @@ export type Database = {
         }
         Relationships: []
       }
+      tier_features: {
+        Row: {
+          created_at: string
+          description: string | null
+          feature_key: string
+          feature_name: string
+          free_tier: boolean
+          id: string
+          tier_1: boolean
+          tier_2: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          feature_key: string
+          feature_name: string
+          free_tier?: boolean
+          id?: string
+          tier_1?: boolean
+          tier_2?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          feature_key?: string
+          feature_name?: string
+          free_tier?: boolean
+          id?: string
+          tier_1?: boolean
+          tier_2?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null

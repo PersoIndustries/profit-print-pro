@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useSubscription } from "@/hooks/useSubscription";
+import { useTierFeatures } from "@/hooks/useTierFeatures";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,7 +85,7 @@ const getMaterialIcon = (type: string | null) => {
 
 const Inventory = () => {
   const { user, loading } = useAuth();
-  const { subscription, loading: subLoading } = useSubscription();
+  const { hasFeature, isEnterprise, loading: featuresLoading } = useTierFeatures();
   const navigate = useNavigate();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -125,8 +125,6 @@ const Inventory = () => {
     quantity_grams: "",
     notes: "",
   });
-
-  const isEnterprise = subscription?.tier === 'tier_2';
 
   useEffect(() => {
     if (!loading && !user) {
@@ -461,7 +459,7 @@ const Inventory = () => {
     ? materials 
     : materials.filter(m => m.type === filterType);
 
-  if (loading || materialsLoading || subLoading) {
+  if (loading || materialsLoading || featuresLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin" />
@@ -481,20 +479,20 @@ const Inventory = () => {
       <Tabs defaultValue="materials" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="materials">Tipos de Materiales</TabsTrigger>
-          <TabsTrigger value="inventory" disabled={!isEnterprise}>
+          <TabsTrigger value="inventory" disabled={!hasFeature('inventory_management')}>
             <Archive className="w-4 h-4 mr-2" />
             Inventario
-            {!isEnterprise && <Crown className="w-3 h-3 ml-2" />}
+            {!hasFeature('inventory_management') && <Crown className="w-3 h-3 ml-2" />}
           </TabsTrigger>
-          <TabsTrigger value="acquisitions" disabled={!isEnterprise}>
+          <TabsTrigger value="acquisitions" disabled={!hasFeature('acquisition_history')}>
             <ShoppingCart className="w-4 h-4 mr-2" />
             Adquisiciones
-            {!isEnterprise && <Crown className="w-3 h-3 ml-2" />}
+            {!hasFeature('acquisition_history') && <Crown className="w-3 h-3 ml-2" />}
           </TabsTrigger>
-          <TabsTrigger value="history" disabled={!isEnterprise}>
+          <TabsTrigger value="history" disabled={!hasFeature('movement_history')}>
             <History className="w-4 h-4 mr-2" />
             Historial
-            {!isEnterprise && <Crown className="w-3 h-3 ml-2" />}
+            {!hasFeature('movement_history') && <Crown className="w-3 h-3 ml-2" />}
           </TabsTrigger>
         </TabsList>
 
@@ -664,16 +662,16 @@ const Inventory = () => {
 
         {/* TAB: Inventario */}
         <TabsContent value="inventory" className="mt-6">
-          {!isEnterprise ? (
+          {!hasFeature('inventory_management') ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <Crown className="w-12 h-12 mx-auto mb-4 text-purple-500" />
-                <h3 className="text-xl font-bold mb-2">Función Business</h3>
+                <h3 className="text-xl font-bold mb-2">Función Enterprise</h3>
                 <p className="text-muted-foreground mb-4">
-                  El control de inventario está disponible solo para usuarios Business
+                  El control de inventario está disponible solo para usuarios Enterprise
                 </p>
                 <Button onClick={() => navigate('/settings')}>
-                  Ver Planes
+                  Actualizar a Enterprise
                 </Button>
               </CardContent>
             </Card>
@@ -686,10 +684,12 @@ const Inventory = () => {
                     Control de stock y cantidades disponibles
                   </CardDescription>
                 </div>
-                <Button onClick={() => setIsWasteDialogOpen(true)} variant="destructive">
-                  <Trash className="w-4 h-4 mr-2" />
-                  Registrar Desperdicio
-                </Button>
+                {hasFeature('waste_tracking') && (
+                  <Button onClick={() => setIsWasteDialogOpen(true)} variant="destructive">
+                    <Trash className="w-4 h-4 mr-2" />
+                    Registrar Desperdicio
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 <Table>
@@ -738,16 +738,16 @@ const Inventory = () => {
 
         {/* TAB: Adquisiciones */}
         <TabsContent value="acquisitions" className="mt-6">
-          {!isEnterprise ? (
+          {!hasFeature('acquisition_history') ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <Crown className="w-12 h-12 mx-auto mb-4 text-purple-500" />
-                <h3 className="text-xl font-bold mb-2">Función Business</h3>
+                <h3 className="text-xl font-bold mb-2">Función Enterprise</h3>
                 <p className="text-muted-foreground mb-4">
-                  El historial de adquisiciones está disponible solo para usuarios Business
+                  El historial de adquisiciones está disponible solo para usuarios Enterprise
                 </p>
                 <Button onClick={() => navigate('/settings')}>
-                  Ver Planes
+                  Actualizar a Enterprise
                 </Button>
               </CardContent>
             </Card>
@@ -819,16 +819,16 @@ const Inventory = () => {
 
         {/* TAB: Historial */}
         <TabsContent value="history" className="mt-6">
-          {!isEnterprise ? (
+          {!hasFeature('movement_history') ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <Crown className="w-12 h-12 mx-auto mb-4 text-purple-500" />
-                <h3 className="text-xl font-bold mb-2">Función Business</h3>
+                <h3 className="text-xl font-bold mb-2">Función Enterprise</h3>
                 <p className="text-muted-foreground mb-4">
-                  El historial de movimientos está disponible solo para usuarios Business
+                  El historial de movimientos está disponible solo para usuarios Enterprise
                 </p>
                 <Button onClick={() => navigate('/settings')}>
-                  Ver Planes
+                  Actualizar a Enterprise
                 </Button>
               </CardContent>
             </Card>
