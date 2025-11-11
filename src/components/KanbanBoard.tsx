@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -154,6 +154,12 @@ export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
     material_used_grams: '',
     notes: ''
   });
+  const [filters, setFilters] = useState({
+    customer: '',
+    project: '',
+    dateFrom: '',
+    dateTo: ''
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -226,8 +232,28 @@ export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
   };
 
   const getItemsByStatus = (status: Status) => {
-    return items.filter(item => item.status === status);
+    return items.filter(item => {
+      if (item.status !== status) return false;
+      
+      // Filter by customer
+      if (filters.customer && !item.orders.customer_name.toLowerCase().includes(filters.customer.toLowerCase())) {
+        return false;
+      }
+      
+      // Filter by project
+      if (filters.project && !item.projects.name.toLowerCase().includes(filters.project.toLowerCase())) {
+        return false;
+      }
+      
+      return true;
+    });
   };
+
+  const clearFilters = () => {
+    setFilters({ customer: '', project: '', dateFrom: '', dateTo: '' });
+  };
+
+  const hasActiveFilters = filters.customer || filters.project || filters.dateFrom || filters.dateTo;
 
   const handleAddPrint = (item: OrderItem) => {
     setSelectedItem(item);
@@ -281,6 +307,64 @@ export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
+      {/* Filtros */}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Search className="w-5 h-5" />
+              Filtros Avanzados
+            </CardTitle>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                <X className="w-4 h-4 mr-1" />
+                Limpiar
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <Label htmlFor="filter-customer">Cliente</Label>
+              <Input
+                id="filter-customer"
+                placeholder="Buscar por cliente..."
+                value={filters.customer}
+                onChange={(e) => setFilters({ ...filters, customer: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="filter-project">Proyecto</Label>
+              <Input
+                id="filter-project"
+                placeholder="Buscar por proyecto..."
+                value={filters.project}
+                onChange={(e) => setFilters({ ...filters, project: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="filter-date-from">Desde</Label>
+              <Input
+                id="filter-date-from"
+                type="date"
+                value={filters.dateFrom}
+                onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="filter-date-to">Hasta</Label>
+              <Input
+                id="filter-date-to"
+                type="date"
+                value={filters.dateTo}
+                onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {Object.entries(STATUS_CONFIG).map(([status, config]) => {
           const statusItems = getItemsByStatus(status as Status);
