@@ -2,7 +2,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { LogOut, Settings, LayoutDashboard } from 'lucide-react';
@@ -57,7 +56,6 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
               {t('nav.pricing')}
             </Button>
           </div>
-          <LanguageSwitcher />
         </div>
       </nav>
     );
@@ -82,7 +80,6 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
             </Button>
           </div>
           <div className="flex items-center gap-4">
-            <LanguageSwitcher />
             {!user && (
               <>
                 <Button variant="ghost" onClick={() => navigate('/auth')}>
@@ -157,7 +154,6 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
           </Button>
         </div>
         <div className="flex items-center gap-4">
-          <LanguageSwitcher />
           <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
             <Settings className="w-4 h-4" />
           </Button>

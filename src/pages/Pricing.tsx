@@ -7,6 +7,7 @@ import { Check } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
 import { useAuth } from '@/hooks/useAuth';
 
 const Pricing = () => {
@@ -75,10 +76,10 @@ const Pricing = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted">
       <Header variant="landing" />
 
-      <div className="container mx-auto px-4 py-16">
+      <div className="flex-1 container mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">{t('pricing.title')}</h1>
           <p className="text-xl text-muted-foreground mb-8">{t('pricing.subtitle')}</p>
@@ -170,6 +171,7 @@ const Pricing = () => {
           })}
         </div>
       </div>
+      <Footer variant="landing" />
     </div>
   );
 };

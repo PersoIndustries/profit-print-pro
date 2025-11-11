@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 const Auth = () => {
   const { user, loading, signUp, signIn, resetPassword } = useAuth();
@@ -90,9 +91,9 @@ const Auth = () => {
 
   if (mode === "forgot") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted">
         <Header variant="auth" />
-        <div className="container mx-auto px-4 py-16 flex items-center justify-center">
+        <div className="flex-1 container mx-auto px-4 py-16 flex items-center justify-center">
           <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Recuperar Contraseña</CardTitle>
@@ -171,14 +172,15 @@ const Auth = () => {
            </CardContent>
         </Card>
       </div>
+      <Footer variant="landing" />
     </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted">
       <Header variant="auth" />
-      <div className="container mx-auto px-4 py-16 flex items-center justify-center">
+      <div className="flex-1 container mx-auto px-4 py-16 flex items-center justify-center">
         <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Print3D Manager</CardTitle>
@@ -321,6 +323,7 @@ const Auth = () => {
         </CardContent>
        </Card>
     </div>
+    <Footer variant="landing" />
   </div>
   );
 };

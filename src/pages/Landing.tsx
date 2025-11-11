@@ -3,16 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Printer, TrendingUp, Package, Calculator } from "lucide-react";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 const Landing = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted">
       <Header variant="landing" />
 
-      <main className="container mx-auto px-4 py-20">
+      <main className="flex-1 container mx-auto px-4 py-20">
         <div className="text-center max-w-3xl mx-auto mb-20">
           <h2 className="text-5xl font-bold mb-6">
             {t('landing.hero.title')}
@@ -72,11 +73,7 @@ const Landing = () => {
         </div>
       </main>
 
-      <footer className="border-t mt-20 py-8">
-        <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <p>© 2024 Print3D Manager. Todos los derechos reservados.</p>
-        </div>
-      </footer>
+      <Footer variant="landing" />
     </div>
   );
 };

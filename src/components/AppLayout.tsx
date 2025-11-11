@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -7,11 +8,12 @@ interface AppLayoutProps {
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted">
       <Header variant="app" />
-      <main className="container mx-auto px-4 py-8">
+      <main className="flex-1 container mx-auto px-4 py-8">
         {children}
       </main>
+      <Footer variant="app" />
     </div>
   );
 };
