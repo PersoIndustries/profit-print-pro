@@ -23,7 +23,7 @@ interface ProjectMaterial {
   weightGrams: string;
 }
 
-type LineType = 'material' | 'labor' | 'packaging' | 'amortization' | 'other';
+type LineType = 'material' | 'labor' | 'packaging' | 'amortization' | 'print_time' | 'other';
 
 interface InvoiceLine {
   id: string;
@@ -176,6 +176,7 @@ const CalculatorPage = () => {
       labor: 'Mano de Obra',
       packaging: 'Embalaje',
       amortization: 'Amortización',
+      print_time: 'Horas de Impresión',
       other: 'Otros'
     };
     return labels[type];
@@ -432,6 +433,10 @@ const CalculatorPage = () => {
                 <Button type="button" variant="outline" size="sm" onClick={() => addInvoiceLine('amortization')}>
                   <Plus className="w-3 h-3 mr-1" />
                   Amortización
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => addInvoiceLine('print_time')}>
+                  <Plus className="w-3 h-3 mr-1" />
+                  Horas Impresión
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={() => addInvoiceLine('other')}>
                   <Plus className="w-3 h-3 mr-1" />
