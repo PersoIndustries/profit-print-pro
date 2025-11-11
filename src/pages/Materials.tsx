@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Plus, Trash2, Star } from "lucide-react";
 import { toast } from "sonner";
 
@@ -17,6 +18,19 @@ interface Material {
   type: string | null;
   is_favorite: boolean;
 }
+
+const MATERIAL_TYPES = [
+  { value: 'filament', label: 'Filament' },
+  { value: 'resin', label: 'Resin' },
+  { value: 'glue', label: 'Glue' },
+  { value: 'keyring', label: 'Keyring' },
+  { value: 'magnet', label: 'Magnet' },
+  { value: 'screw', label: 'Screw' },
+  { value: 'bolt', label: 'Bolt' },
+  { value: 'paint', label: 'Paint' },
+  { value: 'sandpaper', label: 'Sandpaper' },
+  { value: 'other', label: 'Other' },
+];
 
 const Materials = () => {
   const { user, loading } = useAuth();
@@ -166,12 +180,21 @@ const Materials = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="type">Tipo</Label>
-                  <Input
-                    id="type"
-                    placeholder="PLA, ABS, PETG, etc."
+                  <Select
                     value={newMaterial.type}
-                    onChange={(e) => setNewMaterial({ ...newMaterial, type: e.target.value })}
-                  />
+                    onValueChange={(value) => setNewMaterial({ ...newMaterial, type: value })}
+                  >
+                    <SelectTrigger id="type">
+                      <SelectValue placeholder="Selecciona tipo" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover z-50">
+                      {MATERIAL_TYPES.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button type="submit" className="w-full">
                   <Plus className="w-4 h-4 mr-2" />
@@ -203,7 +226,9 @@ const Materials = () => {
                         <div className="text-sm text-muted-foreground mt-1">
                           <p>Precio: €{material.price_per_kg}/kg</p>
                           {material.color && <p>Color: {material.color}</p>}
-                          {material.type && <p>Tipo: {material.type}</p>}
+                          {material.type && (
+                            <p>Tipo: {MATERIAL_TYPES.find(t => t.value === material.type)?.label || material.type}</p>
+                          )}
                         </div>
                       </div>
                       <div className="flex gap-2">
