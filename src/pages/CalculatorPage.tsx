@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Save, Trash2 } from "lucide-react";
+import { Loader2, Save, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface Material {
   id: string;
@@ -22,23 +23,34 @@ interface ProjectMaterial {
   weightGrams: string;
 }
 
+type LineType = 'material' | 'labor' | 'packaging' | 'amortization' | 'other';
+
+interface InvoiceLine {
+  id: string;
+  type: LineType;
+  description: string;
+  quantity: string;
+  unitPrice: string;
+  total: number;
+  materialId?: string;
+}
+
 const CalculatorPage = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { projectId } = useParams();
   const [materials, setMaterials] = useState<Material[]>([]);
-  const [projectMaterials, setProjectMaterials] = useState<ProjectMaterial[]>([
-    { materialId: "", weightGrams: "" }
-  ]);
+  const [projectMaterials, setProjectMaterials] = useState<ProjectMaterial[]>([]);
   const [projectName, setProjectName] = useState("");
   const [printTimeHours, setPrintTimeHours] = useState("");
-  const [electricityCostPerKwh, setElectricityCostPerKwh] = useState("0.15");
-  const [printerWattage, setPrinterWattage] = useState("250");
-  const [laborCostPerHour, setLaborCostPerHour] = useState("15");
   const [profitMargin, setProfitMargin] = useState("30");
   const [notes, setNotes] = useState("");
   const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  
+  // Sistema de líneas tipo factura
+  const [invoiceLines, setInvoiceLines] = useState<InvoiceLine[]>([]);
+  const [nextLineId, setNextLineId] = useState(1);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -103,7 +115,9 @@ const CalculatorPage = () => {
       const { data, error } = await supabase
         .from("materials")
         .select("id, name, price_per_kg")
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .order("is_favorite", { ascending: false })
+        .order("name", { ascending: true });
 
       if (error) throw error;
       setMaterials(data || []);
@@ -112,49 +126,73 @@ const CalculatorPage = () => {
     }
   };
 
-  const addMaterialRow = () => {
-    setProjectMaterials([...projectMaterials, { materialId: "", weightGrams: "" }]);
+  const getLineTypeLabel = (type: LineType): string => {
+    const labels: Record<LineType, string> = {
+      material: 'Material',
+      labor: 'Mano de Obra',
+      packaging: 'Embalaje',
+      amortization: 'Amortización',
+      other: 'Otros'
+    };
+    return labels[type];
   };
 
-  const removeMaterialRow = (index: number) => {
-    if (projectMaterials.length > 1) {
-      setProjectMaterials(projectMaterials.filter((_, i) => i !== index));
-    }
+  const addInvoiceLine = (type: LineType) => {
+    const newLine: InvoiceLine = {
+      id: `line-${nextLineId}`,
+      type,
+      description: '',
+      quantity: '1',
+      unitPrice: '0',
+      total: 0
+    };
+    setInvoiceLines([...invoiceLines, newLine]);
+    setNextLineId(nextLineId + 1);
   };
 
-  const updateMaterialRow = (index: number, field: keyof ProjectMaterial, value: string) => {
-    const updated = [...projectMaterials];
-    updated[index][field] = value;
-    setProjectMaterials(updated);
+  const updateInvoiceLine = (id: string, field: keyof InvoiceLine, value: string) => {
+    setInvoiceLines(lines => lines.map(line => {
+      if (line.id !== id) return line;
+      
+      const updated = { ...line, [field]: value };
+      
+      // Si es un material, actualizar descripción y precio automáticamente
+      if (field === 'materialId' && value) {
+        const material = materials.find(m => m.id === value);
+        if (material) {
+          updated.description = material.name;
+          updated.unitPrice = (material.price_per_kg / 1000).toFixed(4); // precio por gramo
+        }
+      }
+      
+      // Calcular total
+      const qty = parseFloat(updated.quantity) || 0;
+      const price = parseFloat(updated.unitPrice) || 0;
+      updated.total = qty * price;
+      
+      return updated;
+    }));
   };
 
-  const calculatePrice = () => {
-    // Validar que todos los materiales tengan material y peso
-    const hasEmptyFields = projectMaterials.some(pm => !pm.materialId || !pm.weightGrams);
-    if (hasEmptyFields || !printTimeHours) {
-      toast.error("Completa todos los campos obligatorios");
+  const removeInvoiceLine = (id: string) => {
+    setInvoiceLines(lines => lines.filter(line => line.id !== id));
+  };
+
+  const calculateTotals = () => {
+    const subtotal = invoiceLines.reduce((sum, line) => sum + line.total, 0);
+    const margin = parseFloat(profitMargin) || 0;
+    const total = subtotal * (1 + margin / 100);
+    return { subtotal, total };
+  };
+
+  const calculateAndDisplay = () => {
+    if (invoiceLines.length === 0) {
+      toast.error("Añade al menos una línea de concepto");
       return;
     }
-
-    // Calcular costo total de materiales
-    let totalMaterialCost = 0;
-    for (const pm of projectMaterials) {
-      const material = materials.find(m => m.id === pm.materialId);
-      if (!material) continue;
-      const weightKg = parseFloat(pm.weightGrams) / 1000;
-      totalMaterialCost += weightKg * material.price_per_kg;
-    }
-
-    const hours = parseFloat(printTimeHours);
-    const kwh = (parseFloat(printerWattage) / 1000) * hours;
-    const electricityCost = kwh * parseFloat(electricityCostPerKwh);
-
-    const laborCost = hours * parseFloat(laborCostPerHour);
-
-    const totalCost = totalMaterialCost + electricityCost + laborCost;
-    const finalPrice = totalCost * (1 + parseFloat(profitMargin) / 100);
-
-    setCalculatedPrice(finalPrice);
+    
+    const { total } = calculateTotals();
+    setCalculatedPrice(total);
   };
 
   const handleSaveProject = async () => {
@@ -163,23 +201,30 @@ const CalculatorPage = () => {
       return;
     }
 
-    // Calcular costos
-    const hours = parseFloat(printTimeHours);
-    const kwh = (parseFloat(printerWattage) / 1000) * hours;
-    const electricityCost = kwh * parseFloat(electricityCostPerKwh);
-    const laborCost = hours * parseFloat(laborCostPerHour);
+    // Extraer materiales de las líneas de factura
+    const materialLines = invoiceLines.filter(line => line.type === 'material' && line.materialId);
     
     // Calcular peso total y costo total de materiales
     let totalWeightGrams = 0;
     let totalMaterialCost = 0;
     
-    for (const pm of projectMaterials) {
-      const material = materials.find(m => m.id === pm.materialId);
+    for (const line of materialLines) {
+      if (!line.materialId) continue;
+      const material = materials.find(m => m.id === line.materialId);
       if (!material) continue;
-      const weightKg = parseFloat(pm.weightGrams) / 1000;
-      totalWeightGrams += parseFloat(pm.weightGrams);
-      totalMaterialCost += weightKg * material.price_per_kg;
+      const weightGrams = parseFloat(line.quantity) || 0;
+      totalWeightGrams += weightGrams;
+      totalMaterialCost += line.total;
     }
+
+    // Calcular otros costos desde las líneas
+    const laborCost = invoiceLines
+      .filter(l => l.type === 'labor')
+      .reduce((sum, l) => sum + l.total, 0);
+    
+    const electricityCost = invoiceLines
+      .filter(l => l.type === 'amortization')
+      .reduce((sum, l) => sum + l.total, 0);
 
     try {
       if (isEditMode && projectId) {
@@ -189,7 +234,7 @@ const CalculatorPage = () => {
           .update({
             name: projectName,
             weight_grams: totalWeightGrams,
-            print_time_hours: parseFloat(printTimeHours),
+            print_time_hours: parseFloat(printTimeHours) || 0,
             electricity_cost: electricityCost,
             material_cost: totalMaterialCost,
             labor_cost: laborCost,
@@ -205,23 +250,26 @@ const CalculatorPage = () => {
         await supabase.from("project_materials").delete().eq("project_id", projectId);
 
         // Insertar nuevos materiales
-        const projectMaterialsData = projectMaterials.map(pm => {
-          const material = materials.find(m => m.id === pm.materialId);
-          if (!material) return null;
-          const weightKg = parseFloat(pm.weightGrams) / 1000;
-          return {
-            project_id: projectId,
-            material_id: pm.materialId,
-            weight_grams: parseFloat(pm.weightGrams),
-            material_cost: weightKg * material.price_per_kg,
-          };
-        }).filter(Boolean);
+        if (materialLines.length > 0) {
+          const projectMaterialsData = materialLines.map(line => {
+            const material = materials.find(m => m.id === line.materialId);
+            if (!material) return null;
+            return {
+              project_id: projectId,
+              material_id: line.materialId,
+              weight_grams: parseFloat(line.quantity) || 0,
+              material_cost: line.total,
+            };
+          }).filter(Boolean);
 
-        const { error: materialsError } = await supabase
-          .from("project_materials")
-          .insert(projectMaterialsData);
+          if (projectMaterialsData.length > 0) {
+            const { error: materialsError } = await supabase
+              .from("project_materials")
+              .insert(projectMaterialsData);
 
-        if (materialsError) throw materialsError;
+            if (materialsError) throw materialsError;
+          }
+        }
 
         toast.success("Proyecto actualizado");
       } else {
@@ -232,7 +280,7 @@ const CalculatorPage = () => {
             user_id: user.id,
             name: projectName,
             weight_grams: totalWeightGrams,
-            print_time_hours: parseFloat(printTimeHours),
+            print_time_hours: parseFloat(printTimeHours) || 0,
             electricity_cost: electricityCost,
             material_cost: totalMaterialCost,
             labor_cost: laborCost,
@@ -246,23 +294,26 @@ const CalculatorPage = () => {
         if (projectError) throw projectError;
 
         // Insertar materiales del proyecto
-        const projectMaterialsData = projectMaterials.map(pm => {
-          const material = materials.find(m => m.id === pm.materialId);
-          if (!material) return null;
-          const weightKg = parseFloat(pm.weightGrams) / 1000;
-          return {
-            project_id: project.id,
-            material_id: pm.materialId,
-            weight_grams: parseFloat(pm.weightGrams),
-            material_cost: weightKg * material.price_per_kg,
-          };
-        }).filter(Boolean);
+        if (materialLines.length > 0) {
+          const projectMaterialsData = materialLines.map(line => {
+            const material = materials.find(m => m.id === line.materialId);
+            if (!material) return null;
+            return {
+              project_id: project.id,
+              material_id: line.materialId,
+              weight_grams: parseFloat(line.quantity) || 0,
+              material_cost: line.total,
+            };
+          }).filter(Boolean);
 
-        const { error: materialsError } = await supabase
-          .from("project_materials")
-          .insert(projectMaterialsData);
+          if (projectMaterialsData.length > 0) {
+            const { error: materialsError } = await supabase
+              .from("project_materials")
+              .insert(projectMaterialsData);
 
-        if (materialsError) throw materialsError;
+            if (materialsError) throw materialsError;
+          }
+        }
 
         toast.success("Proyecto guardado");
       }
@@ -281,172 +332,227 @@ const CalculatorPage = () => {
     );
   }
 
+  const { subtotal, total } = calculateTotals();
+
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-4xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle>{isEditMode ? 'Editar Proyecto' : 'Calculadora de Precios 3D'}</CardTitle>
-        </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="projectName">Nombre del Proyecto *</Label>
-              <Input
-                id="projectName"
-                value={projectName}
-                onChange={(e) => setProjectName(e.target.value)}
-                placeholder="Mi proyecto"
-              />
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle>{isEditMode ? 'Editar Proyecto' : 'Calculadora de Precios'}</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">Añade líneas de concepto tipo factura</p>
             </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="projectName">Nombre del Proyecto *</Label>
+            <Input
+              id="projectName"
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value)}
+              placeholder="Ej: Pieza para cliente X"
+            />
+          </div>
 
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <Label>Materiales *</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addMaterialRow}>
-                  + Añadir Material
+          <div className="space-y-2">
+            <Label htmlFor="printTime">Tiempo de Impresión (horas)</Label>
+            <Input
+              id="printTime"
+              type="number"
+              step="0.1"
+              value={printTimeHours}
+              onChange={(e) => setPrintTimeHours(e.target.value)}
+              placeholder="0"
+            />
+          </div>
+
+          {/* Sección de líneas tipo factura */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <Label className="text-lg font-semibold">Conceptos / Líneas</Label>
+              <div className="flex gap-2 flex-wrap">
+                <Button type="button" variant="outline" size="sm" onClick={() => addInvoiceLine('material')}>
+                  <Plus className="w-3 h-3 mr-1" />
+                  Material
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => addInvoiceLine('labor')}>
+                  <Plus className="w-3 h-3 mr-1" />
+                  Mano de Obra
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => addInvoiceLine('packaging')}>
+                  <Plus className="w-3 h-3 mr-1" />
+                  Embalaje
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => addInvoiceLine('amortization')}>
+                  <Plus className="w-3 h-3 mr-1" />
+                  Amortización
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => addInvoiceLine('other')}>
+                  <Plus className="w-3 h-3 mr-1" />
+                  Otros
                 </Button>
               </div>
-              
-              {projectMaterials.map((pm, index) => (
-                <div key={index} className="grid md:grid-cols-2 gap-4 p-4 border rounded-lg">
-                  <div className="space-y-2">
-                    <Label>Material</Label>
-                    <Select 
-                      value={pm.materialId} 
-                      onValueChange={(value) => updateMaterialRow(index, 'materialId', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona material" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {materials.length === 0 ? (
-                          <div className="p-4 text-center text-muted-foreground">
-                            No hay materiales. <Button variant="link" onClick={() => navigate("/materials")}>Añadir material</Button>
-                          </div>
-                        ) : (
-                          materials.map((material) => (
-                            <SelectItem key={material.id} value={material.id}>
-                              {material.name} - €{material.price_per_kg}/kg
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <Label>Peso (gramos)</Label>
-                      {projectMaterials.length > 1 && (
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => removeMaterialRow(index)}
-                        >
-                          Eliminar
-                        </Button>
-                      )}
-                    </div>
-                    <Input
-                      type="number"
-                      value={pm.weightGrams}
-                      onChange={(e) => updateMaterialRow(index, 'weightGrams', e.target.value)}
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-              ))}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="printTime">Tiempo de Impresión (horas) *</Label>
-              <Input
-                id="printTime"
-                type="number"
-                step="0.1"
-                value={printTimeHours}
-                onChange={(e) => setPrintTimeHours(e.target.value)}
-              />
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="electricity">Coste Electricidad (€/kWh)</Label>
-                <Input
-                  id="electricity"
-                  type="number"
-                  step="0.01"
-                  value={electricityCostPerKwh}
-                  onChange={(e) => setElectricityCostPerKwh(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="wattage">Potencia Impresora (W)</Label>
-                <Input
-                  id="wattage"
-                  type="number"
-                  value={printerWattage}
-                  onChange={(e) => setPrinterWattage(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="labor">Coste Mano de Obra (€/h)</Label>
-                <Input
-                  id="labor"
-                  type="number"
-                  step="0.1"
-                  value={laborCostPerHour}
-                  onChange={(e) => setLaborCostPerHour(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="profit">Margen de Beneficio (%)</Label>
-                <Input
-                  id="profit"
-                  type="number"
-                  step="1"
-                  value={profitMargin}
-                  onChange={(e) => setProfitMargin(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notas</Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Detalles adicionales..."
-              />
-            </div>
-
-            <Button onClick={calculatePrice} className="w-full">
-              Calcular Precio
-            </Button>
-
-            {calculatedPrice !== null && (
-              <Card className="bg-primary/5 border-primary">
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <p className="text-muted-foreground mb-2">Precio Total</p>
-                    <p className="text-4xl font-bold">€{calculatedPrice.toFixed(2)}</p>
-                    <Button onClick={handleSaveProject} className="mt-4">
-                      <Save className="w-4 h-4 mr-2" />
-                      {isEditMode ? 'Actualizar Proyecto' : 'Guardar Proyecto'}
-                    </Button>
-                  </div>
+            {invoiceLines.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <p>No hay líneas añadidas.</p>
+                  <p className="text-sm">Usa los botones de arriba para añadir conceptos</p>
                 </CardContent>
               </Card>
+            ) : (
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[120px]">Tipo</TableHead>
+                      <TableHead>Descripción</TableHead>
+                      <TableHead className="w-[100px]">Cantidad</TableHead>
+                      <TableHead className="w-[120px]">Precio Unit.</TableHead>
+                      <TableHead className="w-[120px] text-right">Total</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {invoiceLines.map((line) => (
+                      <TableRow key={line.id}>
+                        <TableCell className="font-medium text-xs">
+                          {getLineTypeLabel(line.type)}
+                        </TableCell>
+                        <TableCell>
+                          {line.type === 'material' ? (
+                            <Select 
+                              value={line.materialId || ''} 
+                              onValueChange={(value) => updateInvoiceLine(line.id, 'materialId', value)}
+                            >
+                              <SelectTrigger className="h-8">
+                                <SelectValue placeholder="Selecciona material" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {materials.length === 0 ? (
+                                  <div className="p-2 text-xs text-muted-foreground text-center">
+                                    No hay materiales
+                                  </div>
+                                ) : (
+                                  materials.map((material) => (
+                                    <SelectItem key={material.id} value={material.id}>
+                                      {material.name}
+                                    </SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Input
+                              className="h-8"
+                              value={line.description}
+                              onChange={(e) => updateInvoiceLine(line.id, 'description', e.target.value)}
+                              placeholder="Descripción"
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            className="h-8"
+                            type="number"
+                            step="0.01"
+                            value={line.quantity}
+                            onChange={(e) => updateInvoiceLine(line.id, 'quantity', e.target.value)}
+                            placeholder="0"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            className="h-8"
+                            type="number"
+                            step="0.01"
+                            value={line.unitPrice}
+                            onChange={(e) => updateInvoiceLine(line.id, 'unitPrice', e.target.value)}
+                            placeholder="0.00"
+                          />
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          €{line.total.toFixed(2)}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => removeInvoiceLine(line.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                {/* Totales */}
+                <div className="border-t bg-muted/30 p-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal:</span>
+                    <span className="font-medium">€{subtotal.toFixed(2)}</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="profitMargin" className="text-sm text-muted-foreground">Margen de Beneficio:</Label>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          id="profitMargin"
+                          type="number"
+                          step="1"
+                          value={profitMargin}
+                          onChange={(e) => setProfitMargin(e.target.value)}
+                          className="w-20 h-8"
+                        />
+                        <span className="text-sm">%</span>
+                      </div>
+                    </div>
+                    <span className="text-sm font-medium">
+                      +€{(subtotal * (parseFloat(profitMargin) || 0) / 100).toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between text-lg font-bold pt-2 border-t">
+                    <span>TOTAL:</span>
+                    <span className="text-primary">€{total.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notas</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Detalles adicionales del proyecto..."
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <Button onClick={calculateAndDisplay} className="flex-1">
+              Calcular Total
+            </Button>
+            
+            {calculatedPrice !== null && (
+              <Button onClick={handleSaveProject} variant="default" className="flex-1">
+                <Save className="w-4 h-4 mr-2" />
+                {isEditMode ? 'Actualizar Proyecto' : 'Guardar Proyecto'}
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
