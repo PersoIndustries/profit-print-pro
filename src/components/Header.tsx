@@ -1,8 +1,10 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
 import { LogOut, Settings, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -15,8 +17,26 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
   const location = useLocation();
   const { t } = useTranslation();
   const { user, signOut } = useAuth();
+  const { subscription } = useSubscription();
 
   const isActive = (path: string) => location.pathname === path;
+
+  const getTierBadge = () => {
+    if (!subscription) return null;
+    
+    const tierConfig = {
+      tier_2: { label: 'BUSINESS', color: 'bg-purple-500' },
+      tier_1: { label: 'PRO', color: 'bg-blue-500' },
+      free: { label: 'FREE', color: 'bg-muted' }
+    };
+
+    const config = tierConfig[subscription.tier];
+    return (
+      <Badge className={`${config.color} text-white`}>
+        {config.label}
+      </Badge>
+    );
+  };
 
   // Auth variant for login/signup pages
   if (variant === 'auth') {
@@ -90,12 +110,15 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
     <nav className="border-b bg-card/50 backdrop-blur">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <div className="flex items-center gap-4">
-          <h1 
-            className="text-2xl font-bold text-primary cursor-pointer" 
-            onClick={() => navigate('/dashboard')}
-          >
-            Print3D Manager
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 
+              className="text-2xl font-bold text-primary cursor-pointer" 
+              onClick={() => navigate('/dashboard')}
+            >
+              Print3D Manager
+            </h1>
+            {getTierBadge()}
+          </div>
           <Button 
             variant={isActive('/dashboard') ? 'default' : 'ghost'}
             onClick={() => navigate('/dashboard')}

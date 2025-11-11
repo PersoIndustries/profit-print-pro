@@ -10,8 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, CreditCard, Receipt, User } from "lucide-react";
+import { Settings as SettingsIcon, CreditCard, Receipt, User, TrendingUp, AlertCircle } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface Profile {
@@ -156,6 +158,24 @@ const Settings = () => {
     }
   };
 
+  const getTierBadgeColor = (tier: string) => {
+    switch(tier) {
+      case 'tier_2': return 'bg-purple-500';
+      case 'tier_1': return 'bg-blue-500';
+      default: return 'bg-muted';
+    }
+  };
+
+  const getUsagePercentage = (current: number, limit: number) => {
+    return limit === 0 ? 0 : (current / limit) * 100;
+  };
+
+  const getUsageColor = (percentage: number) => {
+    if (percentage >= 90) return 'text-destructive';
+    if (percentage >= 75) return 'text-yellow-600';
+    return 'text-primary';
+  };
+
   return (
     <>
       <div className="flex items-center gap-3 mb-6">
@@ -250,58 +270,142 @@ const Settings = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Subscription Management</CardTitle>
-                <CardDescription>Manage your subscription plan</CardDescription>
+                <CardDescription>Manage your subscription plan and usage</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {subscriptionInfo && (
-                  <div className="space-y-4">
+                {subscriptionInfo && subscription && (
+                  <div className="space-y-6">
+                    {/* Plan Information */}
                     <div className="grid md:grid-cols-2 gap-4">
                       <div>
                         <Label className="text-muted-foreground">Current Plan</Label>
-                        <p className="text-2xl font-bold">{getTierName(subscriptionInfo.tier)}</p>
-                      </div>
-                      <div>
-                        <Label className="text-muted-foreground">Billing Period</Label>
-                        <p className="text-2xl font-bold capitalize">{subscriptionInfo.billing_period}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-2xl font-bold">{getTierName(subscriptionInfo.tier)}</p>
+                          <Badge className={getTierBadgeColor(subscriptionInfo.tier)}>
+                            {subscriptionInfo.tier === 'free' ? 'FREE' : subscriptionInfo.tier === 'tier_1' ? 'PRO' : 'BUSINESS'}
+                          </Badge>
+                        </div>
                       </div>
                       <div>
                         <Label className="text-muted-foreground">Status</Label>
-                        <p className={`text-xl font-semibold ${
+                        <p className={`text-xl font-semibold mt-1 ${
                           subscriptionInfo.status === 'active' ? 'text-primary' : 'text-destructive'
                         }`}>
                           {subscriptionInfo.status.toUpperCase()}
                         </p>
                       </div>
-                      {subscriptionInfo.next_billing_date && (
-                        <div>
-                          <Label className="text-muted-foreground">Next Billing Date</Label>
-                          <p className="text-xl">
-                            {new Date(subscriptionInfo.next_billing_date).toLocaleDateString()}
-                          </p>
-                        </div>
-                      )}
                     </div>
 
-                    <div className="border-t pt-4 space-y-4">
-                      <div>
-                        <h3 className="font-semibold mb-2">Current Limits</h3>
-                        <ul className="space-y-1 text-sm text-muted-foreground">
-                          <li>• Materials: {subscription?.usage.materials} / {subscription?.limits.materials}</li>
-                          <li>• Projects: {subscription?.usage.projects} / {subscription?.limits.projects}</li>
-                          <li>• Monthly Orders: {subscription?.usage.monthlyOrders} / {subscription?.limits.monthlyOrders}</li>
-                        </ul>
-                      </div>
+                    {/* Free User CTA */}
+                    {subscriptionInfo.tier === 'free' && (
+                      <Card className="border-primary bg-primary/5">
+                        <CardContent className="pt-6">
+                          <div className="flex items-start gap-4">
+                            <TrendingUp className="h-8 w-8 text-primary flex-shrink-0 mt-1" />
+                            <div className="flex-1">
+                              <h3 className="font-bold text-lg mb-2">Actualiza a Professional</h3>
+                              <p className="text-sm text-muted-foreground mb-4">
+                                Desbloquea límites más altos, estadísticas avanzadas y más funciones para hacer crecer tu negocio.
+                              </p>
+                              <ul className="space-y-1 text-sm mb-4">
+                                <li>✓ 50 materiales (vs 10 actuales)</li>
+                                <li>✓ 100 proyectos (vs 15 actuales)</li>
+                                <li>✓ 50 pedidos mensuales (vs 15 actuales)</li>
+                                <li>✓ Estadísticas de 60 días</li>
+                              </ul>
+                              <Button onClick={() => navigate('/pricing')}>
+                                Ver Planes
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
 
-                      <div className="flex gap-4">
-                        <Button variant="outline" onClick={() => navigate('/pricing')}>
-                          Change Plan
-                        </Button>
-                        {subscriptionInfo.status === 'active' && subscriptionInfo.tier !== 'free' && (
-                          <Button variant="destructive" onClick={handleCancelSubscription}>
-                            Cancel Subscription
-                          </Button>
-                        )}
+                    {/* Usage Statistics */}
+                    <div className="border-t pt-6">
+                      <h3 className="font-semibold mb-4 flex items-center gap-2">
+                        <AlertCircle className="h-5 w-5" />
+                        Uso Actual
+                      </h3>
+                      <div className="space-y-4">
+                        {/* Materials Usage */}
+                        <div>
+                          <div className="flex justify-between mb-2">
+                            <Label>Materiales</Label>
+                            <span className={`text-sm font-medium ${getUsageColor(getUsagePercentage(subscription.usage.materials, subscription.limits.materials))}`}>
+                              {subscription.usage.materials} / {subscription.limits.materials}
+                            </span>
+                          </div>
+                          <Progress 
+                            value={getUsagePercentage(subscription.usage.materials, subscription.limits.materials)} 
+                            className="h-2"
+                          />
+                        </div>
+
+                        {/* Projects Usage */}
+                        <div>
+                          <div className="flex justify-between mb-2">
+                            <Label>Proyectos</Label>
+                            <span className={`text-sm font-medium ${getUsageColor(getUsagePercentage(subscription.usage.projects, subscription.limits.projects))}`}>
+                              {subscription.usage.projects} / {subscription.limits.projects}
+                            </span>
+                          </div>
+                          <Progress 
+                            value={getUsagePercentage(subscription.usage.projects, subscription.limits.projects)} 
+                            className="h-2"
+                          />
+                        </div>
+
+                        {/* Orders Usage */}
+                        <div>
+                          <div className="flex justify-between mb-2">
+                            <Label>Pedidos Mensuales</Label>
+                            <span className={`text-sm font-medium ${getUsageColor(getUsagePercentage(subscription.usage.monthlyOrders, subscription.limits.monthlyOrders))}`}>
+                              {subscription.usage.monthlyOrders} / {subscription.limits.monthlyOrders}
+                            </span>
+                          </div>
+                          <Progress 
+                            value={getUsagePercentage(subscription.usage.monthlyOrders, subscription.limits.monthlyOrders)} 
+                            className="h-2"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Se reinicia el primer día de cada mes
+                          </p>
+                        </div>
                       </div>
+                    </div>
+
+                    {/* Billing Info */}
+                    {subscriptionInfo.tier !== 'free' && (
+                      <div className="border-t pt-6">
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-muted-foreground">Billing Period</Label>
+                            <p className="text-lg font-medium capitalize">{subscriptionInfo.billing_period}</p>
+                          </div>
+                          {subscriptionInfo.next_billing_date && (
+                            <div>
+                              <Label className="text-muted-foreground">Next Billing Date</Label>
+                              <p className="text-lg font-medium">
+                                {new Date(subscriptionInfo.next_billing_date).toLocaleDateString()}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex gap-4 pt-4">
+                      <Button variant="outline" onClick={() => navigate('/pricing')}>
+                        {subscriptionInfo.tier === 'free' ? 'Upgrade Plan' : 'Change Plan'}
+                      </Button>
+                      {subscriptionInfo.status === 'active' && subscriptionInfo.tier !== 'free' && (
+                        <Button variant="destructive" onClick={handleCancelSubscription}>
+                          Cancel Subscription
+                        </Button>
+                      )}
                     </div>
                   </div>
                 )}
