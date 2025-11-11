@@ -176,15 +176,6 @@ export const OrdersStats = ({ userId, tier, metricsHistory }: OrdersStatsProps) 
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Plan {tier === 'tier_1' ? 'Profesional' : 'Enterprise'}</CardTitle>
-          <CardDescription>
-            Historial disponible: {metricsHistory} días
-          </CardDescription>
-        </CardHeader>
-      </Card>
     </div>
   );
 };
