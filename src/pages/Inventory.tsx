@@ -479,17 +479,17 @@ const Inventory = () => {
       <Tabs defaultValue="materials" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="materials">Tipos de Materiales</TabsTrigger>
-          <TabsTrigger value="inventory" disabled={!hasFeature('inventory_management')}>
+          <TabsTrigger value="inventory">
             <Archive className="w-4 h-4 mr-2" />
             Inventario
             {!hasFeature('inventory_management') && <Crown className="w-3 h-3 ml-2" />}
           </TabsTrigger>
-          <TabsTrigger value="acquisitions" disabled={!hasFeature('acquisition_history')}>
+          <TabsTrigger value="acquisitions">
             <ShoppingCart className="w-4 h-4 mr-2" />
             Adquisiciones
             {!hasFeature('acquisition_history') && <Crown className="w-3 h-3 ml-2" />}
           </TabsTrigger>
-          <TabsTrigger value="history" disabled={!hasFeature('movement_history')}>
+          <TabsTrigger value="history">
             <History className="w-4 h-4 mr-2" />
             Historial
             {!hasFeature('movement_history') && <Crown className="w-3 h-3 ml-2" />}

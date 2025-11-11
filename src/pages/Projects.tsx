@@ -150,7 +150,7 @@ const Projects = () => {
         {projects.length === 0 ? (
           <Card className="col-span-full">
             <CardContent className="py-12 text-center text-muted-foreground">
-              No hay proyectos guardados. Crea tu primer proyecto desde la calculadora.
+              No hay proyectos guardados.
             </CardContent>
           </Card>
         ) : (

@@ -657,14 +657,16 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={calculateAndDisplay} className="flex-1">
-              Calcular Total
-            </Button>
+            {calculatedPrice === null && (
+              <Button onClick={calculateAndDisplay} className="flex-1">
+                Calcular Total
+              </Button>
+            )}
             
             {calculatedPrice !== null && (
-              <Button onClick={handleSaveProject} variant="default" className="flex-1">
+              <Button onClick={handleSaveProject} variant="default" className="w-full">
                 <Save className="w-4 h-4 mr-2" />
-                {projectId ? 'Actualizar Proyecto' : 'Guardar Proyecto'}
+                {projectId ? 'Actualizar Proyecto' : 'Crear Proyecto'}
               </Button>
             )}
           </div>
