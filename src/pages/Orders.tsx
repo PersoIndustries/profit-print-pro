@@ -5,14 +5,12 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Trash2, Plus, Package } from "lucide-react";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { Trash2, Plus, Package, Edit, Kanban } from "lucide-react";
+import { OrderFormModal } from "@/components/OrderFormModal";
+import { KanbanBoard } from "@/components/KanbanBoard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Order {
   id: string;
@@ -23,12 +21,13 @@ interface Order {
   total_amount: number;
   notes: string;
   order_date: string;
-  project_id: string;
-}
-
-interface Project {
-  id: string;
-  name: string;
+  order_items?: {
+    id: string;
+    quantity: number;
+    projects: {
+      name: string;
+    };
+  }[];
 }
 
 const Orders = () => {
@@ -38,17 +37,9 @@ const Orders = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    order_number: '',
-    customer_name: '',
-    customer_email: '',
-    project_id: '',
-    total_amount: '',
-    status: 'pending',
-    notes: ''
-  });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("list");
 
   useEffect(() => {
     if (!user) {
@@ -56,7 +47,6 @@ const Orders = () => {
       return;
     }
     fetchOrders();
-    fetchProjects();
   }, [user, navigate]);
 
   const fetchOrders = async () => {
@@ -65,7 +55,14 @@ const Orders = () => {
       
       const { data, error } = await supabase
         .from("orders")
-        .select("*")
+        .select(`
+          *,
+          order_items(
+            id,
+            quantity,
+            projects(name)
+          )
+        `)
         .eq("user_id", user.id)
         .order("order_date", { ascending: false });
 
@@ -79,64 +76,18 @@ const Orders = () => {
     }
   };
 
-  const fetchProjects = async () => {
-    try {
-      if (!user) return;
-      
-      const { data, error } = await supabase
-        .from("projects")
-        .select("id, name")
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-      setProjects(data || []);
-    } catch (error) {
-      console.error("Error fetching projects:", error);
-    }
+  const handleCreateOrder = () => {
+    setSelectedOrderId(null);
+    setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleEditOrder = (id: string) => {
+    setSelectedOrderId(id);
+    setIsModalOpen(true);
+  };
 
-    if (!subscription?.canAdd.orders) {
-      toast.error(t('orders.limitReached'));
-      return;
-    }
-
-    try {
-      if (!user) return;
-      
-      const { error } = await supabase.from("orders").insert([
-        {
-          user_id: user.id,
-          order_number: formData.order_number,
-          customer_name: formData.customer_name,
-          customer_email: formData.customer_email,
-          project_id: formData.project_id || null,
-          total_amount: parseFloat(formData.total_amount),
-          status: formData.status,
-          notes: formData.notes
-        }
-      ]);
-
-      if (error) throw error;
-
-      toast.success("Order created successfully");
-      setFormData({
-        order_number: '',
-        customer_name: '',
-        customer_email: '',
-        project_id: '',
-        total_amount: '',
-        status: 'pending',
-        notes: ''
-      });
-      setShowForm(false);
-      fetchOrders();
-    } catch (error: any) {
-      console.error("Error creating order:", error);
-      toast.error(error.message || "Error creating order");
-    }
+  const handleModalSuccess = () => {
+    fetchOrders();
   };
 
   const handleDelete = async (id: string) => {
@@ -172,7 +123,7 @@ const Orders = () => {
           </p>
         </div>
         <Button 
-          onClick={() => setShowForm(!showForm)} 
+          onClick={handleCreateOrder} 
           disabled={!subscription?.canAdd.orders}
         >
           <Plus className="mr-2 h-4 w-4" />
@@ -180,101 +131,19 @@ const Orders = () => {
         </Button>
       </div>
 
-      {showForm && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>{t('orders.add')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="order_number">{t('orders.orderNumber')}</Label>
-                    <Input
-                      id="order_number"
-                      value={formData.order_number}
-                      onChange={(e) => setFormData({ ...formData, order_number: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="status">{t('orders.status')}</Label>
-                    <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">{t('orders.statuses.pending')}</SelectItem>
-                        <SelectItem value="inProgress">{t('orders.statuses.inProgress')}</SelectItem>
-                        <SelectItem value="completed">{t('orders.statuses.completed')}</SelectItem>
-                        <SelectItem value="cancelled">{t('orders.statuses.cancelled')}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="customer_name">{t('orders.customerName')}</Label>
-                    <Input
-                      id="customer_name"
-                      value={formData.customer_name}
-                      onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="customer_email">{t('orders.customerEmail')}</Label>
-                    <Input
-                      id="customer_email"
-                      type="email"
-                      value={formData.customer_email}
-                      onChange={(e) => setFormData({ ...formData, customer_email: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="project">{t('orders.project')}</Label>
-                    <Select value={formData.project_id} onValueChange={(value) => setFormData({ ...formData, project_id: value })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('orders.selectProject')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {projects.map((project) => (
-                          <SelectItem key={project.id} value={project.id}>
-                            {project.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="total_amount">{t('orders.amount')} (€)</Label>
-                    <Input
-                      id="total_amount"
-                      type="number"
-                      step="0.01"
-                      value={formData.total_amount}
-                      onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="notes">{t('orders.notes')}</Label>
-                  <Textarea
-                    id="notes"
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button type="submit">{t('orders.save')}</Button>
-                  <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
-                    {t('orders.cancel')}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        )}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="list">
+            <Package className="mr-2 h-4 w-4" />
+            Lista de Pedidos
+          </TabsTrigger>
+          <TabsTrigger value="kanban">
+            <Kanban className="mr-2 h-4 w-4" />
+            Kanban Board
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="grid gap-4">
+        <TabsContent value="list" className="space-y-4">
           {orders.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
@@ -289,32 +158,60 @@ const Orders = () => {
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle>{order.order_number}</CardTitle>
-                      <CardDescription>
-                        {new Date(order.order_date).toLocaleDateString()} - {t(`orders.statuses.${order.status}`)}
-                      </CardDescription>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(order.order_date).toLocaleDateString()}
+                      </p>
                     </div>
-                    <Button variant="destructive" size="icon" onClick={() => handleDelete(order.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleEditOrder(order.id)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="destructive" size="icon" onClick={() => handleDelete(order.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {order.customer_name && (
+                  <div className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {order.customer_name && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">{t('orders.customer')}</p>
+                          <p className="font-medium">{order.customer_name}</p>
+                          {order.customer_email && <p className="text-sm">{order.customer_email}</p>}
+                        </div>
+                      )}
                       <div>
-                        <p className="text-sm text-muted-foreground">{t('orders.customer')}</p>
-                        <p className="font-medium">{order.customer_name}</p>
-                        {order.customer_email && <p className="text-sm">{order.customer_email}</p>}
+                        <p className="text-sm text-muted-foreground">{t('orders.amount')}</p>
+                        <p className="font-medium text-lg">{order.total_amount.toFixed(2)}€</p>
+                      </div>
+                    </div>
+                    
+                    {order.order_items && order.order_items.length > 0 && (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2">Proyectos:</p>
+                        <div className="space-y-1">
+                          {order.order_items.map((item) => (
+                            <div key={item.id} className="flex items-center gap-2 text-sm">
+                              <span className="font-medium">{item.projects.name}</span>
+                              {item.quantity > 1 && (
+                                <span className="text-muted-foreground">x{item.quantity}</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t('orders.amount')}</p>
-                      <p className="font-medium text-lg">{order.total_amount.toFixed(2)}€</p>
-                    </div>
+
                     {order.notes && (
-                      <div className="md:col-span-2">
+                      <div>
                         <p className="text-sm text-muted-foreground">{t('orders.notes')}</p>
-                        <p>{order.notes}</p>
+                        <p className="text-sm">{order.notes}</p>
                       </div>
                     )}
                   </div>
@@ -322,7 +219,19 @@ const Orders = () => {
               </Card>
             ))
           )}
-      </div>
+        </TabsContent>
+
+        <TabsContent value="kanban">
+          <KanbanBoard onRefresh={fetchOrders} />
+        </TabsContent>
+      </Tabs>
+
+      <OrderFormModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        orderId={selectedOrderId}
+        onSuccess={handleModalSuccess}
+      />
     </>
   );
 };
