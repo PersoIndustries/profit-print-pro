@@ -59,10 +59,13 @@ const CalculatorPage = () => {
   }, [user, loading, navigate]);
 
   useEffect(() => {
-    fetchMaterials();
-    if (projectId) {
-      loadProject(projectId);
-    }
+    const loadData = async () => {
+      await fetchMaterials();
+      if (projectId) {
+        await loadProject(projectId);
+      }
+    };
+    loadData();
   }, [user, projectId]);
 
   const loadProject = async (id: string) => {
@@ -79,29 +82,70 @@ const CalculatorPage = () => {
 
       if (projectError) throw projectError;
 
-      // Cargar materiales del proyecto
+      // Cargar materiales del proyecto con información completa
       const { data: projMaterials, error: materialsError } = await supabase
         .from("project_materials")
-        .select("material_id, weight_grams")
+        .select("material_id, weight_grams, material_cost, materials(name, price_per_kg)")
         .eq("project_id", id);
 
       if (materialsError) throw materialsError;
 
       setProjectName(project.name);
-      setPrintTimeHours(project.print_time_hours.toString());
+      setPrintTimeHours(project.print_time_hours?.toString() || "");
       setNotes(project.notes || "");
       setProfitMargin(project.profit_margin?.toString() || "30");
       setCalculatedPrice(project.total_price);
       setIsEditMode(true);
 
+      // Convertir materiales a líneas de factura
+      const lines: InvoiceLine[] = [];
+      let lineCounter = 1;
+
+      // Añadir materiales como líneas
       if (projMaterials && projMaterials.length > 0) {
-        setProjectMaterials(
-          projMaterials.map(pm => ({
-            materialId: pm.material_id,
-            weightGrams: pm.weight_grams.toString(),
-          }))
-        );
+        projMaterials.forEach((pm: any) => {
+          if (pm.materials) {
+            const unitPrice = (pm.materials.price_per_kg / 1000).toFixed(4);
+            lines.push({
+              id: `line-${lineCounter++}`,
+              type: 'material',
+              description: pm.materials.name,
+              quantity: pm.weight_grams.toString(),
+              unitPrice: unitPrice,
+              total: pm.material_cost,
+              materialId: pm.material_id
+            });
+          }
+        });
       }
+
+      // Añadir mano de obra si existe
+      if (project.labor_cost && project.labor_cost > 0) {
+        lines.push({
+          id: `line-${lineCounter++}`,
+          type: 'labor',
+          description: 'Mano de obra',
+          quantity: project.print_time_hours?.toString() || '1',
+          unitPrice: (project.labor_cost / (project.print_time_hours || 1)).toFixed(2),
+          total: project.labor_cost
+        });
+      }
+
+      // Añadir amortización/electricidad si existe
+      if (project.electricity_cost && project.electricity_cost > 0) {
+        lines.push({
+          id: `line-${lineCounter++}`,
+          type: 'amortization',
+          description: 'Amortización / Electricidad',
+          quantity: '1',
+          unitPrice: project.electricity_cost.toFixed(2),
+          total: project.electricity_cost
+        });
+      }
+
+      setInvoiceLines(lines);
+      setNextLineId(lineCounter);
+
     } catch (error: any) {
       toast.error("Error al cargar proyecto");
       console.error(error);
