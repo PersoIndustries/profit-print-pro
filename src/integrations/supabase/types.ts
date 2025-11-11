@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      inventory_items: {
+        Row: {
+          created_at: string
+          id: string
+          location: string | null
+          material_id: string
+          min_stock_alert: number | null
+          notes: string | null
+          quantity_grams: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location?: string | null
+          material_id: string
+          min_stock_alert?: number | null
+          notes?: string | null
+          quantity_grams?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location?: string | null
+          material_id?: string
+          min_stock_alert?: number | null
+          notes?: string | null
+          quantity_grams?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           amount: number
@@ -66,6 +110,53 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "user_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_acquisitions: {
+        Row: {
+          created_at: string
+          id: string
+          material_id: string
+          notes: string | null
+          purchase_date: string
+          quantity_grams: number
+          supplier: string | null
+          total_price: number
+          unit_price: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_id: string
+          notes?: string | null
+          purchase_date?: string
+          quantity_grams: number
+          supplier?: string | null
+          total_price: number
+          unit_price: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_id?: string
+          notes?: string | null
+          purchase_date?: string
+          quantity_grams?: number
+          supplier?: string | null
+          total_price?: number
+          unit_price?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_acquisitions_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
             referencedColumns: ["id"]
           },
         ]

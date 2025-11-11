@@ -7,7 +7,7 @@ import { AppLayout } from "@/components/AppLayout";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
-import Materials from "./pages/Materials";
+import Inventory from "./pages/Inventory";
 import Projects from "./pages/Projects";
 import Orders from "./pages/Orders";
 import Prints from "./pages/Prints";
@@ -36,7 +36,7 @@ const App = () => (
           
           {/* Rutas con navegación persistente */}
           <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
-          <Route path="/materials" element={<AppLayout><Materials /></AppLayout>} />
+          <Route path="/inventory" element={<AppLayout><Inventory /></AppLayout>} />
           <Route path="/projects" element={<AppLayout><Projects /></AppLayout>} />
           <Route path="/orders" element={<AppLayout><Orders /></AppLayout>} />
           <Route path="/prints" element={<AppLayout><Prints /></AppLayout>} />

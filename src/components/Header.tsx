@@ -123,10 +123,10 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
             {t('nav.dashboard')}
           </Button>
           <Button 
-            variant={isActive('/materials') ? 'default' : 'ghost'}
-            onClick={() => navigate('/materials')}
+            variant={isActive('/inventory') ? 'default' : 'ghost'}
+            onClick={() => navigate('/inventory')}
           >
-            {t('nav.materials')}
+            Inventario
           </Button>
           <Button 
             variant={isActive('/projects') ? 'default' : 'ghost'}
