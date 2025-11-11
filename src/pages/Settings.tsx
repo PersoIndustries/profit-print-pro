@@ -68,10 +68,12 @@ const Settings = () => {
 
   const fetchData = async () => {
     try {
+      if (!user) return;
+      
       const [profileRes, subRes, invoicesRes] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", user?.id).single(),
-        supabase.from("user_subscriptions").select("*").eq("user_id", user?.id).single(),
-        supabase.from("invoices").select("*").eq("user_id", user?.id).order("issued_date", { ascending: false })
+        supabase.from("profiles").select("*").eq("id", user.id).single(),
+        supabase.from("user_subscriptions").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("invoices").select("*").eq("user_id", user.id).order("issued_date", { ascending: false })
       ]);
 
       if (profileRes.data) {

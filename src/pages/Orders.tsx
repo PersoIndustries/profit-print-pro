@@ -148,7 +148,14 @@ const Orders = () => {
             <Card>
               <CardContent className="py-12 text-center">
                 <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">{t('orders.empty')}</p>
+                <p className="text-lg font-medium mb-2">No hay pedidos todavía</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Crea tu primer pedido haciendo click en el botón "Nuevo Pedido" arriba
+                </p>
+                <Button variant="outline" onClick={handleCreateOrder}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Crear Primer Pedido
+                </Button>
               </CardContent>
             </Card>
           ) : (
