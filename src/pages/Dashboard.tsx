@@ -38,16 +38,12 @@ const Dashboard = () => {
       <div className="mb-8">
         <h2 className="text-3xl font-bold mb-2">{t('dashboard.title')}</h2>
         <p className="text-muted-foreground">
-          {isFreeUser 
-            ? 'Actualiza tu plan para acceder a estadísticas detalladas' 
-            : 'Análisis completo del rendimiento de tu negocio'}
+          Análisis completo del rendimiento de tu negocio
         </p>
       </div>
 
-      {isFreeUser ? (
-        <UpgradeCTA />
-      ) : (
-        user && subscription && (
+      {user && subscription && (
+        <>
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList>
               <TabsTrigger value="overview">
@@ -80,7 +76,13 @@ const Dashboard = () => {
               <OrdersMonthlyStats userId={user.id} />
             </TabsContent>
           </Tabs>
-        )
+
+          {isFreeUser && (
+            <div className="mt-6">
+              <UpgradeCTA />
+            </div>
+          )}
+        </>
       )}
     </>
   );
