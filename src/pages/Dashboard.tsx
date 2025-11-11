@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Loader2, BarChart3, Printer, TrendingUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { UpgradeCTA } from "@/components/dashboard/UpgradeCTA";
+
 import { OrdersStats } from "@/components/dashboard/OrdersStats";
 import { PrintsStats } from "@/components/dashboard/PrintsStats";
 import { OrdersMonthlyStats } from "@/components/dashboard/OrdersMonthlyStats";
@@ -156,12 +156,6 @@ const Dashboard = () => {
               )}
             </TabsContent>
           </Tabs>
-
-          {isFreeUser && (
-            <div className="mt-6">
-              <UpgradeCTA />
-            </div>
-          )}
         </>
       )}
     </>

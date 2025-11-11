@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, CreditCard, Receipt, User, TrendingUp, AlertCircle } from "lucide-react";
+import { Settings as SettingsIcon, CreditCard, Receipt, User, TrendingUp, AlertCircle, Calendar, BarChart3 } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface Profile {
@@ -300,28 +300,79 @@ const Settings = () => {
 
                     {/* Free User CTA */}
                     {subscriptionInfo.tier === 'free' && (
-                      <Card className="border-primary bg-primary/5">
-                        <CardContent className="pt-6">
-                          <div className="flex items-start gap-4">
-                            <TrendingUp className="h-8 w-8 text-primary flex-shrink-0 mt-1" />
-                            <div className="flex-1">
-                              <h3 className="font-bold text-lg mb-2">Actualiza a Professional</h3>
-                              <p className="text-sm text-muted-foreground mb-4">
-                                Desbloquea límites más altos, estadísticas avanzadas y más funciones para hacer crecer tu negocio.
-                              </p>
-                              <ul className="space-y-1 text-sm mb-4">
-                                <li>✓ 50 materiales (vs 10 actuales)</li>
-                                <li>✓ 100 proyectos (vs 15 actuales)</li>
-                                <li>✓ 50 pedidos mensuales (vs 15 actuales)</li>
-                                <li>✓ Estadísticas de 60 días</li>
-                              </ul>
-                              <Button onClick={() => navigate('/pricing')}>
-                                Ver Planes
+                      <>
+                        <Card className="border-primary/50 bg-gradient-to-br from-primary/5 via-background to-background">
+                          <CardHeader className="text-center pb-4">
+                            <TrendingUp className="h-12 w-12 mx-auto mb-4 text-primary" />
+                            <CardTitle className="text-2xl">Desbloquea Estadísticas Avanzadas</CardTitle>
+                            <CardDescription className="text-base">
+                              Actualiza a un plan profesional para acceder a métricas detalladas de tu negocio
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-6">
+                            <div className="grid md:grid-cols-3 gap-4">
+                              <div className="flex flex-col items-center text-center p-4 rounded-lg bg-card">
+                                <Calendar className="h-8 w-8 text-primary mb-2" />
+                                <h3 className="font-semibold mb-1">Historial Completo</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  Accede a métricas de hasta 2 años
+                                </p>
+                              </div>
+                              <div className="flex flex-col items-center text-center p-4 rounded-lg bg-card">
+                                <BarChart3 className="h-8 w-8 text-primary mb-2" />
+                                <h3 className="font-semibold mb-1">Análisis Detallado</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  Filtra por día, semana, mes o trimestre
+                                </p>
+                              </div>
+                              <div className="flex flex-col items-center text-center p-4 rounded-lg bg-card">
+                                <TrendingUp className="h-8 w-8 text-primary mb-2" />
+                                <h3 className="font-semibold mb-1">Proyecciones</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  Predicciones de ingresos y tendencias
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex justify-center">
+                              <Button 
+                                size="lg" 
+                                onClick={() => navigate("/pricing")}
+                                className="w-full md:w-auto"
+                              >
+                                Ver Planes Profesionales
                               </Button>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Plan Actual: Free</CardTitle>
+                            <CardDescription>
+                              Tu plan incluye funcionalidades básicas para empezar
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Materiales</span>
+                              <span className="font-medium">Hasta 10</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Proyectos</span>
+                              <span className="font-medium">Hasta 15</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Pedidos mensuales</span>
+                              <span className="font-medium">Hasta 15</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Historial de métricas</span>
+                              <span className="font-medium text-muted-foreground">No disponible</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </>
                     )}
 
                     {/* Usage Statistics */}
