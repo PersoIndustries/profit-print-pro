@@ -126,6 +126,12 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
           >
             {t('nav.orders')}
           </Button>
+          <Button 
+            variant={isActive('/prints') ? 'default' : 'ghost'}
+            onClick={() => navigate('/prints')}
+          >
+            Impresiones
+          </Button>
         </div>
         <div className="flex items-center gap-4">
           <LanguageSwitcher />

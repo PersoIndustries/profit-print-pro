@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Materials from "./pages/Materials";
 import Projects from "./pages/Projects";
 import Orders from "./pages/Orders";
+import Prints from "./pages/Prints";
 import CalculatorPage from "./pages/CalculatorPage";
 import Pricing from "./pages/Pricing";
 import Settings from "./pages/Settings";
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="/materials" element={<AppLayout><Materials /></AppLayout>} />
           <Route path="/projects" element={<AppLayout><Projects /></AppLayout>} />
           <Route path="/orders" element={<AppLayout><Orders /></AppLayout>} />
+          <Route path="/prints" element={<AppLayout><Prints /></AppLayout>} />
           <Route path="/calculator" element={<AppLayout><CalculatorPage /></AppLayout>} />
           <Route path="/calculator/:projectId" element={<AppLayout><CalculatorPage /></AppLayout>} />
           <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />

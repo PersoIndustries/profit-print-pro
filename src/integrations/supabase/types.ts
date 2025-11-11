@@ -210,6 +210,69 @@ export type Database = {
           },
         ]
       }
+      prints: {
+        Row: {
+          created_at: string
+          id: string
+          material_used_grams: number
+          name: string
+          notes: string | null
+          order_id: string | null
+          print_date: string
+          print_time_hours: number
+          print_type: string
+          project_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_used_grams?: number
+          name: string
+          notes?: string | null
+          order_id?: string | null
+          print_date?: string
+          print_time_hours?: number
+          print_type: string
+          project_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_used_grams?: number
+          name?: string
+          notes?: string | null
+          order_id?: string | null
+          print_date?: string
+          print_time_hours?: number
+          print_type?: string
+          project_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prints_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prints_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           billing_address: string | null
