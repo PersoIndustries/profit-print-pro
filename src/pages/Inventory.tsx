@@ -18,7 +18,7 @@ import {
   Disc, Droplet, Scissors, KeyRound, 
   Magnet as MagnetIcon, Bolt as BoltIcon, 
   Wrench, Paintbrush, FileBox, Package,
-  ShoppingCart, Archive, Crown
+  ShoppingCart, Archive, Crown, History, Trash
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -55,6 +55,16 @@ interface Acquisition {
   materials: Material;
 }
 
+interface Movement {
+  id: string;
+  material_id: string;
+  movement_type: string;
+  quantity_grams: number;
+  notes: string | null;
+  created_at: string;
+  materials: Material;
+}
+
 const MATERIAL_TYPES = [
   { value: 'filament', label: 'Filament', icon: Disc },
   { value: 'resin', label: 'Resin', icon: Droplet },
@@ -80,11 +90,13 @@ const Inventory = () => {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [acquisitions, setAcquisitions] = useState<Acquisition[]>([]);
+  const [movements, setMovements] = useState<Movement[]>([]);
   const [materialsLoading, setMaterialsLoading] = useState(true);
   const [filterType, setFilterType] = useState<string>("all");
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isAcquisitionDialogOpen, setIsAcquisitionDialogOpen] = useState(false);
+  const [isWasteDialogOpen, setIsWasteDialogOpen] = useState(false);
   
   const [newMaterial, setNewMaterial] = useState({
     name: "",
@@ -108,6 +120,12 @@ const Inventory = () => {
     notes: "",
   });
 
+  const [wasteForm, setWasteForm] = useState({
+    material_id: "",
+    quantity_grams: "",
+    notes: "",
+  });
+
   const isEnterprise = subscription?.tier === 'tier_2';
 
   useEffect(() => {
@@ -121,6 +139,7 @@ const Inventory = () => {
       fetchMaterials();
       fetchInventory();
       fetchAcquisitions();
+      fetchMovements();
     }
   }, [user]);
 
@@ -175,6 +194,23 @@ const Inventory = () => {
       setAcquisitions(data || []);
     } catch (error: any) {
       toast.error("Error al cargar adquisiciones");
+    }
+  };
+
+  const fetchMovements = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("inventory_movements")
+        .select("*, materials!inventory_movements_material_id_fkey(*)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setMovements(data || []);
+    } catch (error: any) {
+      toast.error("Error al cargar movimientos");
     }
   };
 
@@ -350,6 +386,77 @@ const Inventory = () => {
     }
   };
 
+  const handleAddWaste = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    try {
+      const quantity = parseFloat(wasteForm.quantity_grams);
+
+      // Insert movement record
+      const { error: movError } = await supabase.from("inventory_movements").insert({
+        user_id: user.id,
+        material_id: wasteForm.material_id,
+        movement_type: 'waste',
+        quantity_grams: -quantity,
+        notes: wasteForm.notes || null,
+      });
+
+      if (movError) throw movError;
+
+      // Update inventory
+      const { data: existingInventory } = await supabase
+        .from("inventory_items")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("material_id", wasteForm.material_id)
+        .maybeSingle();
+
+      if (existingInventory) {
+        const { error: updateError } = await supabase
+          .from("inventory_items")
+          .update({
+            quantity_grams: existingInventory.quantity_grams - quantity,
+          })
+          .eq("id", existingInventory.id);
+
+        if (updateError) throw updateError;
+      }
+
+      toast.success("Desperdicio registrado");
+      setIsWasteDialogOpen(false);
+      setWasteForm({
+        material_id: "",
+        quantity_grams: "",
+        notes: "",
+      });
+      fetchInventory();
+      fetchMovements();
+    } catch (error: any) {
+      toast.error("Error al registrar desperdicio");
+    }
+  };
+
+  const getMovementTypeLabel = (type: string) => {
+    switch (type) {
+      case 'acquisition': return 'Adquisición';
+      case 'print': return 'Impresión';
+      case 'waste': return 'Desperdicio';
+      case 'adjustment': return 'Ajuste';
+      default: return type;
+    }
+  };
+
+  const getMovementTypeBadge = (type: string) => {
+    switch (type) {
+      case 'acquisition': return 'default';
+      case 'print': return 'secondary';
+      case 'waste': return 'destructive';
+      case 'adjustment': return 'outline';
+      default: return 'outline';
+    }
+  };
+
   const filteredMaterials = filterType === "all" 
     ? materials 
     : materials.filter(m => m.type === filterType);
@@ -372,7 +479,7 @@ const Inventory = () => {
       </div>
 
       <Tabs defaultValue="materials" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="materials">Tipos de Materiales</TabsTrigger>
           <TabsTrigger value="inventory" disabled={!isEnterprise}>
             <Archive className="w-4 h-4 mr-2" />
@@ -382,6 +489,11 @@ const Inventory = () => {
           <TabsTrigger value="acquisitions" disabled={!isEnterprise}>
             <ShoppingCart className="w-4 h-4 mr-2" />
             Adquisiciones
+            {!isEnterprise && <Crown className="w-3 h-3 ml-2" />}
+          </TabsTrigger>
+          <TabsTrigger value="history" disabled={!isEnterprise}>
+            <History className="w-4 h-4 mr-2" />
+            Historial
             {!isEnterprise && <Crown className="w-3 h-3 ml-2" />}
           </TabsTrigger>
         </TabsList>
@@ -567,11 +679,17 @@ const Inventory = () => {
             </Card>
           ) : (
             <Card>
-              <CardHeader>
-                <CardTitle>Inventario de Materiales</CardTitle>
-                <CardDescription>
-                  Control de stock y cantidades disponibles
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Inventario de Materiales</CardTitle>
+                  <CardDescription>
+                    Control de stock y cantidades disponibles
+                  </CardDescription>
+                </div>
+                <Button onClick={() => setIsWasteDialogOpen(true)} variant="destructive">
+                  <Trash className="w-4 h-4 mr-2" />
+                  Registrar Desperdicio
+                </Button>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -696,6 +814,75 @@ const Inventory = () => {
                 </CardContent>
               </Card>
             </div>
+          )}
+        </TabsContent>
+
+        {/* TAB: Historial */}
+        <TabsContent value="history" className="mt-6">
+          {!isEnterprise ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Crown className="w-12 h-12 mx-auto mb-4 text-purple-500" />
+                <h3 className="text-xl font-bold mb-2">Función Business</h3>
+                <p className="text-muted-foreground mb-4">
+                  El historial de movimientos está disponible solo para usuarios Business
+                </p>
+                <Button onClick={() => navigate('/settings')}>
+                  Ver Planes
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Historial de Movimientos</CardTitle>
+                <CardDescription>
+                  Registro completo de entradas y salidas de material
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Material</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Cantidad</TableHead>
+                      <TableHead>Notas</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {movements.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                          No hay movimientos registrados
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      movements.map((mov) => (
+                        <TableRow key={mov.id}>
+                          <TableCell>
+                            {format(new Date(mov.created_at), 'dd/MM/yyyy HH:mm', { locale: es })}
+                          </TableCell>
+                          <TableCell className="font-medium">{mov.materials.name}</TableCell>
+                          <TableCell>
+                            <Badge variant={getMovementTypeBadge(mov.movement_type) as any}>
+                              {getMovementTypeLabel(mov.movement_type)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className={mov.quantity_grams > 0 ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
+                            {mov.quantity_grams > 0 ? '+' : ''}{(mov.quantity_grams / 1000).toFixed(3)} kg
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {mov.notes || '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
       </Tabs>
@@ -848,6 +1035,69 @@ const Inventory = () => {
                 type="button" 
                 variant="outline" 
                 onClick={() => setIsAcquisitionDialogOpen(false)}
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de registro de desperdicio */}
+      <Dialog open={isWasteDialogOpen} onOpenChange={setIsWasteDialogOpen}>
+        <DialogContent className="bg-card z-50">
+          <DialogHeader>
+            <DialogTitle>Registrar Desperdicio de Material</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddWaste} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="waste-material">Material *</Label>
+              <Select
+                value={wasteForm.material_id}
+                onValueChange={(value) => setWasteForm({ ...wasteForm, material_id: value })}
+                required
+              >
+                <SelectTrigger id="waste-material">
+                  <SelectValue placeholder="Selecciona material" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  {inventory.map((item) => (
+                    <SelectItem key={item.material_id} value={item.material_id}>
+                      {item.materials.name} ({(item.quantity_grams / 1000).toFixed(2)} kg disponibles)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="waste-quantity">Cantidad a descartar (gramos) *</Label>
+              <Input
+                id="waste-quantity"
+                type="number"
+                step="1"
+                value={wasteForm.quantity_grams}
+                onChange={(e) => setWasteForm({ ...wasteForm, quantity_grams: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="waste-notes">Notas / Motivo</Label>
+              <Textarea
+                id="waste-notes"
+                value={wasteForm.notes}
+                onChange={(e) => setWasteForm({ ...wasteForm, notes: e.target.value })}
+                placeholder="Ej: Material defectuoso, impresión fallida..."
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button type="submit" variant="destructive" className="flex-1">
+                Registrar Desperdicio
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsWasteDialogOpen(false)}
                 className="flex-1"
               >
                 Cancelar
