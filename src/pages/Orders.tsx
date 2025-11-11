@@ -7,9 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Trash2, Plus, Package, Edit, Kanban } from "lucide-react";
+import { Trash2, Plus, Package, Edit, Kanban, Calendar } from "lucide-react";
 import { OrderFormModal } from "@/components/OrderFormModal";
 import { KanbanBoard } from "@/components/KanbanBoard";
+import { CalendarView } from "@/components/CalendarView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Order {
@@ -141,6 +142,10 @@ const Orders = () => {
             <Kanban className="mr-2 h-4 w-4" />
             Kanban Board
           </TabsTrigger>
+          <TabsTrigger value="calendar">
+            <Calendar className="mr-2 h-4 w-4" />
+            Calendario
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="list" className="space-y-4">
@@ -230,6 +235,10 @@ const Orders = () => {
 
         <TabsContent value="kanban">
           <KanbanBoard onRefresh={fetchOrders} />
+        </TabsContent>
+
+        <TabsContent value="calendar">
+          <CalendarView onRefresh={fetchOrders} />
         </TabsContent>
       </Tabs>
 
