@@ -8,9 +8,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Save, Trash2, Plus } from "lucide-react";
+import { Loader2, Save, Trash2, Plus, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Material {
   id: string;
@@ -33,6 +50,114 @@ interface InvoiceLine {
   unitPrice: string;
   total: number;
   materialId?: string;
+}
+
+// Componente para cada fila sortable
+interface SortableRowProps {
+  line: InvoiceLine;
+  materials: Material[];
+  updateInvoiceLine: (id: string, field: keyof InvoiceLine, value: string) => void;
+  removeInvoiceLine: (id: string) => void;
+  getLineTypeLabel: (type: LineType) => string;
+}
+
+function SortableRow({ line, materials, updateInvoiceLine, removeInvoiceLine, getLineTypeLabel }: SortableRowProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: line.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <TableRow ref={setNodeRef} style={style}>
+      <TableCell>
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing hover:bg-muted/50 rounded p-1"
+        >
+          <GripVertical className="w-4 h-4 text-muted-foreground" />
+        </div>
+      </TableCell>
+      <TableCell className="font-medium text-xs">
+        {getLineTypeLabel(line.type)}
+      </TableCell>
+      <TableCell>
+        {line.type === 'material' ? (
+          <Select 
+            value={line.materialId || ''} 
+            onValueChange={(value) => updateInvoiceLine(line.id, 'materialId', value)}
+          >
+            <SelectTrigger className="h-8">
+              <SelectValue placeholder="Selecciona material" />
+            </SelectTrigger>
+            <SelectContent>
+              {materials.length === 0 ? (
+                <div className="p-2 text-xs text-muted-foreground text-center">
+                  No hay materiales
+                </div>
+              ) : (
+                materials.map((material) => (
+                  <SelectItem key={material.id} value={material.id}>
+                    {material.name}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        ) : (
+          <Input
+            className="h-8"
+            value={line.description}
+            onChange={(e) => updateInvoiceLine(line.id, 'description', e.target.value)}
+            placeholder="Descripción"
+          />
+        )}
+      </TableCell>
+      <TableCell>
+        <Input
+          className="h-8"
+          type="number"
+          step="0.01"
+          value={line.quantity}
+          onChange={(e) => updateInvoiceLine(line.id, 'quantity', e.target.value)}
+          placeholder="0"
+        />
+      </TableCell>
+      <TableCell>
+        <Input
+          className="h-8"
+          type="number"
+          step="0.01"
+          value={line.unitPrice}
+          onChange={(e) => updateInvoiceLine(line.id, 'unitPrice', e.target.value)}
+          placeholder="0.00"
+        />
+      </TableCell>
+      <TableCell className="text-right font-medium">
+        €{line.total.toFixed(2)}
+      </TableCell>
+      <TableCell>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => removeInvoiceLine(line.id)}
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
 }
 
 const CalculatorPage = () => {
@@ -221,6 +346,26 @@ const CalculatorPage = () => {
 
   const removeInvoiceLine = (id: string) => {
     setInvoiceLines(lines => lines.filter(line => line.id !== id));
+  };
+
+  // Drag and Drop handlers
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setInvoiceLines((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
   };
 
   const calculateTotals = () => {
@@ -454,92 +599,42 @@ const CalculatorPage = () => {
               </Card>
             ) : (
               <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[120px]">Tipo</TableHead>
-                      <TableHead>Descripción</TableHead>
-                      <TableHead className="w-[100px]">Cantidad</TableHead>
-                      <TableHead className="w-[120px]">Precio Unit.</TableHead>
-                      <TableHead className="w-[120px] text-right">Total</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {invoiceLines.map((line) => (
-                      <TableRow key={line.id}>
-                        <TableCell className="font-medium text-xs">
-                          {getLineTypeLabel(line.type)}
-                        </TableCell>
-                        <TableCell>
-                          {line.type === 'material' ? (
-                            <Select 
-                              value={line.materialId || ''} 
-                              onValueChange={(value) => updateInvoiceLine(line.id, 'materialId', value)}
-                            >
-                              <SelectTrigger className="h-8">
-                                <SelectValue placeholder="Selecciona material" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {materials.length === 0 ? (
-                                  <div className="p-2 text-xs text-muted-foreground text-center">
-                                    No hay materiales
-                                  </div>
-                                ) : (
-                                  materials.map((material) => (
-                                    <SelectItem key={material.id} value={material.id}>
-                                      {material.name}
-                                    </SelectItem>
-                                  ))
-                                )}
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            <Input
-                              className="h-8"
-                              value={line.description}
-                              onChange={(e) => updateInvoiceLine(line.id, 'description', e.target.value)}
-                              placeholder="Descripción"
-                            />
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            className="h-8"
-                            type="number"
-                            step="0.01"
-                            value={line.quantity}
-                            onChange={(e) => updateInvoiceLine(line.id, 'quantity', e.target.value)}
-                            placeholder="0"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            className="h-8"
-                            type="number"
-                            step="0.01"
-                            value={line.unitPrice}
-                            onChange={(e) => updateInvoiceLine(line.id, 'unitPrice', e.target.value)}
-                            placeholder="0.00"
-                          />
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          €{line.total.toFixed(2)}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => removeInvoiceLine(line.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[40px]"></TableHead>
+                        <TableHead className="w-[120px]">Tipo</TableHead>
+                        <TableHead>Descripción</TableHead>
+                        <TableHead className="w-[100px]">Cantidad</TableHead>
+                        <TableHead className="w-[120px]">Precio Unit.</TableHead>
+                        <TableHead className="w-[120px] text-right">Total</TableHead>
+                        <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <SortableContext
+                      items={invoiceLines.map(line => line.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <TableBody>
+                        {invoiceLines.map((line) => (
+                          <SortableRow 
+                            key={line.id} 
+                            line={line}
+                            materials={materials}
+                            updateInvoiceLine={updateInvoiceLine}
+                            removeInvoiceLine={removeInvoiceLine}
+                            getLineTypeLabel={getLineTypeLabel}
+                          />
+                        ))}
+                      </TableBody>
+                    </SortableContext>
+                  </Table>
+                </DndContext>
 
                 {/* Totales */}
                 <div className="border-t bg-muted/30 p-4 space-y-2">
