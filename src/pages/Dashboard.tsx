@@ -6,6 +6,10 @@ import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { UpgradeCTA } from "@/components/dashboard/UpgradeCTA";
 import { OrdersStats } from "@/components/dashboard/OrdersStats";
+import { PrintsStats } from "@/components/dashboard/PrintsStats";
+import { OrdersMonthlyStats } from "@/components/dashboard/OrdersMonthlyStats";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BarChart3, Printer, TrendingUp } from "lucide-react";
 
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -36,7 +40,7 @@ const Dashboard = () => {
         <p className="text-muted-foreground">
           {isFreeUser 
             ? 'Actualiza tu plan para acceder a estadísticas detalladas' 
-            : 'Análisis del rendimiento de tu negocio'}
+            : 'Análisis completo del rendimiento de tu negocio'}
         </p>
       </div>
 
@@ -44,11 +48,38 @@ const Dashboard = () => {
         <UpgradeCTA />
       ) : (
         user && subscription && (
-          <OrdersStats 
-            userId={user.id} 
-            tier={subscription.tier}
-            metricsHistory={subscription.limits.metricsHistory}
-          />
+          <Tabs defaultValue="overview" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="overview">
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Resumen
+              </TabsTrigger>
+              <TabsTrigger value="prints">
+                <Printer className="w-4 h-4 mr-2" />
+                Impresiones
+              </TabsTrigger>
+              <TabsTrigger value="financial">
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Financiero
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="space-y-6">
+              <OrdersStats 
+                userId={user.id} 
+                tier={subscription.tier}
+                metricsHistory={subscription.limits.metricsHistory}
+              />
+            </TabsContent>
+
+            <TabsContent value="prints">
+              <PrintsStats userId={user.id} />
+            </TabsContent>
+
+            <TabsContent value="financial">
+              <OrdersMonthlyStats userId={user.id} />
+            </TabsContent>
+          </Tabs>
         )
       )}
     </>
