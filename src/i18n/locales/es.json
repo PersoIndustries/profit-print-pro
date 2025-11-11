@@ -63,10 +63,12 @@
       "name": "Gratis",
       "cta": "Comenzar",
       "features": [
-        "Hasta 5 materiales",
-        "Hasta 10 proyectos",
+        "Hasta 10 materiales",
+        "Hasta 15 proyectos",
         "Calculadora básica",
-        "5 pedidos por mes"
+        "15 pedidos por mes",
+        "Vista de lista de pedidos",
+        "Dashboard básico"
       ]
     },
     "tier1": {
@@ -77,6 +79,10 @@
         "Hasta 100 proyectos",
         "Calculadora avanzada",
         "50 pedidos por mes",
+        "Vista Kanban de pedidos",
+        "Vista de Calendario",
+        "Dashboard con estadísticas (60 días)",
+        "Filtros avanzados",
         "Soporte por email",
         "Exportar datos"
       ]
@@ -89,6 +95,11 @@
         "Proyectos ilimitados",
         "Calculadora avanzada",
         "Pedidos ilimitados",
+        "Vista Kanban de pedidos",
+        "Vista de Calendario",
+        "Dashboard completo (2 años)",
+        "Filtros avanzados",
+        "Análisis financiero detallado",
         "Soporte prioritario",
         "Exportar datos",
         "Marca personalizada",

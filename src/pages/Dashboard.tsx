@@ -2,14 +2,16 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
-import { Loader2 } from "lucide-react";
+import { Loader2, BarChart3, Printer, TrendingUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { UpgradeCTA } from "@/components/dashboard/UpgradeCTA";
 import { OrdersStats } from "@/components/dashboard/OrdersStats";
 import { PrintsStats } from "@/components/dashboard/PrintsStats";
 import { OrdersMonthlyStats } from "@/components/dashboard/OrdersMonthlyStats";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Printer, TrendingUp } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -53,10 +55,16 @@ const Dashboard = () => {
               <TabsTrigger value="prints">
                 <Printer className="w-4 h-4 mr-2" />
                 Impresiones
+                {isFreeUser && (
+                  <Badge className="ml-2 bg-primary text-[10px] py-0 px-1.5">PRO</Badge>
+                )}
               </TabsTrigger>
               <TabsTrigger value="financial">
                 <TrendingUp className="w-4 h-4 mr-2" />
                 Financiero
+                {isFreeUser && (
+                  <Badge className="ml-2 bg-primary text-[10px] py-0 px-1.5">PRO</Badge>
+                )}
               </TabsTrigger>
             </TabsList>
 
@@ -69,11 +77,83 @@ const Dashboard = () => {
             </TabsContent>
 
             <TabsContent value="prints">
-              <PrintsStats userId={user.id} />
+              {isFreeUser ? (
+                <Card className="border-primary">
+                  <CardContent className="pt-12 pb-12 text-center">
+                    <div className="max-w-md mx-auto space-y-6">
+                      <div className="bg-primary/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto">
+                        <Printer className="w-10 h-10 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-bold mb-2">Estadísticas de Impresiones - Premium</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Accede a análisis detallados de tus impresiones: tiempo total, material usado, tipos más comunes y tendencias mensuales.
+                        </p>
+                        <ul className="text-sm text-muted-foreground space-y-2 mb-6 text-left max-w-sm mx-auto">
+                          <li className="flex items-start gap-2">
+                            <span className="text-primary">✓</span>
+                            <span>Tiempo total de impresión</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-primary">✓</span>
+                            <span>Material usado total y por mes</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-primary">✓</span>
+                            <span>Gráficos y tendencias (60 días)</span>
+                          </li>
+                        </ul>
+                      </div>
+                      <Button onClick={() => navigate('/pricing')} size="lg">
+                        <TrendingUp className="w-4 h-4 mr-2" />
+                        Ver Planes
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <PrintsStats userId={user.id} />
+              )}
             </TabsContent>
 
             <TabsContent value="financial">
-              <OrdersMonthlyStats userId={user.id} />
+              {isFreeUser ? (
+                <Card className="border-primary">
+                  <CardContent className="pt-12 pb-12 text-center">
+                    <div className="max-w-md mx-auto space-y-6">
+                      <div className="bg-primary/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto">
+                        <TrendingUp className="w-10 h-10 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-bold mb-2">Análisis Financiero - Premium</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Obtén análisis completo de ingresos, costos y márgenes de beneficio con gráficos mensuales y tendencias.
+                        </p>
+                        <ul className="text-sm text-muted-foreground space-y-2 mb-6 text-left max-w-sm mx-auto">
+                          <li className="flex items-start gap-2">
+                            <span className="text-primary">✓</span>
+                            <span>Ingresos y costos mensuales</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-primary">✓</span>
+                            <span>Margen de beneficio por período</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-primary">✓</span>
+                            <span>Pedidos completados y tendencias</span>
+                          </li>
+                        </ul>
+                      </div>
+                      <Button onClick={() => navigate('/pricing')} size="lg">
+                        <TrendingUp className="w-4 h-4 mr-2" />
+                        Ver Planes
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <OrdersMonthlyStats userId={user.id} />
+              )}
             </TabsContent>
           </Tabs>
 

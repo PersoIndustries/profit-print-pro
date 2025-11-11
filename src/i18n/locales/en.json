@@ -63,10 +63,12 @@
       "name": "Free",
       "cta": "Get Started",
       "features": [
-        "Up to 5 materials",
-        "Up to 10 projects",
+        "Up to 10 materials",
+        "Up to 15 projects",
         "Basic calculator",
-        "5 orders per month"
+        "15 orders per month",
+        "Orders list view",
+        "Basic dashboard"
       ]
     },
     "tier1": {
@@ -77,6 +79,10 @@
         "Up to 100 projects",
         "Advanced calculator",
         "50 orders per month",
+        "Kanban board view",
+        "Calendar view",
+        "Dashboard with stats (60 days)",
+        "Advanced filters",
         "Email support",
         "Export data"
       ]
@@ -89,6 +95,11 @@
         "Unlimited projects",
         "Advanced calculator",
         "Unlimited orders",
+        "Kanban board view",
+        "Calendar view",
+        "Full dashboard (2 years)",
+        "Advanced filters",
+        "Detailed financial analysis",
         "Priority support",
         "Export data",
         "Custom branding",

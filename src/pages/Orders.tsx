@@ -5,9 +5,10 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Trash2, Plus, Package, Edit, Kanban, Calendar } from "lucide-react";
+import { Trash2, Plus, Package, Edit, Kanban, Calendar, TrendingUp } from "lucide-react";
 import { OrderFormModal } from "@/components/OrderFormModal";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { CalendarView } from "@/components/CalendarView";
@@ -141,10 +142,16 @@ const Orders = () => {
           <TabsTrigger value="kanban">
             <Kanban className="mr-2 h-4 w-4" />
             Kanban Board
+            {subscription?.tier === 'free' && (
+              <Badge className="ml-2 bg-primary text-[10px] py-0 px-1.5">PRO</Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="calendar">
             <Calendar className="mr-2 h-4 w-4" />
             Calendario
+            {subscription?.tier === 'free' && (
+              <Badge className="ml-2 bg-primary text-[10px] py-0 px-1.5">PRO</Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
@@ -234,11 +241,93 @@ const Orders = () => {
         </TabsContent>
 
         <TabsContent value="kanban">
-          <KanbanBoard onRefresh={fetchOrders} />
+          {subscription?.tier === 'free' ? (
+            <Card className="border-primary">
+              <CardContent className="pt-12 pb-12 text-center">
+                <div className="max-w-md mx-auto space-y-6">
+                  <div className="bg-primary/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto">
+                    <Kanban className="w-10 h-10 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold mb-2">Vista Kanban - Funcionalidad Premium</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Organiza tus pedidos visualmente arrastrando y soltando entre estados: Diseño, Por Producir, Imprimiendo, Limpieza y Enviado.
+                    </p>
+                    <ul className="text-sm text-muted-foreground space-y-2 mb-6 text-left max-w-sm mx-auto">
+                      <li className="flex items-start gap-2">
+                        <span className="text-primary">✓</span>
+                        <span>Drag & drop para cambiar estados fácilmente</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-primary">✓</span>
+                        <span>Vista clara del flujo de trabajo</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-primary">✓</span>
+                        <span>Gestión visual de todos los pedidos</span>
+                      </li>
+                    </ul>
+                  </div>
+                  <div className="flex gap-3 justify-center">
+                    <Button onClick={() => navigate('/pricing')} size="lg">
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      Actualizar a Professional
+                    </Button>
+                    <Button variant="outline" onClick={() => setActiveTab('list')} size="lg">
+                      Ver Lista
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <KanbanBoard onRefresh={fetchOrders} />
+          )}
         </TabsContent>
 
         <TabsContent value="calendar">
-          <CalendarView onRefresh={fetchOrders} />
+          {subscription?.tier === 'free' ? (
+            <Card className="border-primary">
+              <CardContent className="pt-12 pb-12 text-center">
+                <div className="max-w-md mx-auto space-y-6">
+                  <div className="bg-primary/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto">
+                    <Calendar className="w-10 h-10 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold mb-2">Vista Calendario - Funcionalidad Premium</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Visualiza todos tus pedidos en un calendario mensual y arrastra para cambiar fechas de entrega fácilmente.
+                    </p>
+                    <ul className="text-sm text-muted-foreground space-y-2 mb-6 text-left max-w-sm mx-auto">
+                      <li className="flex items-start gap-2">
+                        <span className="text-primary">✓</span>
+                        <span>Vista mensual de todos los pedidos</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-primary">✓</span>
+                        <span>Drag & drop para cambiar fechas</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-primary">✓</span>
+                        <span>Planificación visual de entregas</span>
+                      </li>
+                    </ul>
+                  </div>
+                  <div className="flex gap-3 justify-center">
+                    <Button onClick={() => navigate('/pricing')} size="lg">
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      Actualizar a Professional
+                    </Button>
+                    <Button variant="outline" onClick={() => setActiveTab('list')} size="lg">
+                      Ver Lista
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <CalendarView onRefresh={fetchOrders} />
+          )}
         </TabsContent>
       </Tabs>
 
