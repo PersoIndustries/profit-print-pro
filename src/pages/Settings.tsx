@@ -44,7 +44,7 @@ interface SubscriptionInfo {
 }
 
 const Settings = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { subscription } = useSubscription();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -61,12 +61,14 @@ const Settings = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
 
   useEffect(() => {
-    if (!user) {
+    if (!authLoading && !user) {
       navigate("/auth");
       return;
     }
-    fetchData();
-  }, [user, navigate]);
+    if (user) {
+      fetchData();
+    }
+  }, [user, authLoading, navigate]);
 
   const fetchData = async () => {
     try {

@@ -33,7 +33,7 @@ interface Order {
 }
 
 const Orders = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { subscription, loading: subLoading } = useSubscription();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -44,12 +44,14 @@ const Orders = () => {
   const [activeTab, setActiveTab] = useState("list");
 
   useEffect(() => {
-    if (!user) {
+    if (!authLoading && !user) {
       navigate("/auth");
       return;
     }
-    fetchOrders();
-  }, [user, navigate]);
+    if (user) {
+      fetchOrders();
+    }
+  }, [user, authLoading, navigate]);
 
   const fetchOrders = async () => {
     try {
@@ -104,7 +106,7 @@ const Orders = () => {
     }
   };
 
-  if (loading || subLoading) {
+  if (loading || subLoading || authLoading) {
     return <div className="flex items-center justify-center min-h-screen">{t('common.loading')}</div>;
   }
 
