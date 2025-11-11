@@ -116,51 +116,50 @@ const Projects = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <nav className="border-b bg-card/50 backdrop-blur">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Button variant="ghost" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver al Dashboard
-          </Button>
-          <Button onClick={() => navigate("/calculator")}>
-            Nuevo Proyecto
-          </Button>
-        </div>
-      </nav>
-
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
+    <>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
           <h2 className="text-3xl font-bold mb-2">Proyectos</h2>
           <p className="text-muted-foreground">
             Todos tus trabajos de impresión 3D
           </p>
         </div>
+        <Button onClick={() => navigate("/calculator")}>
+          Nuevo Proyecto
+        </Button>
+      </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.length === 0 ? (
-            <Card className="col-span-full">
-              <CardContent className="py-12 text-center text-muted-foreground">
-                No hay proyectos guardados. Crea tu primer proyecto desde la calculadora.
-              </CardContent>
-            </Card>
-          ) : (
-            projects.map((project) => (
-              <Card key={project.id}>
-                <CardHeader>
-                  <CardTitle className="flex justify-between items-start">
-                    <span className="truncate">{project.name}</span>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        onClick={() => handleDeleteProject(project.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {projects.length === 0 ? (
+          <Card className="col-span-full">
+            <CardContent className="py-12 text-center text-muted-foreground">
+              No hay proyectos guardados. Crea tu primer proyecto desde la calculadora.
+            </CardContent>
+          </Card>
+        ) : (
+          projects.map((project) => (
+            <Card key={project.id}>
+              <CardHeader>
+                <CardTitle className="flex justify-between items-start">
+                  <span className="truncate">{project.name}</span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => navigate(`/calculator/${project.id}`)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => handleDeleteProject(project.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardTitle>
+              </CardHeader>
                 <CardContent>
                   <div className="space-y-2 text-sm">
                     {projectMaterials[project.id] && projectMaterials[project.id].length > 0 && (
@@ -205,13 +204,12 @@ const Projects = () => {
                       {new Date(project.created_at).toLocaleDateString('es-ES')}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
-      </main>
-    </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+    </>
   );
 };
 

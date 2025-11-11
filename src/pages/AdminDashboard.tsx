@@ -256,21 +256,8 @@ const AdminDashboard = () => {
   }).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <nav className="border-b bg-background/95 backdrop-blur">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-primary">Print3D Manager - Admin</h1>
-          <div className="flex items-center gap-4">
-            <LanguageSwitcher />
-            <Button variant="ghost" onClick={() => navigate("/dashboard")}>
-              {t('nav.dashboard')}
-            </Button>
-          </div>
-        </div>
-      </nav>
-
-      <div className="container mx-auto px-4 py-8">
-        <h2 className="text-3xl font-bold mb-6">{t('admin.title')}</h2>
+    <>
+      <h2 className="text-3xl font-bold mb-6">{t('admin.title')}</h2>
 
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           <Card>
@@ -444,8 +431,7 @@ const AdminDashboard = () => {
             </Table>
           </CardContent>
         </Card>
-      </div>
-    </div>
+      </>
   );
 };
 

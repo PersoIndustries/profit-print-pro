@@ -155,24 +155,11 @@ const Settings = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <nav className="border-b bg-background/95 backdrop-blur">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-primary">Print3D Manager</h1>
-          <div className="flex items-center gap-4">
-            <LanguageSwitcher />
-            <Button variant="ghost" onClick={() => navigate("/dashboard")}>
-              {t('nav.dashboard')}
-            </Button>
-          </div>
-        </div>
-      </nav>
-
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-6">
-          <SettingsIcon className="h-8 w-8 text-primary" />
-          <h2 className="text-3xl font-bold">Settings</h2>
-        </div>
+    <>
+      <div className="flex items-center gap-3 mb-6">
+        <SettingsIcon className="h-8 w-8 text-primary" />
+        <h2 className="text-3xl font-bold">Settings</h2>
+      </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3 max-w-md">
@@ -367,8 +354,7 @@ const Settings = () => {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
-    </div>
+      </>
   );
 };
 

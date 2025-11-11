@@ -163,43 +163,24 @@ const Orders = () => {
   }).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <nav className="border-b bg-background/95 backdrop-blur">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-primary">Print3D Manager</h1>
-          <div className="flex items-center gap-4">
-            <LanguageSwitcher />
-            <Button variant="ghost" onClick={() => navigate("/dashboard")}>
-              {t('nav.dashboard')}
-            </Button>
-            <Button variant="ghost" onClick={() => navigate("/materials")}>
-              {t('nav.materials')}
-            </Button>
-            <Button variant="ghost" onClick={() => navigate("/projects")}>
-              {t('nav.projects')}
-            </Button>
-          </div>
+    <>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-3xl font-bold">{t('orders.title')}</h2>
+          <p className="text-muted-foreground">
+            {t('orders.thisMonth')}: {monthlyCount} / {subscription?.limits.monthlyOrders}
+          </p>
         </div>
-      </nav>
+        <Button 
+          onClick={() => setShowForm(!showForm)} 
+          disabled={!subscription?.canAdd.orders}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          {t('orders.add')}
+        </Button>
+      </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-3xl font-bold">{t('orders.title')}</h2>
-            <p className="text-muted-foreground">
-              {t('orders.thisMonth')}: {monthlyCount} / {subscription?.limits.monthlyOrders}
-            </p>
-          </div>
-          <Button 
-            onClick={() => setShowForm(!showForm)} 
-            disabled={!subscription?.canAdd.orders}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            {t('orders.add')}
-          </Button>
-        </div>
-
-        {showForm && (
+      {showForm && (
           <Card className="mb-6">
             <CardHeader>
               <CardTitle>{t('orders.add')}</CardTitle>
@@ -293,7 +274,7 @@ const Orders = () => {
           </Card>
         )}
 
-        <div className="grid gap-4">
+      <div className="grid gap-4">
           {orders.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
@@ -341,9 +322,8 @@ const Orders = () => {
               </Card>
             ))
           )}
-        </div>
       </div>
-    </div>
+    </>
   );
 };
 

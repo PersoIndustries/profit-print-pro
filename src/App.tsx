@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AppLayout } from "@/components/AppLayout";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -28,16 +29,20 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/materials" element={<Materials />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/orders" element={<Orders />} />
-          <Route path="/calculator" element={<CalculatorPage />} />
           <Route path="/pricing" element={<Pricing />} />
-          <Route path="/settings" element={<Settings />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/terms" element={<Terms />} />
+          
+          {/* Rutas con navegación persistente */}
+          <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
+          <Route path="/materials" element={<AppLayout><Materials /></AppLayout>} />
+          <Route path="/projects" element={<AppLayout><Projects /></AppLayout>} />
+          <Route path="/orders" element={<AppLayout><Orders /></AppLayout>} />
+          <Route path="/calculator" element={<AppLayout><CalculatorPage /></AppLayout>} />
+          <Route path="/calculator/:projectId" element={<AppLayout><CalculatorPage /></AppLayout>} />
+          <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
+          <Route path="/admin" element={<AppLayout><AdminDashboard /></AppLayout>} />
+          
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

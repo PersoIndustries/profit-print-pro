@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, Trash2, ArrowLeft } from "lucide-react";
+import { Loader2, Plus, Trash2, Star } from "lucide-react";
 import { toast } from "sonner";
 
 interface Material {
@@ -15,6 +15,7 @@ interface Material {
   price_per_kg: number;
   color: string | null;
   type: string | null;
+  is_favorite: boolean;
 }
 
 const Materials = () => {
@@ -47,6 +48,7 @@ const Materials = () => {
         .from("materials")
         .select("*")
         .eq("user_id", user.id)
+        .order("is_favorite", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -81,6 +83,22 @@ const Materials = () => {
     }
   };
 
+  const handleToggleFavorite = async (id: string, currentFavorite: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("materials")
+        .update({ is_favorite: !currentFavorite })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast.success(currentFavorite ? "Eliminado de favoritos" : "Añadido a favoritos");
+      fetchMaterials();
+    } catch (error: any) {
+      toast.error("Error al actualizar favorito");
+    }
+  };
+
   const handleDeleteMaterial = async (id: string) => {
     try {
       const { error } = await supabase.from("materials").delete().eq("id", id);
@@ -103,23 +121,13 @@ const Materials = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <nav className="border-b bg-card/50 backdrop-blur">
-        <div className="container mx-auto px-4 py-4">
-          <Button variant="ghost" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver al Dashboard
-          </Button>
-        </div>
-      </nav>
-
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">Gestión de Materiales</h2>
-          <p className="text-muted-foreground">
-            Administra los materiales que utilizas en tus impresiones
-          </p>
-        </div>
+    <>
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold mb-2">Gestión de Materiales</h2>
+        <p className="text-muted-foreground">
+          Administra los materiales que utilizas en tus impresiones
+        </p>
+      </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-1">
@@ -186,20 +194,34 @@ const Materials = () => {
                   <CardContent className="py-4">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <h3 className="text-lg font-semibold">{material.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-lg font-semibold">{material.name}</h3>
+                          {material.is_favorite && (
+                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                          )}
+                        </div>
                         <div className="text-sm text-muted-foreground mt-1">
                           <p>Precio: €{material.price_per_kg}/kg</p>
                           {material.color && <p>Color: {material.color}</p>}
                           {material.type && <p>Tipo: {material.type}</p>}
                         </div>
                       </div>
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        onClick={() => handleDeleteMaterial(material.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleToggleFavorite(material.id, material.is_favorite)}
+                        >
+                          <Star className={material.is_favorite ? "w-4 h-4 text-yellow-500 fill-yellow-500" : "w-4 h-4"} />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={() => handleDeleteMaterial(material.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -207,8 +229,7 @@ const Materials = () => {
             )}
           </div>
         </div>
-      </main>
-    </div>
+      </>
   );
 };
 

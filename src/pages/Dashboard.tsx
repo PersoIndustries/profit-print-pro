@@ -3,7 +3,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Loader2 } from "lucide-react";
-import { Header } from "@/components/Header";
 import { useTranslation } from "react-i18next";
 import { UpgradeCTA } from "@/components/dashboard/UpgradeCTA";
 import { OrdersStats } from "@/components/dashboard/OrdersStats";
@@ -31,32 +30,28 @@ const Dashboard = () => {
   const isFreeUser = subscription?.tier === 'free';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <Header variant="app" />
+    <>
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold mb-2">{t('dashboard.title')}</h2>
+        <p className="text-muted-foreground">
+          {isFreeUser 
+            ? 'Actualiza tu plan para acceder a estadísticas detalladas' 
+            : 'Análisis del rendimiento de tu negocio'}
+        </p>
+      </div>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">{t('dashboard.title')}</h2>
-          <p className="text-muted-foreground">
-            {isFreeUser 
-              ? 'Actualiza tu plan para acceder a estadísticas detalladas' 
-              : 'Análisis del rendimiento de tu negocio'}
-          </p>
-        </div>
-
-        {isFreeUser ? (
-          <UpgradeCTA />
-        ) : (
-          user && subscription && (
-            <OrdersStats 
-              userId={user.id} 
-              tier={subscription.tier}
-              metricsHistory={subscription.limits.metricsHistory}
-            />
-          )
-        )}
-      </main>
-    </div>
+      {isFreeUser ? (
+        <UpgradeCTA />
+      ) : (
+        user && subscription && (
+          <OrdersStats 
+            userId={user.id} 
+            tier={subscription.tier}
+            metricsHistory={subscription.limits.metricsHistory}
+          />
+        )
+      )}
+    </>
   );
 };
 

@@ -1,9 +1,10 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useAuth } from '@/hooks/useAuth';
 import { LogOut, Settings, LayoutDashboard } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface HeaderProps {
   variant?: 'landing' | 'app' | 'auth';
@@ -11,8 +12,11 @@ interface HeaderProps {
 
 export const Header = ({ variant = 'landing' }: HeaderProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation();
   const { user, signOut } = useAuth();
+
+  const isActive = (path: string) => location.pathname === path;
 
   // Auth variant for login/signup pages
   if (variant === 'auth') {
@@ -92,19 +96,34 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
           >
             Print3D Manager
           </h1>
-          <Button variant="ghost" onClick={() => navigate('/dashboard')}>
+          <Button 
+            variant={isActive('/dashboard') ? 'default' : 'ghost'}
+            onClick={() => navigate('/dashboard')}
+          >
             {t('nav.dashboard')}
           </Button>
-          <Button variant="ghost" onClick={() => navigate('/materials')}>
+          <Button 
+            variant={isActive('/materials') ? 'default' : 'ghost'}
+            onClick={() => navigate('/materials')}
+          >
             {t('nav.materials')}
           </Button>
-          <Button variant="ghost" onClick={() => navigate('/projects')}>
+          <Button 
+            variant={isActive('/projects') ? 'default' : 'ghost'}
+            onClick={() => navigate('/projects')}
+          >
             {t('nav.projects')}
           </Button>
-          <Button variant="ghost" onClick={() => navigate('/calculator')}>
+          <Button 
+            variant={isActive('/calculator') ? 'default' : 'ghost'}
+            onClick={() => navigate('/calculator')}
+          >
             {t('nav.calculator')}
           </Button>
-          <Button variant="ghost" onClick={() => navigate('/orders')}>
+          <Button 
+            variant={isActive('/orders') ? 'default' : 'ghost'}
+            onClick={() => navigate('/orders')}
+          >
             {t('nav.orders')}
           </Button>
         </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, ArrowLeft, Save, Trash2 } from "lucide-react";
+import { Loader2, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Material {
@@ -25,6 +25,7 @@ interface ProjectMaterial {
 const CalculatorPage = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { projectId } = useParams();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [projectMaterials, setProjectMaterials] = useState<ProjectMaterial[]>([
     { materialId: "", weightGrams: "" }
@@ -37,6 +38,7 @@ const CalculatorPage = () => {
   const [profitMargin, setProfitMargin] = useState("30");
   const [notes, setNotes] = useState("");
   const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -46,7 +48,53 @@ const CalculatorPage = () => {
 
   useEffect(() => {
     fetchMaterials();
-  }, [user]);
+    if (projectId) {
+      loadProject(projectId);
+    }
+  }, [user, projectId]);
+
+  const loadProject = async (id: string) => {
+    if (!user) return;
+
+    try {
+      // Cargar proyecto
+      const { data: project, error: projectError } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .single();
+
+      if (projectError) throw projectError;
+
+      // Cargar materiales del proyecto
+      const { data: projMaterials, error: materialsError } = await supabase
+        .from("project_materials")
+        .select("material_id, weight_grams")
+        .eq("project_id", id);
+
+      if (materialsError) throw materialsError;
+
+      setProjectName(project.name);
+      setPrintTimeHours(project.print_time_hours.toString());
+      setNotes(project.notes || "");
+      setProfitMargin(project.profit_margin?.toString() || "30");
+      setCalculatedPrice(project.total_price);
+      setIsEditMode(true);
+
+      if (projMaterials && projMaterials.length > 0) {
+        setProjectMaterials(
+          projMaterials.map(pm => ({
+            materialId: pm.material_id,
+            weightGrams: pm.weight_grams.toString(),
+          }))
+        );
+      }
+    } catch (error: any) {
+      toast.error("Error al cargar proyecto");
+      console.error(error);
+    }
+  };
 
   const fetchMaterials = async () => {
     if (!user) return;
@@ -134,46 +182,91 @@ const CalculatorPage = () => {
     }
 
     try {
-      // Insertar proyecto
-      const { data: project, error: projectError } = await supabase
-        .from("projects")
-        .insert({
-          user_id: user.id,
-          name: projectName,
-          weight_grams: totalWeightGrams,
-          print_time_hours: parseFloat(printTimeHours),
-          electricity_cost: electricityCost,
-          material_cost: totalMaterialCost,
-          labor_cost: laborCost,
-          profit_margin: parseFloat(profitMargin),
-          total_price: calculatedPrice,
-          notes: notes || null,
-        })
-        .select()
-        .single();
+      if (isEditMode && projectId) {
+        // Actualizar proyecto existente
+        const { error: projectError } = await supabase
+          .from("projects")
+          .update({
+            name: projectName,
+            weight_grams: totalWeightGrams,
+            print_time_hours: parseFloat(printTimeHours),
+            electricity_cost: electricityCost,
+            material_cost: totalMaterialCost,
+            labor_cost: laborCost,
+            profit_margin: parseFloat(profitMargin),
+            total_price: calculatedPrice,
+            notes: notes || null,
+          })
+          .eq("id", projectId);
 
-      if (projectError) throw projectError;
+        if (projectError) throw projectError;
 
-      // Insertar materiales del proyecto
-      const projectMaterialsData = projectMaterials.map(pm => {
-        const material = materials.find(m => m.id === pm.materialId);
-        if (!material) return null;
-        const weightKg = parseFloat(pm.weightGrams) / 1000;
-        return {
-          project_id: project.id,
-          material_id: pm.materialId,
-          weight_grams: parseFloat(pm.weightGrams),
-          material_cost: weightKg * material.price_per_kg,
-        };
-      }).filter(Boolean);
+        // Eliminar materiales anteriores
+        await supabase.from("project_materials").delete().eq("project_id", projectId);
 
-      const { error: materialsError } = await supabase
-        .from("project_materials")
-        .insert(projectMaterialsData);
+        // Insertar nuevos materiales
+        const projectMaterialsData = projectMaterials.map(pm => {
+          const material = materials.find(m => m.id === pm.materialId);
+          if (!material) return null;
+          const weightKg = parseFloat(pm.weightGrams) / 1000;
+          return {
+            project_id: projectId,
+            material_id: pm.materialId,
+            weight_grams: parseFloat(pm.weightGrams),
+            material_cost: weightKg * material.price_per_kg,
+          };
+        }).filter(Boolean);
 
-      if (materialsError) throw materialsError;
+        const { error: materialsError } = await supabase
+          .from("project_materials")
+          .insert(projectMaterialsData);
 
-      toast.success("Proyecto guardado");
+        if (materialsError) throw materialsError;
+
+        toast.success("Proyecto actualizado");
+      } else {
+        // Insertar nuevo proyecto
+        const { data: project, error: projectError } = await supabase
+          .from("projects")
+          .insert({
+            user_id: user.id,
+            name: projectName,
+            weight_grams: totalWeightGrams,
+            print_time_hours: parseFloat(printTimeHours),
+            electricity_cost: electricityCost,
+            material_cost: totalMaterialCost,
+            labor_cost: laborCost,
+            profit_margin: parseFloat(profitMargin),
+            total_price: calculatedPrice,
+            notes: notes || null,
+          })
+          .select()
+          .single();
+
+        if (projectError) throw projectError;
+
+        // Insertar materiales del proyecto
+        const projectMaterialsData = projectMaterials.map(pm => {
+          const material = materials.find(m => m.id === pm.materialId);
+          if (!material) return null;
+          const weightKg = parseFloat(pm.weightGrams) / 1000;
+          return {
+            project_id: project.id,
+            material_id: pm.materialId,
+            weight_grams: parseFloat(pm.weightGrams),
+            material_cost: weightKg * material.price_per_kg,
+          };
+        }).filter(Boolean);
+
+        const { error: materialsError } = await supabase
+          .from("project_materials")
+          .insert(projectMaterialsData);
+
+        if (materialsError) throw materialsError;
+
+        toast.success("Proyecto guardado");
+      }
+      
       navigate("/projects");
     } catch (error: any) {
       toast.error("Error al guardar proyecto: " + error.message);
@@ -189,21 +282,11 @@ const CalculatorPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <nav className="border-b bg-card/50 backdrop-blur">
-        <div className="container mx-auto px-4 py-4">
-          <Button variant="ghost" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver al Dashboard
-          </Button>
-        </div>
-      </nav>
-
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>Calculadora de Precios 3D</CardTitle>
-          </CardHeader>
+    <div className="max-w-2xl mx-auto">
+      <Card>
+        <CardHeader>
+          <CardTitle>{isEditMode ? 'Editar Proyecto' : 'Calculadora de Precios 3D'}</CardTitle>
+        </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="projectName">Nombre del Proyecto *</Label>
@@ -355,7 +438,7 @@ const CalculatorPage = () => {
                     <p className="text-4xl font-bold">€{calculatedPrice.toFixed(2)}</p>
                     <Button onClick={handleSaveProject} className="mt-4">
                       <Save className="w-4 h-4 mr-2" />
-                      Guardar Proyecto
+                      {isEditMode ? 'Actualizar Proyecto' : 'Guardar Proyecto'}
                     </Button>
                   </div>
                 </CardContent>
@@ -363,8 +446,7 @@ const CalculatorPage = () => {
             )}
           </CardContent>
         </Card>
-      </main>
-    </div>
+      </div>
   );
 };
 
