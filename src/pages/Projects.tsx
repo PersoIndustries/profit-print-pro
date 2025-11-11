@@ -4,8 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Trash2, ArrowLeft, Edit } from "lucide-react";
+import { Loader2, Trash2, Edit } from "lucide-react";
 import { toast } from "sonner";
+import { ProjectFormModal } from "@/components/ProjectFormModal";
 
 interface Project {
   id: string;
@@ -40,6 +41,8 @@ const Projects = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectMaterials, setProjectMaterials] = useState<Record<string, ProjectMaterial[]>>({});
   const [projectsLoading, setProjectsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -107,6 +110,20 @@ const Projects = () => {
     }
   };
 
+  const handleCreateProject = () => {
+    setSelectedProjectId(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditProject = (id: string) => {
+    setSelectedProjectId(id);
+    setIsModalOpen(true);
+  };
+
+  const handleModalSuccess = () => {
+    fetchProjects();
+  };
+
   if (loading || projectsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -124,7 +141,7 @@ const Projects = () => {
             Todos tus trabajos de impresión 3D
           </p>
         </div>
-        <Button onClick={() => navigate("/calculator")}>
+        <Button onClick={handleCreateProject}>
           Nuevo Proyecto
         </Button>
       </div>
@@ -146,7 +163,7 @@ const Projects = () => {
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => navigate(`/calculator/${project.id}`)}
+                      onClick={() => handleEditProject(project.id)}
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
@@ -209,6 +226,13 @@ const Projects = () => {
           ))
         )}
       </div>
+
+      <ProjectFormModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        projectId={selectedProjectId}
+        onSuccess={handleModalSuccess}
+      />
     </>
   );
 };
