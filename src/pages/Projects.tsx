@@ -10,6 +10,7 @@ import { ProjectFormModal } from "@/components/ProjectFormModal";
 import { useTierFeatures } from "@/hooks/useTierFeatures";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { getMaterialIcon } from "@/utils/materialIcons";
 
 interface Project {
   id: string;
@@ -25,7 +26,9 @@ interface Project {
     weight_grams: number;
     materials: {
       name: string;
-      color: string;
+      color: string | null;
+      type: string | null;
+      display_mode: 'color' | 'icon';
     };
   }[];
 }
@@ -35,7 +38,9 @@ interface ProjectMaterial {
   weight_grams: number;
   materials: {
     name: string;
-    color: string;
+    color: string | null;
+    type: string | null;
+    display_mode: 'color' | 'icon';
   };
 }
 
@@ -76,9 +81,9 @@ const Projects = () => {
       // Obtener materiales de cada proyecto
       if (projectsData && projectsData.length > 0) {
         const { data: materialsData, error: materialsError } = await supabase
-          .from("project_materials")
-          .select("project_id, material_id, weight_grams, materials(name, color)")
-          .in("project_id", projectsData.map(p => p.id));
+      .from("project_materials")
+      .select("project_id, material_id, weight_grams, materials(name, color, type, display_mode)")
+      .in("project_id", projectsData.map(p => p.id));
 
         if (materialsError) throw materialsError;
 
@@ -216,18 +221,24 @@ const Projects = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Materiales:</p>
                   <div className="mt-1 space-y-1">
-                    {projectMaterials[project.id]?.map((pm, idx) => (
-                      <div key={idx} className="text-sm">
-                        <span className="font-medium">{pm.materials?.name}</span>
-                        <span className="text-muted-foreground"> ({pm.weight_grams}g)</span>
-                        {pm.materials?.color && (
-                          <span 
-                            className="inline-block w-3 h-3 rounded-full ml-2 border border-border"
-                            style={{ backgroundColor: pm.materials.color }}
-                          />
-                        )}
-                      </div>
-                    )) || <p className="text-sm text-muted-foreground">Sin materiales</p>}
+                    {projectMaterials[project.id]?.map((pm, idx) => {
+                      const MaterialIcon = pm.materials?.display_mode === 'icon' ? getMaterialIcon(pm.materials.type) : null;
+                      return (
+                        <div key={idx} className="text-sm flex items-center gap-2">
+                          <span className="font-medium">{pm.materials?.name}</span>
+                          <span className="text-muted-foreground">({pm.weight_grams}g)</span>
+                          {pm.materials?.display_mode === 'color' && pm.materials?.color && (
+                            <span 
+                              className="inline-block w-3 h-3 rounded-full border border-border"
+                              style={{ backgroundColor: pm.materials.color }}
+                            />
+                          )}
+                          {MaterialIcon && (
+                            <MaterialIcon className="w-4 h-4" />
+                          )}
+                        </div>
+                      );
+                    }) || <p className="text-sm text-muted-foreground">Sin materiales</p>}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -285,18 +296,24 @@ const Projects = () => {
                       <div>
                         <p className="text-sm text-muted-foreground mb-2">Materiales:</p>
                         <div className="space-y-1">
-                          {projectMaterials[project.id]?.map((pm, idx) => (
-                            <div key={idx} className="text-sm">
-                              <span className="font-medium">{pm.materials?.name}</span>
-                              <span className="text-muted-foreground"> ({pm.weight_grams}g)</span>
-                              {pm.materials?.color && (
-                                <span 
-                                  className="inline-block w-3 h-3 rounded-full ml-2 border border-border"
-                                  style={{ backgroundColor: pm.materials.color }}
-                                />
-                              )}
-                            </div>
-                          )) || <p className="text-sm text-muted-foreground">Sin materiales</p>}
+                          {projectMaterials[project.id]?.map((pm, idx) => {
+                            const MaterialIcon = pm.materials?.display_mode === 'icon' ? getMaterialIcon(pm.materials.type) : null;
+                            return (
+                              <div key={idx} className="text-sm flex items-center gap-2">
+                                <span className="font-medium">{pm.materials?.name}</span>
+                                <span className="text-muted-foreground">({pm.weight_grams}g)</span>
+                                {pm.materials?.display_mode === 'color' && pm.materials?.color && (
+                                  <span 
+                                    className="inline-block w-3 h-3 rounded-full border border-border"
+                                    style={{ backgroundColor: pm.materials.color }}
+                                  />
+                                )}
+                                {MaterialIcon && (
+                                  <MaterialIcon className="w-4 h-4" />
+                                )}
+                              </div>
+                            );
+                          }) || <p className="text-sm text-muted-foreground">Sin materiales</p>}
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
