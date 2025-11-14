@@ -536,28 +536,6 @@ const CalculatorPage = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="projectName">Nombre del Proyecto *</Label>
-            <Input
-              id="projectName"
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-              placeholder="Ej: Pieza para cliente X"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="printTime">Tiempo de Impresión (horas)</Label>
-            <Input
-              id="printTime"
-              type="number"
-              step="0.1"
-              value={printTimeHours}
-              onChange={(e) => setPrintTimeHours(e.target.value)}
-              placeholder="0"
-            />
-          </div>
-
           {/* Sección de líneas tipo factura */}
           <div className="space-y-4">
             <div className="flex justify-between items-center">

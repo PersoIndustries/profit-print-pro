@@ -16,6 +16,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   DndContext,
   closestCenter,
   KeyboardSensor,
@@ -176,6 +186,9 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
   const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
   const [invoiceLines, setInvoiceLines] = useState<InvoiceLine[]>([]);
   const [nextLineId, setNextLineId] = useState(1);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showExitDialog, setShowExitDialog] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -323,9 +336,11 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
     };
     setInvoiceLines([...invoiceLines, newLine]);
     setNextLineId(nextLineId + 1);
+    setHasUnsavedChanges(true);
   };
 
   const updateInvoiceLine = (id: string, field: keyof InvoiceLine, value: string) => {
+    setHasUnsavedChanges(true);
     setInvoiceLines(lines => lines.map(line => {
       if (line.id !== id) return line;
       
@@ -349,6 +364,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
 
   const removeInvoiceLine = (id: string) => {
     setInvoiceLines(lines => lines.filter(line => line.id !== id));
+    setHasUnsavedChanges(true);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -502,10 +518,28 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
     }
   };
 
+  const handleCloseAttempt = (shouldClose: boolean) => {
+    if (!shouldClose) return;
+    
+    if (hasUnsavedChanges && !isEditMode) {
+      setShowExitDialog(true);
+    } else {
+      onOpenChange(false);
+    }
+  };
+
+  const confirmExit = () => {
+    setShowExitDialog(false);
+    setHasUnsavedChanges(false);
+    resetForm();
+    onOpenChange(false);
+  };
+
   const { subtotal, total } = calculateTotals();
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={handleCloseAttempt}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{projectId ? 'Editar Proyecto' : 'Nuevo Proyecto'}</DialogTitle>
@@ -517,20 +551,11 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
             <Input
               id="projectName"
               value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
+              onChange={(e) => {
+                setProjectName(e.target.value);
+                setHasUnsavedChanges(true);
+              }}
               placeholder="Ej: Pieza para cliente X"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="printTime">Tiempo de Impresión (horas)</Label>
-            <Input
-              id="printTime"
-              type="number"
-              step="0.1"
-              value={printTimeHours}
-              onChange={(e) => setPrintTimeHours(e.target.value)}
-              placeholder="0"
             />
           </div>
 
@@ -673,5 +698,23 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
         </div>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>¿Salir sin guardar?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Tienes cambios sin guardar. Si sales ahora, se perderán todos los datos ingresados.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Continuar editando</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmExit} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            Salir sin guardar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

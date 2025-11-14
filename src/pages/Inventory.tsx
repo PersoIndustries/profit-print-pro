@@ -19,7 +19,7 @@ import {
   Disc, Droplet, Scissors, KeyRound, 
   Magnet as MagnetIcon, Bolt as BoltIcon, 
   Wrench, Paintbrush, FileBox, Package,
-  ShoppingCart, Archive, Crown, History, Trash, Info
+  ShoppingCart, Archive, Crown, History, Trash, Info, RefreshCw, Search, Printer
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -94,6 +94,7 @@ const Inventory = () => {
   const [movements, setMovements] = useState<Movement[]>([]);
   const [materialsLoading, setMaterialsLoading] = useState(true);
   const [filterType, setFilterType] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isAcquisitionDialogOpen, setIsAcquisitionDialogOpen] = useState(false);
@@ -457,8 +458,18 @@ const Inventory = () => {
   };
 
   const filteredMaterials = filterType === "all" 
-    ? materials 
-    : materials.filter(m => m.type === filterType);
+    ? materials.filter(m => 
+        searchTerm === "" || 
+        m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        m.color?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : materials.filter(m => 
+        m.type === filterType && (
+          searchTerm === "" || 
+          m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          m.color?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
 
   if (loading || materialsLoading || featuresLoading) {
     return (
@@ -853,10 +864,17 @@ const Inventory = () => {
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle>Historial de Movimientos</CardTitle>
-                <CardDescription>
-                  Registro completo de entradas y salidas de material
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Historial de Movimientos</CardTitle>
+                    <CardDescription>
+                      Registro completo de entradas y salidas de material
+                    </CardDescription>
+                  </div>
+                  <Button onClick={fetchMovements} variant="outline" size="icon">
+                    <RefreshCw className="w-4 h-4" />
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <Table>
