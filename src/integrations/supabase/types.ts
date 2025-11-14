@@ -16,38 +16,47 @@ export type Database = {
     Tables: {
       catalog_items: {
         Row: {
+          additional_notes: string | null
           created_at: string
           id: string
           image_url: string | null
+          long_description: string | null
           name: string
           project_id: string
           pvp_price: number
           reference_code: string
           sizes: Json
+          technical_specs: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          additional_notes?: string | null
           created_at?: string
           id?: string
           image_url?: string | null
+          long_description?: string | null
           name: string
           project_id: string
           pvp_price: number
           reference_code: string
           sizes?: Json
+          technical_specs?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          additional_notes?: string | null
           created_at?: string
           id?: string
           image_url?: string | null
+          long_description?: string | null
           name?: string
           project_id?: string
           pvp_price?: number
           reference_code?: string
           sizes?: Json
+          technical_specs?: string | null
           updated_at?: string
           user_id?: string
         }

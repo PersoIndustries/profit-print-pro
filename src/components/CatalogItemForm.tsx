@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -50,6 +51,9 @@ export function CatalogItemForm({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState(editingItem?.image_url || "");
   const [uploading, setUploading] = useState(false);
+  const [longDescription, setLongDescription] = useState((editingItem as any)?.long_description || "");
+  const [technicalSpecs, setTechnicalSpecs] = useState((editingItem as any)?.technical_specs || "");
+  const [additionalNotes, setAdditionalNotes] = useState((editingItem as any)?.additional_notes || "");
 
   useEffect(() => {
     if (editingItem) {
@@ -59,6 +63,9 @@ export function CatalogItemForm({
       setSizes(editingItem.sizes || []);
       setPvpPrice(editingItem.pvp_price?.toString() || "");
       setImageUrl(editingItem.image_url || "");
+      setLongDescription((editingItem as any)?.long_description || "");
+      setTechnicalSpecs((editingItem as any)?.technical_specs || "");
+      setAdditionalNotes((editingItem as any)?.additional_notes || "");
     }
   }, [editingItem]);
 
@@ -141,6 +148,9 @@ export function CatalogItemForm({
         sizes: sizes.filter(s => s.size && s.dimensions),
         pvp_price: parseFloat(pvpPrice),
         image_url: finalImageUrl,
+        long_description: longDescription || null,
+        technical_specs: technicalSpecs || null,
+        additional_notes: additionalNotes || null,
       };
 
       if (editingItem) {
@@ -288,6 +298,42 @@ export function CatalogItemForm({
                 Formatos: JPG, PNG, WEBP. Máx: 5MB
               </p>
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="long_description">Descripción Larga</Label>
+            <Textarea
+              id="long_description"
+              value={longDescription}
+              onChange={(e) => setLongDescription(e.target.value)}
+              placeholder="Descripción detallada del producto..."
+              rows={3}
+              className="resize-none"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="technical_specs">Especificaciones Técnicas</Label>
+            <Textarea
+              id="technical_specs"
+              value={technicalSpecs}
+              onChange={(e) => setTechnicalSpecs(e.target.value)}
+              placeholder="Especificaciones técnicas del producto..."
+              rows={3}
+              className="resize-none"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="additional_notes">Notas Adicionales</Label>
+            <Textarea
+              id="additional_notes"
+              value={additionalNotes}
+              onChange={(e) => setAdditionalNotes(e.target.value)}
+              placeholder="Notas adicionales sobre el producto..."
+              rows={2}
+              className="resize-none"
+            />
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

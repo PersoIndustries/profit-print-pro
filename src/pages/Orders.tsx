@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Trash2, Plus, Package, Edit, Kanban, Calendar, TrendingUp } from "lucide-react";
 import { OrderFormModal } from "@/components/OrderFormModal";
@@ -42,6 +43,7 @@ const Orders = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("list");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -106,6 +108,22 @@ const Orders = () => {
     }
   };
 
+  const getStatusBadge = (status: string) => {
+    const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+      pending: { label: "Pendiente", variant: "secondary" },
+      design: { label: "Diseño", variant: "default" },
+      printing: { label: "Imprimiendo", variant: "default" },
+      post_processing: { label: "Post-procesado", variant: "default" },
+      completed: { label: "Completado", variant: "outline" },
+    };
+    const config = statusConfig[status] || { label: status, variant: "outline" };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const filteredOrders = statusFilter === "all" 
+    ? orders 
+    : orders.filter(order => order.status === statusFilter);
+
   if (loading || subLoading || authLoading) {
     return <div className="flex items-center justify-center min-h-screen">{t('common.loading')}</div>;
   }
@@ -158,30 +176,60 @@ const Orders = () => {
         </TabsList>
 
         <TabsContent value="list" className="space-y-4">
-          {orders.length === 0 ? (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Filtrar por estado</CardTitle>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Todos los estados" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="pending">Pendiente</SelectItem>
+                    <SelectItem value="design">Diseño</SelectItem>
+                    <SelectItem value="printing">Imprimiendo</SelectItem>
+                    <SelectItem value="post_processing">Post-procesado</SelectItem>
+                    <SelectItem value="completed">Completado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+          </Card>
+          
+          {filteredOrders.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-lg font-medium mb-2">No hay pedidos todavía</p>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Crea tu primer pedido haciendo click en el botón "Nuevo Pedido" arriba
+                <p className="text-lg font-medium mb-2">
+                  {statusFilter === "all" ? "No hay pedidos todavía" : "No hay pedidos con este estado"}
                 </p>
-                <Button variant="outline" onClick={handleCreateOrder}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Crear Primer Pedido
-                </Button>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {statusFilter === "all" 
+                    ? "Crea tu primer pedido haciendo click en el botón \"Nuevo Pedido\" arriba"
+                    : "Prueba con otro filtro o crea un nuevo pedido"}
+                </p>
+                {statusFilter === "all" && (
+                  <Button variant="outline" onClick={handleCreateOrder}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Crear Primer Pedido
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : (
-            orders.map((order) => (
+            filteredOrders.map((order) => (
               <Card key={order.id}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>{order.order_number}</CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(order.order_date).toLocaleDateString()}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <CardTitle>{order.order_number}</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(order.order_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                      {getStatusBadge(order.status)}
                     </div>
                     <div className="flex gap-2">
                       <Button
