@@ -6,8 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Download, Trash2, Edit, Crown } from "lucide-react";
+import { Plus, Download, Trash2, Edit, Crown, Eye } from "lucide-react";
 import { CatalogItemForm } from "@/components/CatalogItemForm";
+import { CatalogPreview } from "@/components/CatalogPreview";
 import jsPDF from "jspdf";
 
 interface CatalogItem {
@@ -35,6 +36,7 @@ export default function Catalogs() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<CatalogItem | null>(null);
 
   useEffect(() => {
@@ -60,12 +62,12 @@ export default function Catalogs() {
 
       // Fetch catalog items
       const { data: catalogData, error: catalogError } = await supabase
-        .from("catalog_items")
+        .from("catalog_items" as any)
         .select("*")
         .order("created_at", { ascending: false });
 
       if (catalogError) throw catalogError;
-      setCatalogItems((catalogData || []).map(item => ({
+      setCatalogItems((catalogData || []).map((item: any) => ({
         ...item,
         sizes: item.sizes as Array<{ size: string; dimensions: string }>
       })));
@@ -82,7 +84,7 @@ export default function Catalogs() {
 
     try {
       const { error } = await supabase
-        .from("catalog_items")
+        .from("catalog_items" as any)
         .delete()
         .eq("id", id);
 
@@ -225,10 +227,16 @@ export default function Catalogs() {
         </div>
         <div className="flex gap-2">
           {catalogItems.length > 0 && (
-            <Button onClick={generatePDF} variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              Descargar PDF
-            </Button>
+            <>
+              <Button onClick={() => setIsPreviewOpen(true)} variant="outline">
+                <Eye className="w-4 h-4 mr-2" />
+                Vista Previa
+              </Button>
+              <Button onClick={generatePDF} variant="outline">
+                <Download className="w-4 h-4 mr-2" />
+                Descargar PDF
+              </Button>
+            </>
           )}
           <Button onClick={() => setIsFormOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
@@ -309,6 +317,15 @@ export default function Catalogs() {
           onClose={handleFormClose}
           projects={projects}
           editingItem={editingItem}
+        />
+      )}
+
+      {isPreviewOpen && (
+        <CatalogPreview
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          items={catalogItems}
+          onDownload={generatePDF}
         />
       )}
     </div>
