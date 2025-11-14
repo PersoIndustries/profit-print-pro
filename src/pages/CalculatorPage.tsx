@@ -650,12 +650,14 @@ const CalculatorPage = () => {
             )}
           </div>
 
-          <div className="flex gap-2">
-            <Button onClick={handleSaveProject} variant="default" className="w-full">
-              <Save className="w-4 h-4 mr-2" />
-              {isEditMode ? 'Actualizar Proyecto' : 'Crear Proyecto'}
-            </Button>
-          </div>
+          {isEditMode && (
+            <div className="flex gap-2">
+              <Button onClick={handleSaveProject} variant="default" className="w-full">
+                <Save className="w-4 h-4 mr-2" />
+                Actualizar Proyecto
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
