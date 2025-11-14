@@ -1,26 +1,17 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useTierFeatures } from "@/hooks/useTierFeatures";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { 
-  Loader2, Plus, Trash2, Star, Edit, AlertTriangle,
-  Disc, Droplet, Scissors, KeyRound, 
-  Magnet as MagnetIcon, Bolt as BoltIcon, 
-  Wrench, Paintbrush, FileBox, Package,
-  ShoppingCart, Archive, Crown, History, Trash, Info, RefreshCw, Search, Printer, Download
-} from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Plus, ShoppingCart, History, Trash } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -29,19 +20,6 @@ interface Material {
   id: string;
   name: string;
   price_per_kg: number;
-  color: string | null;
-  type: string | null;
-  is_favorite: boolean;
-}
-
-interface InventoryItem {
-  id: string;
-  material_id: string;
-  quantity_grams: number;
-  min_stock_alert: number;
-  location: string | null;
-  notes: string | null;
-  materials: Material;
 }
 
 interface Acquisition {
@@ -66,66 +44,29 @@ interface Movement {
   materials: Material;
 }
 
-const MATERIAL_TYPES = [
-  { value: 'filament', label: 'Filament', icon: Disc },
-  { value: 'resin', label: 'Resin', icon: Droplet },
-  { value: 'glue', label: 'Glue', icon: Droplet },
-  { value: 'keyring', label: 'Keyring', icon: KeyRound },
-  { value: 'magnet', label: 'Magnet', icon: MagnetIcon },
-  { value: 'screw', label: 'Screw', icon: Wrench },
-  { value: 'bolt', label: 'Bolt', icon: BoltIcon },
-  { value: 'paint', label: 'Paint', icon: Paintbrush },
-  { value: 'sandpaper', label: 'Sandpaper', icon: FileBox },
-  { value: 'other', label: 'Other', icon: Package },
-];
-
-const getMaterialIcon = (type: string | null) => {
-  const materialType = MATERIAL_TYPES.find(t => t.value === type);
-  return materialType?.icon || Package;
-};
-
 const Inventory = () => {
   const { user, loading } = useAuth();
-  const { hasFeature, isEnterprise, loading: featuresLoading } = useTierFeatures();
   const navigate = useNavigate();
   const [materials, setMaterials] = useState<Material[]>([]);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [acquisitions, setAcquisitions] = useState<Acquisition[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
-  const [materialsLoading, setMaterialsLoading] = useState(true);
-  const [filterType, setFilterType] = useState<string>("all");
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
   const [isAcquisitionDialogOpen, setIsAcquisitionDialogOpen] = useState(false);
   const [isWasteDialogOpen, setIsWasteDialogOpen] = useState(false);
   
-  const [newMaterial, setNewMaterial] = useState({
-    name: "",
-    price_per_kg: "",
-    color: "",
-    type: "",
-  });
-  
-  const [editForm, setEditForm] = useState({
-    name: "",
-    price_per_kg: "",
-    color: "",
-    type: "",
-  });
-
   const [acquisitionForm, setAcquisitionForm] = useState({
     material_id: "",
     quantity_grams: "",
     unit_price: "",
     supplier: "",
-    notes: "",
+    purchase_date: new Date().toISOString().split('T')[0],
+    notes: ""
   });
 
   const [wasteForm, setWasteForm] = useState({
     material_id: "",
     quantity_grams: "",
-    notes: "",
+    notes: ""
   });
 
   useEffect(() => {
@@ -136,12 +77,22 @@ const Inventory = () => {
 
   useEffect(() => {
     if (user) {
-      fetchMaterials();
-      fetchInventory();
-      fetchAcquisitions();
-      fetchMovements();
+      fetchData();
     }
   }, [user]);
+
+  const fetchData = async () => {
+    try {
+      setLoadingData(true);
+      await Promise.all([
+        fetchMaterials(),
+        fetchAcquisitions(),
+        fetchMovements()
+      ]);
+    } finally {
+      setLoadingData(false);
+    }
+  };
 
   const fetchMaterials = async () => {
     if (!user) return;
@@ -149,34 +100,14 @@ const Inventory = () => {
     try {
       const { data, error } = await supabase
         .from("materials")
-        .select("*")
+        .select("id, name, price_per_kg")
         .eq("user_id", user.id)
-        .order("is_favorite", { ascending: false })
-        .order("created_at", { ascending: false });
+        .order("name");
 
       if (error) throw error;
       setMaterials(data || []);
     } catch (error: any) {
       toast.error("Error al cargar materiales");
-    } finally {
-      setMaterialsLoading(false);
-    }
-  };
-
-  const fetchInventory = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("inventory_items")
-        .select("*, materials(*)")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setInventory(data || []);
-    } catch (error: any) {
-      toast.error("Error al cargar inventario");
     }
   };
 
@@ -186,7 +117,7 @@ const Inventory = () => {
     try {
       const { data, error } = await supabase
         .from("material_acquisitions")
-        .select("*, materials(*)")
+        .select("*, materials(id, name, price_per_kg)")
         .eq("user_id", user.id)
         .order("purchase_date", { ascending: false });
 
@@ -203,9 +134,10 @@ const Inventory = () => {
     try {
       const { data, error } = await supabase
         .from("inventory_movements")
-        .select("*, materials!inventory_movements_material_id_fkey(*)")
+        .select("*, materials!fk_material(id, name, price_per_kg)")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(50);
 
       if (error) throw error;
       setMovements(data || []);
@@ -214,78 +146,54 @@ const Inventory = () => {
     }
   };
 
-  const handleAddMaterial = async (e: React.FormEvent) => {
+  const handleSaveAcquisition = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     try {
-      const { error } = await supabase.from("materials").insert({
-        user_id: user.id,
-        name: newMaterial.name,
-        price_per_kg: parseFloat(newMaterial.price_per_kg),
-        color: newMaterial.color || null,
-        type: newMaterial.type || null,
-      });
+      const quantityGrams = parseFloat(acquisitionForm.quantity_grams);
+      const unitPrice = parseFloat(acquisitionForm.unit_price);
+      const totalPrice = (unitPrice / 1000) * quantityGrams;
+
+      const { error } = await supabase
+        .from("material_acquisitions")
+        .insert({
+          user_id: user.id,
+          material_id: acquisitionForm.material_id,
+          quantity_grams: quantityGrams,
+          unit_price: unitPrice,
+          total_price: totalPrice,
+          supplier: acquisitionForm.supplier || null,
+          purchase_date: acquisitionForm.purchase_date,
+          notes: acquisitionForm.notes || null
+        });
 
       if (error) throw error;
 
-      toast.success("Material añadido");
-      setNewMaterial({ name: "", price_per_kg: "", color: "", type: "" });
-      fetchMaterials();
-    } catch (error: any) {
-      toast.error("Error al añadir material");
-    }
-  };
-
-  const handleAddAcquisition = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    try {
-      const quantity = parseFloat(acquisitionForm.quantity_grams);
-      const unitPrice = parseFloat(acquisitionForm.unit_price);
-      const totalPrice = (quantity / 1000) * unitPrice;
-
-      // Insert acquisition
-      const { error: acqError } = await supabase.from("material_acquisitions").insert({
-        user_id: user.id,
-        material_id: acquisitionForm.material_id,
-        quantity_grams: quantity,
-        unit_price: unitPrice,
-        total_price: totalPrice,
-        supplier: acquisitionForm.supplier || null,
-        notes: acquisitionForm.notes || null,
-      });
-
-      if (acqError) throw acqError;
-
-      // Update or create inventory item
+      // Update inventory
       const { data: existingInventory } = await supabase
         .from("inventory_items")
-        .select("*")
+        .select("quantity_grams")
         .eq("user_id", user.id)
         .eq("material_id", acquisitionForm.material_id)
         .maybeSingle();
 
       if (existingInventory) {
-        const { error: updateError } = await supabase
+        await supabase
           .from("inventory_items")
           .update({
-            quantity_grams: existingInventory.quantity_grams + quantity,
+            quantity_grams: existingInventory.quantity_grams + quantityGrams
           })
-          .eq("id", existingInventory.id);
-
-        if (updateError) throw updateError;
+          .eq("user_id", user.id)
+          .eq("material_id", acquisitionForm.material_id);
       } else {
-        const { error: insertError } = await supabase
+        await supabase
           .from("inventory_items")
           .insert({
             user_id: user.id,
             material_id: acquisitionForm.material_id,
-            quantity_grams: quantity,
+            quantity_grams: quantityGrams
           });
-
-        if (insertError) throw insertError;
       }
 
       toast.success("Adquisición registrada");
@@ -295,82 +203,64 @@ const Inventory = () => {
         quantity_grams: "",
         unit_price: "",
         supplier: "",
-        notes: "",
+        purchase_date: new Date().toISOString().split('T')[0],
+        notes: ""
       });
-      fetchInventory();
-      fetchAcquisitions();
+      fetchData();
     } catch (error: any) {
       toast.error("Error al registrar adquisición");
+      console.error(error);
     }
   };
 
-  const handleToggleFavorite = async (id: string, currentFavorite: boolean) => {
-    try {
-      const { error } = await supabase
-        .from("materials")
-        .update({ is_favorite: !currentFavorite })
-        .eq("id", id);
-
-      if (error) throw error;
-
-      toast.success(currentFavorite ? "Eliminado de favoritos" : "Añadido a favoritos");
-      fetchMaterials();
-    } catch (error: any) {
-      toast.error("Error al actualizar favorito");
-    }
-  };
-
-  const handleDeleteMaterial = async (id: string) => {
-    try {
-      const { error } = await supabase.from("materials").delete().eq("id", id);
-
-      if (error) throw error;
-
-      toast.success("Material eliminado");
-      fetchMaterials();
-    } catch (error: any) {
-      toast.error("Error al eliminar material");
-    }
-  };
-
-  const handleEditClick = (material: Material) => {
-    setEditingMaterial(material);
-    setEditForm({
-      name: material.name,
-      price_per_kg: material.price_per_kg.toString(),
-      color: material.color || "",
-      type: material.type || "",
-    });
-    setIsEditDialogOpen(true);
-  };
-
-  const handleUpdateMaterial = async (e: React.FormEvent) => {
+  const handleSaveWaste = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingMaterial) return;
+    if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from("materials")
+      const quantityGrams = parseFloat(wasteForm.quantity_grams);
+
+      // Get current inventory
+      const { data: existingInventory, error: fetchError } = await supabase
+        .from("inventory_items")
+        .select("quantity_grams")
+        .eq("user_id", user.id)
+        .eq("material_id", wasteForm.material_id)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+
+      if (!existingInventory) {
+        toast.error("No hay stock de este material");
+        return;
+      }
+
+      // Update inventory
+      await supabase
+        .from("inventory_items")
         .update({
-          name: editForm.name,
-          price_per_kg: parseFloat(editForm.price_per_kg),
-          color: editForm.color || null,
-          type: editForm.type || null,
+          quantity_grams: existingInventory.quantity_grams - quantityGrams
         })
-        .eq("id", editingMaterial.id);
+        .eq("user_id", user.id)
+        .eq("material_id", wasteForm.material_id);
 
-      if (error) throw error;
-
-      toast.success("Material actualizado");
-      setIsEditDialogOpen(false);
-      setEditingMaterial(null);
-      fetchMaterials();
+      toast.success("Desperdicio registrado");
+      setIsWasteDialogOpen(false);
+      setWasteForm({
+        material_id: "",
+        quantity_grams: "",
+        notes: ""
+      });
+      fetchData();
     } catch (error: any) {
-      toast.error("Error al actualizar material");
+      toast.error("Error al registrar desperdicio");
+      console.error(error);
     }
   };
 
   const handleDeleteAcquisition = async (id: string) => {
+    if (!confirm("¿Eliminar esta adquisición?")) return;
+
     try {
       const { error } = await supabase
         .from("material_acquisitions")
@@ -378,100 +268,24 @@ const Inventory = () => {
         .eq("id", id);
 
       if (error) throw error;
-
       toast.success("Adquisición eliminada");
-      fetchAcquisitions();
+      fetchData();
     } catch (error: any) {
       toast.error("Error al eliminar adquisición");
     }
   };
 
-  const handleAddWaste = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    try {
-      const quantity = parseFloat(wasteForm.quantity_grams);
-
-      // Insert movement record
-      const { error: movError } = await supabase.from("inventory_movements").insert({
-        user_id: user.id,
-        material_id: wasteForm.material_id,
-        movement_type: 'waste',
-        quantity_grams: -quantity,
-        notes: wasteForm.notes || null,
-      });
-
-      if (movError) throw movError;
-
-      // Update inventory
-      const { data: existingInventory } = await supabase
-        .from("inventory_items")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("material_id", wasteForm.material_id)
-        .maybeSingle();
-
-      if (existingInventory) {
-        const { error: updateError } = await supabase
-          .from("inventory_items")
-          .update({
-            quantity_grams: existingInventory.quantity_grams - quantity,
-          })
-          .eq("id", existingInventory.id);
-
-        if (updateError) throw updateError;
-      }
-
-      toast.success("Desperdicio registrado");
-      setIsWasteDialogOpen(false);
-      setWasteForm({
-        material_id: "",
-        quantity_grams: "",
-        notes: "",
-      });
-      fetchInventory();
-      fetchMovements();
-    } catch (error: any) {
-      toast.error("Error al registrar desperdicio");
-    }
-  };
-
   const getMovementTypeLabel = (type: string) => {
-    switch (type) {
-      case 'acquisition': return 'Adquisición';
-      case 'print': return 'Impresión';
-      case 'waste': return 'Desperdicio';
-      case 'adjustment': return 'Ajuste';
-      default: return type;
-    }
+    const types: Record<string, string> = {
+      acquisition: "Adquisición",
+      print: "Impresión",
+      waste: "Desperdicio",
+      adjustment: "Ajuste"
+    };
+    return types[type] || type;
   };
 
-  const getMovementTypeBadge = (type: string) => {
-    switch (type) {
-      case 'acquisition': return 'default';
-      case 'print': return 'secondary';
-      case 'waste': return 'destructive';
-      case 'adjustment': return 'outline';
-      default: return 'outline';
-    }
-  };
-
-  const filteredMaterials = filterType === "all" 
-    ? materials.filter(m => 
-        searchTerm === "" || 
-        m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.color?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : materials.filter(m => 
-        m.type === filterType && (
-          searchTerm === "" || 
-          m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          m.color?.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      );
-
-  if (loading || materialsLoading || featuresLoading) {
+  if (loading || loadingData) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin" />
@@ -480,703 +294,299 @@ const Inventory = () => {
   }
 
   return (
-    <>
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-2">Gestión de Inventario</h2>
-        <p className="text-muted-foreground">
-          Administra tus materiales, inventario y adquisiciones
-        </p>
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-4xl font-bold">Inventario</h1>
+          <p className="text-muted-foreground mt-2">
+            Gestiona adquisiciones y movimientos de materiales
+          </p>
+        </div>
       </div>
 
-      <Tabs defaultValue="inventory" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="inventory">
-            <Archive className="w-4 h-4 mr-2" />
-            Inventario
-            {!hasFeature('inventory_management') && <Crown className="w-3 h-3 ml-2" />}
-          </TabsTrigger>
-          <TabsTrigger value="acquisitions">
-            <ShoppingCart className="w-4 h-4 mr-2" />
+      <Tabs defaultValue="acquisitions" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="acquisitions" className="flex items-center gap-2">
+            <ShoppingCart className="w-4 h-4" />
             Adquisiciones
-            {!hasFeature('acquisition_history') && <Crown className="w-3 h-3 ml-2" />}
           </TabsTrigger>
-          <TabsTrigger value="history">
-            <History className="w-4 h-4 mr-2" />
+          <TabsTrigger value="movements" className="flex items-center gap-2">
+            <History className="w-4 h-4" />
             Historial
-            {!hasFeature('movement_history') && <Crown className="w-3 h-3 ml-2" />}
           </TabsTrigger>
         </TabsList>
 
-        {/* TAB: Inventario */}
-        <TabsContent value="inventory" className="mt-6">
-          <div className="grid lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-1">
-              <CardHeader>
-                <CardTitle>Añadir Material</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleAddMaterial} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nombre *</Label>
-                    <Input
-                      id="name"
-                      value={newMaterial.name}
-                      onChange={(e) => setNewMaterial({ ...newMaterial, name: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Precio por KG (€) *</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      step="0.01"
-                      value={newMaterial.price_per_kg}
-                      onChange={(e) => setNewMaterial({ ...newMaterial, price_per_kg: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="color">Color</Label>
-                    <Input
-                      id="color"
-                      value={newMaterial.color}
-                      onChange={(e) => setNewMaterial({ ...newMaterial, color: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="type">Tipo</Label>
-                    <Select
-                      value={newMaterial.type}
-                      onValueChange={(value) => setNewMaterial({ ...newMaterial, type: value })}
-                    >
-                      <SelectTrigger id="type">
-                        <SelectValue placeholder="Selecciona tipo" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover z-50">
-                        {MATERIAL_TYPES.map((type) => {
-                          const Icon = type.icon;
-                          return (
-                            <SelectItem key={type.value} value={type.value}>
-                              <div className="flex items-center gap-2">
-                                <Icon className="w-4 h-4" />
-                                {type.label}
-                              </div>
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button type="submit" className="w-full">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Añadir Material
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            <div className="lg:col-span-2 space-y-4">
-              <div className="flex items-center gap-4">
-                <Label>Filtrar por tipo:</Label>
-                <Select value={filterType} onValueChange={setFilterType}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover z-50">
-                    <SelectItem value="all">Todos</SelectItem>
-                    {MATERIAL_TYPES.map((type) => {
-                      const Icon = type.icon;
-                      return (
-                        <SelectItem key={type.value} value={type.value}>
-                          <div className="flex items-center gap-2">
-                            <Icon className="w-4 h-4" />
-                            {type.label}
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-                <span className="text-sm text-muted-foreground">
-                  {filteredMaterials.length} material{filteredMaterials.length !== 1 ? 'es' : ''}
-                </span>
-              </div>
-
-              {filteredMaterials.length === 0 ? (
-                <Card>
-                  <CardContent className="py-12 text-center text-muted-foreground">
-                    {filterType === "all" 
-                      ? "No hay materiales. Añade tu primer material para comenzar."
-                      : "No hay materiales de este tipo."}
-                  </CardContent>
-                </Card>
-              ) : (
-                filteredMaterials.map((material) => {
-                  const Icon = getMaterialIcon(material.type);
-                  return (
-                    <Card key={material.id}>
-                      <CardContent className="py-4">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1 flex items-start gap-3">
-                            <div className="p-2 bg-muted rounded-lg">
-                              <Icon className="w-5 h-5 text-muted-foreground" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <h3 className="text-lg font-semibold">{material.name}</h3>
-                                {material.is_favorite && (
-                                  <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                                )}
-                              </div>
-                              <div className="text-sm text-muted-foreground mt-1">
-                                <p>Precio: €{material.price_per_kg}/kg</p>
-                                {material.color && <p>Color: {material.color}</p>}
-                                {material.type && (
-                                  <p>Tipo: {MATERIAL_TYPES.find(t => t.value === material.type)?.label || material.type}</p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleToggleFavorite(material.id, material.is_favorite)}
-                            >
-                              <Star className={material.is_favorite ? "w-4 h-4 text-yellow-500 fill-yellow-500" : "w-4 h-4"} />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleEditClick(material)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              onClick={() => handleDeleteMaterial(material.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
-              )}
-            </div>
+        <TabsContent value="acquisitions" className="space-y-4">
+          <div className="flex justify-end gap-2">
+            <Button onClick={() => setIsAcquisitionDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Nueva Adquisición
+            </Button>
+            <Button variant="outline" onClick={() => setIsWasteDialogOpen(true)}>
+              <Trash className="w-4 h-4 mr-2" />
+              Registrar Desperdicio
+            </Button>
           </div>
-        </TabsContent>
 
-        {/* TAB: Inventario */}
-        <TabsContent value="inventory" className="mt-6">
-          {!hasFeature('inventory_management') ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Crown className="w-12 h-12 mx-auto mb-4 text-purple-500" />
-                <h3 className="text-xl font-bold mb-2">Función Enterprise</h3>
-                <p className="text-muted-foreground mb-4">
-                  El control de inventario está disponible solo para usuarios Enterprise
+          <Card>
+            <CardHeader>
+              <CardTitle>Adquisiciones Recientes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {acquisitions.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  No hay adquisiciones registradas
                 </p>
-                <Button onClick={() => navigate('/settings')}>
-                  Actualizar a Enterprise
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col gap-4">
-                  <div>
-                    <CardTitle>Inventario de Materiales</CardTitle>
-                    <CardDescription>
-                      Control de stock y cantidades disponibles
-                    </CardDescription>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button onClick={() => setIsAcquisitionDialogOpen(true)} variant="default">
-                      <ShoppingCart className="w-4 h-4 mr-2" />
-                      Nueva Adquisición
-                    </Button>
-                    <Button 
-                      onClick={() => {
-                        const headers = ['Material', 'Cantidad (g)', 'Cantidad (kg)', 'Ubicación', 'Alerta Stock Mínimo'];
-                        const rows = inventory.map(item => [
-                          item.materials.name,
-                          item.quantity_grams.toFixed(0),
-                          (item.quantity_grams / 1000).toFixed(2),
-                          item.location || '-',
-                          item.min_stock_alert
-                        ]);
-                        const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                        const link = document.createElement('a');
-                        link.href = URL.createObjectURL(blob);
-                        link.download = `inventario_${new Date().toISOString().split('T')[0]}.csv`;
-                        link.click();
-                        toast.success('Inventario exportado');
-                      }} 
-                      variant="outline"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Exportar CSV
-                    </Button>
-                    <Button onClick={() => navigate('/prints')} variant="outline">
-                      <Printer className="w-4 h-4 mr-2" />
-                      Ir a Impresiones
-                    </Button>
-                    {hasFeature('waste_tracking') && (
-                      <Button onClick={() => setIsWasteDialogOpen(true)} variant="destructive">
-                        <Trash className="w-4 h-4 mr-2" />
-                        Registrar Desperdicio
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Material</TableHead>
-                      <TableHead>Cantidad (g)</TableHead>
-                      <TableHead>Cantidad (kg)</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Ubicación</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {inventory.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground">
-                          No hay items en inventario. Registra tu primera adquisición.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      inventory.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.materials.name}</TableCell>
-                          <TableCell>{item.quantity_grams.toFixed(0)} g</TableCell>
-                          <TableCell>{(item.quantity_grams / 1000).toFixed(2)} kg</TableCell>
-                          <TableCell>
-                            {item.quantity_grams < item.min_stock_alert ? (
-                              <Badge variant="destructive" className="flex items-center gap-1 w-fit">
-                                <AlertTriangle className="w-3 h-3" />
-                                Stock bajo
-                              </Badge>
-                            ) : (
-                              <Badge variant="default" className="bg-green-500">OK</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>{item.location || '-'}</TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        {/* TAB: Adquisiciones */}
-        <TabsContent value="acquisitions" className="mt-6">
-          {!hasFeature('acquisition_history') ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Crown className="w-12 h-12 mx-auto mb-4 text-purple-500" />
-                <h3 className="text-xl font-bold mb-2">Función Enterprise</h3>
-                <p className="text-muted-foreground mb-4">
-                  El historial de adquisiciones está disponible solo para usuarios Enterprise
-                </p>
-                <Button onClick={() => navigate('/settings')}>
-                  Actualizar a Enterprise
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>Adquisiciones de Material</CardTitle>
-                    <CardDescription>
-                      Historial de compras y reposiciones
-                    </CardDescription>
-                  </div>
-                  <Button onClick={() => setIsAcquisitionDialogOpen(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nueva Adquisición
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Material</TableHead>
-                        <TableHead>Cantidad</TableHead>
-                        <TableHead>Precio/kg</TableHead>
-                        <TableHead>Total</TableHead>
-                        <TableHead>Proveedor</TableHead>
-                        <TableHead>Notas</TableHead>
-                        <TableHead></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {acquisitions.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={8} className="text-center text-muted-foreground">
-                            No hay adquisiciones registradas
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        acquisitions.map((acq) => (
-                          <TableRow key={acq.id}>
-                            <TableCell>
-                              {format(new Date(acq.purchase_date), 'dd/MM/yyyy', { locale: es })}
-                            </TableCell>
-                            <TableCell className="font-medium">{acq.materials.name}</TableCell>
-                            <TableCell>{(acq.quantity_grams / 1000).toFixed(2)} kg</TableCell>
-                            <TableCell>€{acq.unit_price.toFixed(2)}/kg</TableCell>
-                            <TableCell className="font-bold">€{acq.total_price.toFixed(2)}</TableCell>
-                            <TableCell>{acq.supplier || '-'}</TableCell>
-                            <TableCell>
-                              {acq.notes ? (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                                        <Info className="h-4 w-4 text-muted-foreground" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="max-w-xs">
-                                      <p>{acq.notes}</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              ) : '-'}
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                variant="destructive"
-                                size="icon"
-                                onClick={() => handleDeleteAcquisition(acq.id)}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </TabsContent>
-
-        {/* TAB: Historial */}
-        <TabsContent value="history" className="mt-6">
-          {!hasFeature('movement_history') ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Crown className="w-12 h-12 mx-auto mb-4 text-purple-500" />
-                <h3 className="text-xl font-bold mb-2">Función Enterprise</h3>
-                <p className="text-muted-foreground mb-4">
-                  El historial de movimientos está disponible solo para usuarios Enterprise
-                </p>
-                <Button onClick={() => navigate('/settings')}>
-                  Actualizar a Enterprise
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Historial de Movimientos</CardTitle>
-                    <CardDescription>
-                      Registro completo de entradas y salidas de material
-                    </CardDescription>
-                  </div>
-                  <Button onClick={fetchMovements} variant="outline" size="icon">
-                    <RefreshCw className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
+              ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Fecha</TableHead>
                       <TableHead>Material</TableHead>
+                      <TableHead>Cantidad</TableHead>
+                      <TableHead>Precio/kg</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Proveedor</TableHead>
+                      <TableHead className="w-[100px]">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {acquisitions.map((acq) => (
+                      <TableRow key={acq.id}>
+                        <TableCell>
+                          {format(new Date(acq.purchase_date), "dd MMM yyyy", { locale: es })}
+                        </TableCell>
+                        <TableCell className="font-medium">{acq.materials.name}</TableCell>
+                        <TableCell>
+                          {(acq.quantity_grams / 1000).toFixed(2)} kg
+                        </TableCell>
+                        <TableCell>€{acq.unit_price.toFixed(2)}</TableCell>
+                        <TableCell className="font-bold">€{acq.total_price.toFixed(2)}</TableCell>
+                        <TableCell>{acq.supplier || "-"}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => handleDeleteAcquisition(acq.id)}
+                          >
+                            <Trash className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="movements" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Historial de Movimientos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {movements.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  No hay movimientos registrados
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fecha</TableHead>
                       <TableHead>Tipo</TableHead>
+                      <TableHead>Material</TableHead>
                       <TableHead>Cantidad</TableHead>
                       <TableHead>Notas</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {movements.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground">
-                          No hay movimientos registrados
+                    {movements.map((mov) => (
+                      <TableRow key={mov.id}>
+                        <TableCell>
+                          {format(new Date(mov.created_at), "dd MMM yyyy HH:mm", { locale: es })}
                         </TableCell>
+                        <TableCell>{getMovementTypeLabel(mov.movement_type)}</TableCell>
+                        <TableCell className="font-medium">{mov.materials.name}</TableCell>
+                        <TableCell className={mov.quantity_grams < 0 ? "text-red-500" : "text-green-500"}>
+                          {mov.quantity_grams > 0 ? "+" : ""}{(mov.quantity_grams / 1000).toFixed(2)} kg
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate">{mov.notes || "-"}</TableCell>
                       </TableRow>
-                    ) : (
-                      movements.map((mov) => (
-                        <TableRow key={mov.id}>
-                          <TableCell>
-                            {format(new Date(mov.created_at), 'dd/MM/yyyy HH:mm', { locale: es })}
-                          </TableCell>
-                          <TableCell className="font-medium">{mov.materials.name}</TableCell>
-                          <TableCell>
-                            <Badge variant={getMovementTypeBadge(mov.movement_type) as any}>
-                              {getMovementTypeLabel(mov.movement_type)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className={mov.quantity_grams > 0 ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
-                            {mov.quantity_grams > 0 ? '+' : ''}{(mov.quantity_grams / 1000).toFixed(3)} kg
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {mov.notes || '-'}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
+                    ))}
                   </TableBody>
                 </Table>
-              </CardContent>
-            </Card>
-          )}
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
-      {/* Dialog de edición de material */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="bg-card z-50">
-          <DialogHeader>
-            <DialogTitle>Editar Material</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleUpdateMaterial} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Nombre *</Label>
-              <Input
-                id="edit-name"
-                value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-price">Precio por KG (€) *</Label>
-              <Input
-                id="edit-price"
-                type="number"
-                step="0.01"
-                value={editForm.price_per_kg}
-                onChange={(e) => setEditForm({ ...editForm, price_per_kg: e.target.value })}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-color">Color</Label>
-              <Input
-                id="edit-color"
-                value={editForm.color}
-                onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-type">Tipo</Label>
-              <Select
-                value={editForm.type}
-                onValueChange={(value) => setEditForm({ ...editForm, type: value })}
-              >
-                <SelectTrigger id="edit-type">
-                  <SelectValue placeholder="Selecciona tipo" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover z-50">
-                  {MATERIAL_TYPES.map((type) => {
-                    const Icon = type.icon;
-                    return (
-                      <SelectItem key={type.value} value={type.value}>
-                        <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4" />
-                          {type.label}
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex gap-2">
-              <Button type="submit" className="flex-1">
-                Guardar Cambios
-              </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setIsEditDialogOpen(false)}
-                className="flex-1"
-              >
-                Cancelar
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog de nueva adquisición */}
+      {/* Acquisition Dialog */}
       <Dialog open={isAcquisitionDialogOpen} onOpenChange={setIsAcquisitionDialogOpen}>
-        <DialogContent className="bg-card z-50">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Nueva Adquisición de Material</DialogTitle>
+            <DialogTitle>Nueva Adquisición</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleAddAcquisition} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="acq-material">Material *</Label>
+
+          <form onSubmit={handleSaveAcquisition} className="space-y-4">
+            <div>
+              <Label htmlFor="acq_material">Material *</Label>
               <Select
                 value={acquisitionForm.material_id}
                 onValueChange={(value) => setAcquisitionForm({ ...acquisitionForm, material_id: value })}
-                required
               >
-                <SelectTrigger id="acq-material">
-                  <SelectValue placeholder="Selecciona material" />
+                <SelectTrigger id="acq_material">
+                  <SelectValue placeholder="Seleccionar material" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover z-50">
-                  {materials.map((material) => (
-                    <SelectItem key={material.id} value={material.id}>
-                      {material.name}
+                <SelectContent>
+                  {materials.map((mat) => (
+                    <SelectItem key={mat.id} value={mat.id}>
+                      {mat.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="acq-quantity">Cantidad (gramos) *</Label>
-              <Input
-                id="acq-quantity"
-                type="number"
-                step="1"
-                value={acquisitionForm.quantity_grams}
-                onChange={(e) => setAcquisitionForm({ ...acquisitionForm, quantity_grams: e.target.value })}
-                required
-              />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="acq_quantity">Cantidad (kg) *</Label>
+                <Input
+                  id="acq_quantity"
+                  type="number"
+                  step="0.001"
+                  value={acquisitionForm.quantity_grams ? (parseFloat(acquisitionForm.quantity_grams) / 1000).toString() : ""}
+                  onChange={(e) => setAcquisitionForm({ 
+                    ...acquisitionForm, 
+                    quantity_grams: (parseFloat(e.target.value) * 1000).toString() 
+                  })}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="acq_price">Precio/kg *</Label>
+                <Input
+                  id="acq_price"
+                  type="number"
+                  step="0.01"
+                  value={acquisitionForm.unit_price}
+                  onChange={(e) => setAcquisitionForm({ ...acquisitionForm, unit_price: e.target.value })}
+                  required
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="acq-price">Precio por KG (€) *</Label>
+
+            <div>
+              <Label htmlFor="acq_supplier">Proveedor</Label>
               <Input
-                id="acq-price"
-                type="number"
-                step="0.01"
-                value={acquisitionForm.unit_price}
-                onChange={(e) => setAcquisitionForm({ ...acquisitionForm, unit_price: e.target.value })}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="acq-supplier">Proveedor</Label>
-              <Input
-                id="acq-supplier"
+                id="acq_supplier"
                 value={acquisitionForm.supplier}
                 onChange={(e) => setAcquisitionForm({ ...acquisitionForm, supplier: e.target.value })}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="acq-notes">Notas</Label>
-              <Textarea
-                id="acq-notes"
-                value={acquisitionForm.notes}
-                onChange={(e) => setAcquisitionForm({ ...acquisitionForm, notes: e.target.value })}
+
+            <div>
+              <Label htmlFor="acq_date">Fecha de Compra *</Label>
+              <Input
+                id="acq_date"
+                type="date"
+                value={acquisitionForm.purchase_date}
+                onChange={(e) => setAcquisitionForm({ ...acquisitionForm, purchase_date: e.target.value })}
+                required
               />
             </div>
-            <div className="flex gap-2">
-              <Button type="submit" className="flex-1">
-                Registrar Adquisición
-              </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setIsAcquisitionDialogOpen(false)}
-                className="flex-1"
-              >
+
+            <div>
+              <Label htmlFor="acq_notes">Notas</Label>
+              <Textarea
+                id="acq_notes"
+                value={acquisitionForm.notes}
+                onChange={(e) => setAcquisitionForm({ ...acquisitionForm, notes: e.target.value })}
+                rows={3}
+              />
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <Button type="button" variant="outline" onClick={() => setIsAcquisitionDialogOpen(false)}>
                 Cancelar
+              </Button>
+              <Button type="submit">
+                Guardar Adquisición
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de registro de desperdicio */}
+      {/* Waste Dialog */}
       <Dialog open={isWasteDialogOpen} onOpenChange={setIsWasteDialogOpen}>
-        <DialogContent className="bg-card z-50">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Registrar Desperdicio de Material</DialogTitle>
+            <DialogTitle>Registrar Desperdicio</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleAddWaste} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="waste-material">Material *</Label>
+
+          <form onSubmit={handleSaveWaste} className="space-y-4">
+            <div>
+              <Label htmlFor="waste_material">Material *</Label>
               <Select
                 value={wasteForm.material_id}
                 onValueChange={(value) => setWasteForm({ ...wasteForm, material_id: value })}
-                required
               >
-                <SelectTrigger id="waste-material">
-                  <SelectValue placeholder="Selecciona material" />
+                <SelectTrigger id="waste_material">
+                  <SelectValue placeholder="Seleccionar material" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover z-50">
-                  {inventory.map((item) => (
-                    <SelectItem key={item.material_id} value={item.material_id}>
-                      {item.materials.name} ({(item.quantity_grams / 1000).toFixed(2)} kg disponibles)
+                <SelectContent>
+                  {materials.map((mat) => (
+                    <SelectItem key={mat.id} value={mat.id}>
+                      {mat.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="waste-quantity">Cantidad a descartar (gramos) *</Label>
+
+            <div>
+              <Label htmlFor="waste_quantity">Cantidad Desperdiciada (kg) *</Label>
               <Input
-                id="waste-quantity"
+                id="waste_quantity"
                 type="number"
-                step="1"
-                value={wasteForm.quantity_grams}
-                onChange={(e) => setWasteForm({ ...wasteForm, quantity_grams: e.target.value })}
+                step="0.001"
+                value={wasteForm.quantity_grams ? (parseFloat(wasteForm.quantity_grams) / 1000).toString() : ""}
+                onChange={(e) => setWasteForm({ 
+                  ...wasteForm, 
+                  quantity_grams: (parseFloat(e.target.value) * 1000).toString() 
+                })}
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="waste-notes">Notas / Motivo</Label>
+
+            <div>
+              <Label htmlFor="waste_notes">Notas</Label>
               <Textarea
-                id="waste-notes"
+                id="waste_notes"
                 value={wasteForm.notes}
                 onChange={(e) => setWasteForm({ ...wasteForm, notes: e.target.value })}
-                placeholder="Ej: Material defectuoso, impresión fallida..."
+                rows={3}
+                placeholder="Razón del desperdicio..."
               />
             </div>
-            <div className="flex gap-2">
-              <Button type="submit" variant="destructive" className="flex-1">
-                Registrar Desperdicio
-              </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setIsWasteDialogOpen(false)}
-                className="flex-1"
-              >
+
+            <div className="flex gap-2 justify-end">
+              <Button type="button" variant="outline" onClick={() => setIsWasteDialogOpen(false)}>
                 Cancelar
+              </Button>
+              <Button type="submit" variant="destructive">
+                Registrar Desperdicio
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 };
 
