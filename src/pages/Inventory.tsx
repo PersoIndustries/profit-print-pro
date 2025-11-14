@@ -11,7 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, ShoppingCart, History, Trash, Edit, Star, Info, Disc, Droplet, KeyRound, Wrench, Paintbrush, FileBox, Package } from "lucide-react";
+import { Loader2, Plus, ShoppingCart, History, Trash, Edit, Star, Info, Disc, Droplet, KeyRound, Wrench, Paintbrush, FileBox, Package, PackagePlus } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -107,6 +109,10 @@ const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [showLowStock, setShowLowStock] = useState(false);
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [selectedPrint, setSelectedPrint] = useState<typeof stockPrints[0] | null>(null);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const [stockPrints, setStockPrints] = useState<any[]>([]);
   
   const [acquisitionForm, setAcquisitionForm] = useState({
@@ -153,7 +159,8 @@ const Inventory = () => {
         fetchPendingMaterials(),
         fetchAcquisitions(),
         fetchMovements(),
-        fetchStockPrints()
+        fetchStockPrints(),
+        fetchOrders()
       ]);
     } finally {
       setLoadingData(false);
@@ -292,6 +299,24 @@ const Inventory = () => {
       setStockPrints(data || []);
     } catch (error: any) {
       console.error("Error al cargar impresiones de stock:", error);
+    }
+  };
+
+  const fetchOrders = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("id, order_number, customer_name, status, order_date")
+        .eq("user_id", user.id)
+        .in("status", ["design", "to_produce", "printing", "clean_and_packaging"])
+        .order("order_date", { ascending: false });
+
+      if (error) throw error;
+      setOrders(data || []);
+    } catch (error: any) {
+      console.error("Error al cargar pedidos:", error);
     }
   };
 
@@ -579,6 +604,41 @@ const Inventory = () => {
       adjustment: "Ajuste"
     };
     return types[type] || type;
+  };
+
+  const handleAssignToPrint = (print: any) => {
+    setSelectedPrint(print);
+    setSelectedOrderId("");
+    setIsAssignDialogOpen(true);
+  };
+
+  const handleAssignSubmit = async () => {
+    if (!selectedPrint || !selectedOrderId) {
+      toast.error("Por favor selecciona un pedido");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("prints")
+        .update({
+          order_id: selectedOrderId,
+          print_type: "order",
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", selectedPrint.id);
+
+      if (error) throw error;
+
+      toast.success("Objeto asignado al pedido correctamente");
+      fetchData();
+      setIsAssignDialogOpen(false);
+      setSelectedPrint(null);
+      setSelectedOrderId("");
+    } catch (error: any) {
+      console.error("Error al asignar objeto al pedido:", error);
+      toast.error("Error al asignar objeto al pedido");
+    }
   };
 
   // Filtrar materiales
@@ -919,7 +979,7 @@ const Inventory = () => {
                       <CardHeader>
                         <CardTitle className="text-base">{print.name}</CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-2">
+                       <CardContent className="space-y-3">
                         {print.projects && (
                           <p className="text-sm">
                             <span className="text-muted-foreground">Proyecto:</span> {print.projects.name}
@@ -938,6 +998,15 @@ const Inventory = () => {
                         {print.notes && (
                           <p className="text-sm text-muted-foreground">{print.notes}</p>
                         )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full mt-2"
+                          onClick={() => handleAssignToPrint(print)}
+                        >
+                          <PackagePlus className="h-4 w-4 mr-2" />
+                          Asignar a pedido
+                        </Button>
                       </CardContent>
                     </Card>
                   ))}
@@ -1235,6 +1304,106 @@ const Inventory = () => {
               <Button type="submit">Registrar Adquisición</Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para asignar objeto a pedido */}
+      <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Asignar Objeto a Pedido</DialogTitle>
+            <DialogDescription>
+              Selecciona un pedido existente para asignar este objeto
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedPrint && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="space-y-2">
+                    <p className="font-medium">{selectedPrint.name}</p>
+                    <div className="flex gap-4 text-sm text-muted-foreground">
+                      <span>⏱️ {selectedPrint.print_time_hours}h</span>
+                      <span>📦 {selectedPrint.material_used_grams}g</span>
+                      <span>📅 {format(new Date(selectedPrint.print_date), "dd/MM/yyyy", { locale: es })}</span>
+                    </div>
+                    {selectedPrint.projects && (
+                      <p className="text-sm text-muted-foreground">
+                        Proyecto: {selectedPrint.projects.name}
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <div>
+              <Label>Seleccionar Pedido *</Label>
+              <ScrollArea className="h-[300px] rounded-md border p-4 mt-2">
+                {orders.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>No hay pedidos activos</p>
+                    <p className="text-sm mt-1">Crea un pedido desde la sección de Pedidos</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {orders.map((order: any) => (
+                      <Card
+                        key={order.id}
+                        className={`cursor-pointer transition-colors ${
+                          selectedOrderId === order.id
+                            ? "border-primary bg-primary/5"
+                            : "hover:border-primary/50"
+                        }`}
+                        onClick={() => setSelectedOrderId(order.id)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-medium">{order.order_number}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {order.customer_name || "Sin cliente"}
+                              </p>
+                              <div className="flex gap-2 mt-2">
+                                <Badge variant="outline">
+                                  {order.status === "design" && "Diseño"}
+                                  {order.status === "to_produce" && "Por Producir"}
+                                  {order.status === "printing" && "Imprimiendo"}
+                                  {order.status === "clean_and_packaging" && "Limpieza"}
+                                </Badge>
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(order.order_date), "dd/MM/yyyy", { locale: es })}
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsAssignDialogOpen(false);
+                setSelectedPrint(null);
+                setSelectedOrderId("");
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleAssignSubmit}
+              disabled={!selectedOrderId}
+            >
+              Asignar a Pedido
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
