@@ -182,7 +182,6 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
   const { isPro, isEnterprise } = useTierFeatures();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [projectName, setProjectName] = useState("");
-  const [printTimeHours, setPrintTimeHours] = useState("");
   const [profitMargin, setProfitMargin] = useState("30");
   const [notes, setNotes] = useState("");
   const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
@@ -216,7 +215,6 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
 
   const resetForm = () => {
     setProjectName("");
-    setPrintTimeHours("");
     setProfitMargin("30");
     setNotes("");
     setCalculatedPrice(null);
@@ -248,7 +246,6 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
       if (materialsError) throw materialsError;
 
       setProjectName(project.name);
-      setPrintTimeHours(project.print_time_hours?.toString() || "");
       setNotes(project.notes || "");
       setProfitMargin(project.profit_margin?.toString() || "30");
       setCalculatedPrice(project.total_price);
@@ -295,6 +292,18 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
           quantity: '1',
           unitPrice: project.electricity_cost.toFixed(2),
           total: project.electricity_cost
+        });
+      }
+
+      // Cargar horas de impresión como línea de tipo print_time
+      if (project.print_time_hours && project.print_time_hours > 0) {
+        lines.push({
+          id: `line-${lineCounter++}`,
+          type: 'print_time',
+          description: 'Horas de impresión',
+          quantity: project.print_time_hours.toString(),
+          unitPrice: '0',
+          total: 0
         });
       }
 
@@ -478,19 +487,9 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
   const handleSaveProject = async () => {
     if (!user) return;
 
-    // Validaciones completas
+    // Validaciones
     if (!projectName.trim()) {
       toast.error("El nombre del proyecto es obligatorio");
-      return;
-    }
-
-    if (!printTimeHours || parseFloat(printTimeHours) <= 0) {
-      toast.error("Las horas de impresión son obligatorias y deben ser mayores a 0");
-      return;
-    }
-
-    if (calculatedPrice === null || calculatedPrice <= 0) {
-      toast.error("Debes calcular el precio total antes de guardar el proyecto");
       return;
     }
 
@@ -507,6 +506,14 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
       toast.error("Todos los materiales deben tener un material seleccionado y una cantidad válida mayor a 0");
       return;
     }
+
+    // Calcular automáticamente el precio total
+    const { total } = calculateTotals();
+    const calculatedPrice = total;
+
+    // Calcular horas de impresión desde las líneas de tipo 'print_time'
+    const printTimeLines = invoiceLines.filter(l => l.type === 'print_time');
+    const totalPrintTimeHours = printTimeLines.reduce((sum, l) => sum + parseFloat(l.quantity || '0'), 0);
 
     const materialLinesWithId = materialLines.filter(line => line.materialId);
     
@@ -547,7 +554,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
           .update({
             name: projectName,
             weight_grams: totalWeightGrams,
-            print_time_hours: parseFloat(printTimeHours) || 0,
+            print_time_hours: totalPrintTimeHours,
             electricity_cost: electricityCost,
             material_cost: totalMaterialCost,
             labor_cost: laborCost,
@@ -591,7 +598,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
             user_id: user.id,
             name: projectName,
             weight_grams: totalWeightGrams,
-            print_time_hours: parseFloat(printTimeHours) || 0,
+            print_time_hours: totalPrintTimeHours,
             electricity_cost: electricityCost,
             material_cost: totalMaterialCost,
             labor_cost: laborCost,
@@ -674,34 +681,17 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
         </DialogHeader>
         
         <div className="space-y-6">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="projectName">Nombre del Proyecto *</Label>
-              <Input
-                id="projectName"
-                value={projectName}
-                onChange={(e) => {
-                  setProjectName(e.target.value);
-                  setHasUnsavedChanges(true);
-                }}
-                placeholder="Ej: Pieza para cliente X"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="printTimeHours">Horas de Impresión</Label>
-              <Input
-                id="printTimeHours"
-                type="number"
-                step="0.01"
-                value={printTimeHours}
-                onChange={(e) => {
-                  setPrintTimeHours(e.target.value);
-                  setHasUnsavedChanges(true);
-                }}
-                placeholder="0.00"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="projectName">Nombre del Proyecto *</Label>
+            <Input
+              id="projectName"
+              value={projectName}
+              onChange={(e) => {
+                setProjectName(e.target.value);
+                setHasUnsavedChanges(true);
+              }}
+              placeholder="Ej: Pieza para cliente X"
+            />
           </div>
 
           <div className="space-y-4">
@@ -881,23 +871,15 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
           </div>
 
           <div className="flex gap-2">
-            {calculatedPrice === null && (
-              <Button onClick={calculateAndDisplay} className="flex-1">
-                Calcular Total
-              </Button>
-            )}
-            
-            {calculatedPrice !== null && (
-              <Button 
-                onClick={handleSaveProject} 
-                variant="default" 
-                className="w-full"
-                disabled={uploadingImage}
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {uploadingImage ? 'Subiendo imagen...' : projectId ? 'Actualizar Proyecto' : 'Crear Proyecto'}
-              </Button>
-            )}
+            <Button 
+              onClick={handleSaveProject} 
+              variant="default" 
+              className="w-full"
+              disabled={uploadingImage}
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {uploadingImage ? 'Subiendo imagen...' : projectId ? 'Actualizar Proyecto' : 'Guardar Proyecto'}
+            </Button>
           </div>
         </div>
       </DialogContent>
