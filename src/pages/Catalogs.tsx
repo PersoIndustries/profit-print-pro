@@ -40,12 +40,10 @@ export default function Catalogs() {
   const [editingItem, setEditingItem] = useState<CatalogItem | null>(null);
 
   useEffect(() => {
-    if (!user) {
-      navigate("/auth");
-      return;
+    if (user) {
+      fetchData();
     }
-    fetchData();
-  }, [user, navigate]);
+  }, [user]);
 
   const fetchData = async () => {
     try {
