@@ -2,13 +2,15 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Loader2, Plus, Trash2, Star, Edit, Disc, Droplet, Scissors, KeyRound, Magnet as MagnetIcon, Bolt as BoltIcon, Wrench, Paintbrush, FileBox, Package, Info } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Plus, Trash2, Star, Edit, Disc, Droplet, Scissors, KeyRound, Magnet as MagnetIcon, Bolt as BoltIcon, Wrench, Paintbrush, FileBox, Package, Info, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -19,6 +21,16 @@ interface Material {
   color: string | null;
   type: string | null;
   is_favorite: boolean;
+}
+
+interface InventoryItem {
+  id: string;
+  material_id: string;
+  quantity_grams: number;
+  min_stock_alert: number;
+  location: string | null;
+  notes: string | null;
+  materials: Material;
 }
 
 const MATERIAL_TYPES = [
@@ -43,6 +55,8 @@ const Materials = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [pendingMaterials, setPendingMaterials] = useState<Record<string, number>>({});
   const [materialsLoading, setMaterialsLoading] = useState(true);
   const [filterType, setFilterType] = useState<string>("all");
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
@@ -67,7 +81,11 @@ const Materials = () => {
   }, [user, loading, navigate]);
 
   useEffect(() => {
-    fetchMaterials();
+    if (user) {
+      fetchMaterials();
+      fetchInventory();
+      fetchPendingMaterials();
+    }
   }, [user]);
 
   const fetchMaterials = async () => {
@@ -87,6 +105,54 @@ const Materials = () => {
       toast.error("Error al cargar materiales");
     } finally {
       setMaterialsLoading(false);
+    }
+  };
+
+  const fetchInventory = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("inventory_items")
+        .select("*, materials(*)")
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      setInventory(data || []);
+    } catch (error: any) {
+      toast.error("Error al cargar inventario");
+    }
+  };
+
+  const fetchPendingMaterials = async () => {
+    if (!user) return;
+
+    try {
+      // Get pending prints with their materials
+      const { data, error } = await supabase
+        .from("print_materials")
+        .select(`
+          material_id,
+          weight_grams,
+          prints!inner(user_id, status)
+        `)
+        .eq('prints.user_id', user.id)
+        .eq('prints.status', 'pending_print');
+
+      if (error) throw error;
+
+      // Sum up materials by material_id
+      const pending: Record<string, number> = {};
+      data?.forEach((item: any) => {
+        if (!pending[item.material_id]) {
+          pending[item.material_id] = 0;
+        }
+        pending[item.material_id] += item.weight_grams;
+      });
+      
+      setPendingMaterials(pending);
+    } catch (error: any) {
+      console.error("Error al cargar materiales pendientes:", error);
     }
   };
 
@@ -113,22 +179,6 @@ const Materials = () => {
     }
   };
 
-  const handleToggleFavorite = async (id: string, currentFavorite: boolean) => {
-    try {
-      const { error } = await supabase
-        .from("materials")
-        .update({ is_favorite: !currentFavorite })
-        .eq("id", id);
-
-      if (error) throw error;
-
-      toast.success(currentFavorite ? "Eliminado de favoritos" : "Añadido a favoritos");
-      fetchMaterials();
-    } catch (error: any) {
-      toast.error("Error al actualizar favorito");
-    }
-  };
-
   const handleDeleteMaterial = async (id: string) => {
     try {
       const { error } = await supabase.from("materials").delete().eq("id", id);
@@ -137,12 +187,29 @@ const Materials = () => {
 
       toast.success("Material eliminado");
       fetchMaterials();
+      fetchInventory();
     } catch (error: any) {
       toast.error("Error al eliminar material");
     }
   };
 
-  const handleEditClick = (material: Material) => {
+  const handleToggleFavorite = async (id: string, currentState: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("materials")
+        .update({ is_favorite: !currentState })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast.success(currentState ? "Eliminado de favoritos" : "Añadido a favoritos");
+      fetchMaterials();
+    } catch (error: any) {
+      toast.error("Error al actualizar favorito");
+    }
+  };
+
+  const handleEditMaterial = (material: Material) => {
     setEditingMaterial(material);
     setEditForm({
       name: material.name,
@@ -179,9 +246,18 @@ const Materials = () => {
     }
   };
 
-  const filteredMaterials = filterType === "all" 
-    ? materials 
-    : materials.filter(m => m.type === filterType);
+  const getInventoryItem = (materialId: string) => {
+    return inventory.find(inv => inv.material_id === materialId);
+  };
+
+  const getPendingGrams = (materialId: string) => {
+    return pendingMaterials[materialId] || 0;
+  };
+
+  const filteredMaterials = materials.filter((material) => {
+    if (filterType === "all") return true;
+    return material.type === filterType;
+  });
 
   if (loading || materialsLoading) {
     return (
@@ -192,11 +268,11 @@ const Materials = () => {
   }
 
   return (
-    <>
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-2">Gestión de Materiales</h2>
+    <div className="container mx-auto p-6 space-y-6">
+      <div>
+        <h1 className="text-4xl font-bold mb-2">Materiales e Inventario</h1>
         <p className="text-muted-foreground">
-          Administra los materiales que utilizas en tus impresiones
+          {materials.length} materiales registrados
         </p>
       </div>
 
@@ -216,29 +292,29 @@ const Materials = () => {
                   required
                 />
               </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="price">Precio por KG (€) *</Label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="max-w-xs">Será usado de valor por defecto a la hora de crear proyectos</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <Input
-                      id="price"
-                      type="number"
-                      step="0.01"
-                      value={newMaterial.price_per_kg}
-                      onChange={(e) => setNewMaterial({ ...newMaterial, price_per_kg: e.target.value })}
-                      required
-                    />
-                  </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="price">Precio por KG (€) *</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">Será usado de valor por defecto a la hora de crear proyectos</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  value={newMaterial.price_per_kg}
+                  onChange={(e) => setNewMaterial({ ...newMaterial, price_per_kg: e.target.value })}
+                  required
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="color">Color</Label>
                 <Input
@@ -280,103 +356,168 @@ const Materials = () => {
         </Card>
 
         <div className="lg:col-span-2 space-y-4">
-          {/* Filtro por tipo */}
-          <div className="flex items-center gap-4">
-            <Label>Filtrar por tipo:</Label>
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-popover z-50">
-                <SelectItem value="all">Todos</SelectItem>
-                {MATERIAL_TYPES.map((type) => {
-                  const Icon = type.icon;
-                  return (
-                    <SelectItem key={type.value} value={type.value}>
-                      <div className="flex items-center gap-2">
-                        <Icon className="w-4 h-4" />
-                        {type.label}
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-            <span className="text-sm text-muted-foreground">
-              {filteredMaterials.length} material{filteredMaterials.length !== 1 ? 'es' : ''}
-            </span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Label>Filtrar por tipo:</Label>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  <SelectItem value="all">Todos</SelectItem>
+                  {MATERIAL_TYPES.map((type) => {
+                    const Icon = type.icon;
+                    return (
+                      <SelectItem key={type.value} value={type.value}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-4 h-4" />
+                          {type.label}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-muted-foreground">
+                {filteredMaterials.length} material{filteredMaterials.length !== 1 ? 'es' : ''}
+              </span>
+            </div>
           </div>
 
-          {filteredMaterials.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center text-muted-foreground">
-                {filterType === "all" 
-                  ? "No hay materiales. Añade tu primer material para comenzar."
-                  : "No hay materiales de este tipo."}
-              </CardContent>
-            </Card>
-          ) : (
-            filteredMaterials.map((material) => {
-              const Icon = getMaterialIcon(material.type);
-              return (
-                <Card key={material.id}>
-                  <CardContent className="py-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1 flex items-start gap-3">
-                        <div className="p-2 bg-muted rounded-lg">
-                          <Icon className="w-5 h-5 text-muted-foreground" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-lg font-semibold">{material.name}</h3>
-                            {material.is_favorite && (
-                              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+          <Card>
+            <CardHeader>
+              <CardTitle>Inventario de Materiales</CardTitle>
+              <CardDescription>
+                Stock disponible y materiales pendientes de imprimir
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Material</TableHead>
+                    <TableHead>Stock Disponible</TableHead>
+                    <TableHead>Pendiente</TableHead>
+                    <TableHead>Stock Alerta</TableHead>
+                    <TableHead>Precio/kg</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredMaterials.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground">
+                        No hay materiales
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredMaterials.map((material) => {
+                      const Icon = getMaterialIcon(material.type);
+                      const inventoryItem = getInventoryItem(material.id);
+                      const pendingGrams = getPendingGrams(material.id);
+                      const currentStock = inventoryItem?.quantity_grams || 0;
+                      const minStock = inventoryItem?.min_stock_alert || 500;
+                      const isLowStock = currentStock < minStock;
+
+                      return (
+                        <TableRow key={material.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Icon className="w-4 h-4" />
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{material.name}</span>
+                                  {material.is_favorite && (
+                                    <Star className="w-3 h-3 fill-primary text-primary" />
+                                  )}
+                                </div>
+                                {material.color && (
+                                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                    <div
+                                      className="w-3 h-3 rounded-full border"
+                                      style={{ backgroundColor: material.color }}
+                                    />
+                                    {material.color}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {isLowStock && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <AlertTriangle className="w-4 h-4 text-orange-500" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      Stock bajo. Mínimo: {minStock}g
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                              <span className={isLowStock ? "text-orange-500 font-medium" : ""}>
+                                {(currentStock / 1000).toFixed(2)} kg
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {pendingGrams > 0 ? (
+                              <Badge variant="outline" className="bg-yellow-500/10">
+                                {(pendingGrams / 1000).toFixed(2)} kg
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
                             )}
-                          </div>
-                          <div className="text-sm text-muted-foreground mt-1">
-                            <p>Precio: €{material.price_per_kg}/kg</p>
-                            {material.color && <p>Color: {material.color}</p>}
-                            {material.type && (
-                              <p>Tipo: {MATERIAL_TYPES.find(t => t.value === material.type)?.label || material.type}</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleToggleFavorite(material.id, material.is_favorite)}
-                        >
-                          <Star className={material.is_favorite ? "w-4 h-4 text-yellow-500 fill-yellow-500" : "w-4 h-4"} />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleEditClick(material)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          onClick={() => handleDeleteMaterial(material.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {(minStock / 1000).toFixed(2)} kg
+                          </TableCell>
+                          <TableCell>€{material.price_per_kg.toFixed(2)}/kg</TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleToggleFavorite(material.id, material.is_favorite)}
+                              >
+                                <Star
+                                  className={`w-4 h-4 ${
+                                    material.is_favorite ? "fill-primary text-primary" : ""
+                                  }`}
+                                />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditMaterial(material)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                onClick={() => handleDeleteMaterial(material.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
-      {/* Dialog de edición */}
+      {/* Edit Material Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="bg-card z-50">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Material</DialogTitle>
           </DialogHeader>
@@ -391,19 +532,7 @@ const Materials = () => {
               />
             </div>
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="edit-price">Precio por KG (€) *</Label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">Será usado de valor por defecto a la hora de crear proyectos</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
+              <Label htmlFor="edit-price">Precio por KG (€) *</Label>
               <Input
                 id="edit-price"
                 type="number"
@@ -446,22 +575,17 @@ const Materials = () => {
               </Select>
             </div>
             <div className="flex gap-2">
-              <Button type="submit" className="flex-1">
-                Guardar Cambios
-              </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setIsEditDialogOpen(false)}
-                className="flex-1"
-              >
+              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} className="flex-1">
                 Cancelar
+              </Button>
+              <Button type="submit" className="flex-1">
+                Actualizar
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 };
 
