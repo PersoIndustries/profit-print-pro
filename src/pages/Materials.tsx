@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Loader2, Plus, Trash2, Star, Edit, Disc, Droplet, Scissors, KeyRound, Magnet as MagnetIcon, Bolt as BoltIcon, Wrench, Paintbrush, FileBox, Package } from "lucide-react";
+import { Loader2, Plus, Trash2, Star, Edit, Disc, Droplet, Scissors, KeyRound, Magnet as MagnetIcon, Bolt as BoltIcon, Wrench, Paintbrush, FileBox, Package, Info } from "lucide-react";
 import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Material {
   id: string;
@@ -215,17 +216,29 @@ const Materials = () => {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="price">Precio por KG (€) *</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  value={newMaterial.price_per_kg}
-                  onChange={(e) => setNewMaterial({ ...newMaterial, price_per_kg: e.target.value })}
-                  required
-                />
-              </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="price">Precio por KG (€) *</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">Será usado de valor por defecto a la hora de crear proyectos</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      value={newMaterial.price_per_kg}
+                      onChange={(e) => setNewMaterial({ ...newMaterial, price_per_kg: e.target.value })}
+                      required
+                    />
+                  </div>
               <div className="space-y-2">
                 <Label htmlFor="color">Color</Label>
                 <Input

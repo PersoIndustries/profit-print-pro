@@ -19,7 +19,7 @@ import {
   Disc, Droplet, Scissors, KeyRound, 
   Magnet as MagnetIcon, Bolt as BoltIcon, 
   Wrench, Paintbrush, FileBox, Package,
-  ShoppingCart, Archive, Crown, History, Trash, Info, RefreshCw, Search, Printer
+  ShoppingCart, Archive, Crown, History, Trash, Info, RefreshCw, Search, Printer, Download
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -688,19 +688,54 @@ const Inventory = () => {
             </Card>
           ) : (
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Inventario de Materiales</CardTitle>
-                  <CardDescription>
-                    Control de stock y cantidades disponibles
-                  </CardDescription>
+              <CardHeader>
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <CardTitle>Inventario de Materiales</CardTitle>
+                    <CardDescription>
+                      Control de stock y cantidades disponibles
+                    </CardDescription>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => setIsAcquisitionDialogOpen(true)} variant="default">
+                      <ShoppingCart className="w-4 h-4 mr-2" />
+                      Nueva Adquisición
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        const headers = ['Material', 'Cantidad (g)', 'Cantidad (kg)', 'Ubicación', 'Alerta Stock Mínimo'];
+                        const rows = inventory.map(item => [
+                          item.materials.name,
+                          item.quantity_grams.toFixed(0),
+                          (item.quantity_grams / 1000).toFixed(2),
+                          item.location || '-',
+                          item.min_stock_alert
+                        ]);
+                        const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = `inventario_${new Date().toISOString().split('T')[0]}.csv`;
+                        link.click();
+                        toast.success('Inventario exportado');
+                      }} 
+                      variant="outline"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Exportar CSV
+                    </Button>
+                    <Button onClick={() => navigate('/prints')} variant="outline">
+                      <Printer className="w-4 h-4 mr-2" />
+                      Ir a Impresiones
+                    </Button>
+                    {hasFeature('waste_tracking') && (
+                      <Button onClick={() => setIsWasteDialogOpen(true)} variant="destructive">
+                        <Trash className="w-4 h-4 mr-2" />
+                        Registrar Desperdicio
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                {hasFeature('waste_tracking') && (
-                  <Button onClick={() => setIsWasteDialogOpen(true)} variant="destructive">
-                    <Trash className="w-4 h-4 mr-2" />
-                    Registrar Desperdicio
-                  </Button>
-                )}
               </CardHeader>
               <CardContent>
                 <Table>
