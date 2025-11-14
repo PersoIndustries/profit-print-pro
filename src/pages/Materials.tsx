@@ -391,7 +391,19 @@ const Materials = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-price">Precio por KG (€) *</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="edit-price">Precio por KG (€) *</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Será usado de valor por defecto a la hora de crear proyectos</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <Input
                 id="edit-price"
                 type="number"
