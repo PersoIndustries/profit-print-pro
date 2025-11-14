@@ -138,100 +138,195 @@ const Projects = () => {
     );
   }
 
+  const canAddImages = isPro || isEnterprise;
+
   return (
-    <>
-      <div className="mb-8 flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold mb-2">Proyectos</h2>
-          <p className="text-muted-foreground">
-            Todos tus trabajos de impresión 3D
-          </p>
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-4xl font-bold">Proyectos</h1>
+        <div className="flex items-center gap-3">
+          <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "grid" | "list")}>
+            <ToggleGroupItem value="list" aria-label="Vista lista">
+              <List className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="grid" aria-label="Vista cuadrícula">
+              <Grid3x3 className="h-4 w-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
+          <Button onClick={handleCreateProject}>
+            Nuevo Proyecto
+          </Button>
         </div>
-        <Button onClick={handleCreateProject}>
-          Nuevo Proyecto
-        </Button>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects.length === 0 ? (
-          <Card className="col-span-full">
-            <CardContent className="py-12 text-center text-muted-foreground">
-              No hay proyectos guardados.
+      {!canAddImages && (
+        <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <Crown className="w-8 h-8 text-primary flex-shrink-0 mt-1" />
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold mb-2">Agrega imágenes a tus proyectos</h3>
+                <p className="text-muted-foreground mb-4">
+                  Con los planes Pro o Business puedes agregar imágenes a cada proyecto para visualizarlos mejor.
+                </p>
+                <Button onClick={() => navigate("/pricing")} size="sm">
+                  Actualizar plan
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {projects.length === 0 ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <p className="text-muted-foreground">
+              No hay proyectos todavía. Crea tu primer proyecto.
+            </p>
             </CardContent>
-          </Card>
-        ) : (
-          projects.map((project) => (
-            <Card key={project.id}>
+        </Card>
+      ) : viewMode === "grid" ? (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {projects.map((project) => (
+            <Card key={project.id} className="overflow-hidden">
+              {canAddImages && project.image_url && (
+                <div className="h-48 overflow-hidden bg-muted">
+                  <img 
+                    src={project.image_url} 
+                    alt={project.name} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
               <CardHeader>
                 <CardTitle className="flex justify-between items-start">
-                  <span className="truncate">{project.name}</span>
+                  <span>{project.name}</span>
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleEditProject(project.id)}
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => handleEditProject(project.id)}>
                       <Edit className="w-4 h-4" />
                     </Button>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => handleDeleteProject(project.id)}
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteProject(project.id)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </CardTitle>
               </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    {projectMaterials[project.id] && projectMaterials[project.id].length > 0 && (
-                      <div className="pb-2 border-b">
-                        <span className="text-muted-foreground font-medium">Materiales:</span>
-                        <div className="mt-1 space-y-1">
-                          {projectMaterials[project.id].map((pm, idx) => (
-                            <div key={idx} className="flex justify-between text-xs">
-                              <span className="flex items-center gap-2">
-                                {pm.materials.color && (
-                                  <span 
-                                    className="w-3 h-3 rounded-full border" 
-                                    style={{ backgroundColor: pm.materials.color }}
-                                  />
-                                )}
-                                {pm.materials.name}
-                              </span>
-                              <span>{pm.weight_grams}g</span>
-                            </div>
-                          ))}
-                        </div>
+              <CardContent className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Materiales:</p>
+                  <div className="mt-1 space-y-1">
+                    {projectMaterials[project.id]?.map((pm, idx) => (
+                      <div key={idx} className="text-sm">
+                        <span className="font-medium">{pm.materials?.name}</span>
+                        <span className="text-muted-foreground"> ({pm.weight_grams}g)</span>
+                        {pm.materials?.color && (
+                          <span 
+                            className="inline-block w-3 h-3 rounded-full ml-2 border border-border"
+                            style={{ backgroundColor: pm.materials.color }}
+                          />
+                        )}
                       </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Peso Total:</span>
-                      <span className="font-medium">{project.weight_grams}g</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Tiempo:</span>
-                      <span className="font-medium">{project.print_time_hours}h</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Precio Total:</span>
-                      <span className="font-bold text-lg">€{Number(project.total_price).toFixed(2)}</span>
-                    </div>
-                    {project.notes && (
-                      <div className="pt-2 border-t">
-                        <p className="text-muted-foreground text-xs">{project.notes}</p>
-                      </div>
-                    )}
-                    <div className="pt-2 text-xs text-muted-foreground">
-                      {new Date(project.created_at).toLocaleDateString('es-ES')}
-                    </div>
+                    )) || <p className="text-sm text-muted-foreground">Sin materiales</p>}
                   </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Peso:</p>
+                    <p className="font-medium">{project.weight_grams}g</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Tiempo:</p>
+                    <p className="font-medium">{project.print_time_hours}h</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Precio:</p>
+                    <p className="font-medium">{project.total_price?.toFixed(2)}€</p>
+                  </div>
+                </div>
+                {project.notes && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Notas:</p>
+                    <p className="text-sm">{project.notes}</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {projects.map((project) => (
+            <Card key={project.id}>
+              <CardContent className="p-6">
+                <div className="flex items-start gap-6">
+                  {canAddImages && project.image_url && (
+                    <div className="w-32 h-32 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+                      <img 
+                        src={project.image_url} 
+                        alt={project.name} 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="text-xl font-semibold">{project.name}</h3>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleEditProject(project.id)}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteProject(project.id)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="grid md:grid-cols-3 gap-6">
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2">Materiales:</p>
+                        <div className="space-y-1">
+                          {projectMaterials[project.id]?.map((pm, idx) => (
+                            <div key={idx} className="text-sm">
+                              <span className="font-medium">{pm.materials?.name}</span>
+                              <span className="text-muted-foreground"> ({pm.weight_grams}g)</span>
+                              {pm.materials?.color && (
+                                <span 
+                                  className="inline-block w-3 h-3 rounded-full ml-2 border border-border"
+                                  style={{ backgroundColor: pm.materials.color }}
+                                />
+                              )}
+                            </div>
+                          )) || <p className="text-sm text-muted-foreground">Sin materiales</p>}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Peso:</p>
+                          <p className="font-medium">{project.weight_grams}g</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Tiempo:</p>
+                          <p className="font-medium">{project.print_time_hours}h</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-sm text-muted-foreground">Precio:</p>
+                          <p className="font-medium">{project.total_price?.toFixed(2)}€</p>
+                        </div>
+                      </div>
+                      {project.notes && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Notas:</p>
+                          <p className="text-sm">{project.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <ProjectFormModal
         open={isModalOpen}
@@ -239,7 +334,7 @@ const Projects = () => {
         projectId={selectedProjectId}
         onSuccess={handleModalSuccess}
       />
-    </>
+    </div>
   );
 };
 

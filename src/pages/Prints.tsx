@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Trash2, Plus, Printer, Edit2, Package, Wrench, User, Building } from "lucide-react";
+import { Loader2, Trash2, Plus, Printer, Edit2, Package, Wrench, User, Building, Download } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -17,6 +17,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+interface PrintMaterial {
+  id: string;
+  material_id: string;
+  weight_grams: number;
+  material_cost: number;
+  materials: {
+    name: string;
+    price_per_kg: number;
+  };
+}
 
 interface Print {
   id: string;
@@ -28,7 +40,8 @@ interface Print {
   material_used_grams: number;
   print_date: string;
   notes: string | null;
-  status: 'printing' | 'completed' | 'failed';
+  status: 'pending_print' | 'printing' | 'completed' | 'failed';
+  print_materials?: PrintMaterial[];
   orders?: {
     order_number: string;
     customer_name: string;
@@ -47,6 +60,19 @@ interface Order {
 interface Project {
   id: string;
   name: string;
+  print_time_hours: number;
+}
+
+interface Material {
+  id: string;
+  name: string;
+  price_per_kg: number;
+}
+
+interface FormMaterial {
+  tempId: string;
+  material_id: string;
+  weight_grams: string;
 }
 
 const PRINT_TYPE_CONFIG = {
@@ -57,6 +83,7 @@ const PRINT_TYPE_CONFIG = {
 };
 
 const STATUS_CONFIG = {
+  pending_print: { label: 'Pendiente', color: 'bg-gray-500' },
   printing: { label: 'Imprimiendo', color: 'bg-yellow-500' },
   completed: { label: 'Completado', color: 'bg-green-500' },
   failed: { label: 'Fallido', color: 'bg-red-500' }
@@ -68,6 +95,7 @@ const Prints = () => {
   const [prints, setPrints] = useState<Print[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [printsLoading, setPrintsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPrint, setEditingPrint] = useState<Print | null>(null);
@@ -78,11 +106,13 @@ const Prints = () => {
     order_id: '',
     project_id: '',
     print_time_hours: '',
-    material_used_grams: '',
     print_date: new Date().toISOString().slice(0, 16),
     notes: '',
-    status: 'completed' as 'printing' | 'completed' | 'failed'
+    status: 'pending_print' as 'pending_print' | 'printing' | 'completed' | 'failed'
   });
+
+  const [formMaterials, setFormMaterials] = useState<FormMaterial[]>([]);
+  const [nextTempId, setNextTempId] = useState(1);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -95,6 +125,7 @@ const Prints = () => {
       fetchPrints();
       fetchOrders();
       fetchProjects();
+      fetchMaterials();
     }
   }, [user]);
 
@@ -107,7 +138,14 @@ const Prints = () => {
         .select(`
           *,
           orders(order_number, customer_name),
-          projects(name)
+          projects(name),
+          print_materials(
+            id,
+            material_id,
+            weight_grams,
+            material_cost,
+            materials(name, price_per_kg)
+          )
         `)
         .eq("user_id", user.id)
         .order("print_date", { ascending: false });
@@ -129,12 +167,12 @@ const Prints = () => {
         .from("orders")
         .select("id, order_number, customer_name")
         .eq("user_id", user.id)
-        .order("order_date", { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setOrders(data || []);
     } catch (error: any) {
-      toast.error("Error al cargar pedidos");
+      console.error("Error fetching orders:", error);
     }
   };
 
@@ -144,15 +182,90 @@ const Prints = () => {
     try {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, name")
+        .select("id, name, print_time_hours")
         .eq("user_id", user.id)
-        .order("name", { ascending: true });
+        .order("created_at", { ascending: false});
 
       if (error) throw error;
       setProjects(data || []);
     } catch (error: any) {
-      toast.error("Error al cargar proyectos");
+      console.error("Error fetching projects:", error);
     }
+  };
+
+  const fetchMaterials = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("materials")
+        .select("id, name, price_per_kg")
+        .eq("user_id", user.id)
+        .order("name");
+
+      if (error) throw error;
+      setMaterials(data || []);
+    } catch (error: any) {
+      console.error("Error fetching materials:", error);
+    }
+  };
+
+  const handleImportFromProject = async () => {
+    if (!formData.project_id) {
+      toast.error("Selecciona un proyecto primero");
+      return;
+    }
+
+    try {
+      const { data: projectMaterials, error } = await supabase
+        .from("project_materials")
+        .select("material_id, weight_grams, material_cost, materials(name, price_per_kg)")
+        .eq("project_id", formData.project_id);
+
+      if (error) throw error;
+
+      if (projectMaterials && projectMaterials.length > 0) {
+        const importedMaterials: FormMaterial[] = projectMaterials.map((pm: any) => ({
+          tempId: `temp-${nextTempId + projectMaterials.indexOf(pm)}`,
+          material_id: pm.material_id,
+          weight_grams: pm.weight_grams.toString()
+        }));
+
+        setFormMaterials(importedMaterials);
+        setNextTempId(nextTempId + projectMaterials.length);
+
+        // Import print time
+        const project = projects.find(p => p.id === formData.project_id);
+        if (project) {
+          setFormData(prev => ({ ...prev, print_time_hours: project.print_time_hours.toString() }));
+        }
+
+        toast.success("Materiales importados del proyecto");
+      } else {
+        toast.info("El proyecto no tiene materiales asignados");
+      }
+    } catch (error: any) {
+      toast.error("Error al importar materiales");
+    }
+  };
+
+  const addMaterialRow = () => {
+    setFormMaterials([...formMaterials, {
+      tempId: `temp-${nextTempId}`,
+      material_id: '',
+      weight_grams: ''
+    }]);
+    setNextTempId(nextTempId + 1);
+  };
+
+  const updateMaterialRow = (tempId: string, field: keyof FormMaterial, value: string) => {
+    setFormMaterials(formMaterials.map(m => 
+      m.tempId === tempId ? { ...m, [field]: value } : m
+    ));
+  };
+
+  const removeMaterialRow = (tempId: string) => {
+    setFormMaterials(formMaterials.filter(m => m.tempId !== tempId));
   };
 
   const resetForm = () => {
@@ -162,85 +275,153 @@ const Prints = () => {
       order_id: '',
       project_id: '',
       print_time_hours: '',
-      material_used_grams: '',
       print_date: new Date().toISOString().slice(0, 16),
       notes: '',
-      status: 'completed'
+      status: 'pending_print'
     });
+    setFormMaterials([]);
+    setNextTempId(1);
     setEditingPrint(null);
   };
 
-  const handleOpenModal = (print?: Print) => {
-    if (print) {
-      setEditingPrint(print);
-      setFormData({
-        name: print.name,
-        print_type: print.print_type,
-        order_id: print.order_id || '',
-        project_id: print.project_id || '',
-        print_time_hours: print.print_time_hours.toString(),
-        material_used_grams: print.material_used_grams.toString(),
-        print_date: new Date(print.print_date).toISOString().slice(0, 16),
-        notes: print.notes || '',
-        status: print.status
-      });
-    } else {
-      resetForm();
-    }
+  const handleOpenModal = () => {
+    resetForm();
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleEditPrint = async (print: Print) => {
+    setEditingPrint(print);
+    setFormData({
+      name: print.name,
+      print_type: print.print_type,
+      order_id: print.order_id || '',
+      project_id: print.project_id || '',
+      print_time_hours: print.print_time_hours.toString(),
+      print_date: print.print_date,
+      notes: print.notes || '',
+      status: print.status
+    });
 
+    // Load print materials
+    if (print.print_materials && print.print_materials.length > 0) {
+      const loadedMaterials: FormMaterial[] = print.print_materials.map((pm, idx) => ({
+        tempId: `temp-${idx + 1}`,
+        material_id: pm.material_id,
+        weight_grams: pm.weight_grams.toString()
+      }));
+      setFormMaterials(loadedMaterials);
+      setNextTempId(loadedMaterials.length + 1);
+    } else {
+      setFormMaterials([]);
+      setNextTempId(1);
+    }
+
+    setIsModalOpen(true);
+  };
+
+  const handleSavePrint = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!user) return;
+
+    if (formMaterials.length === 0) {
+      toast.error("Añade al menos un material");
+      return;
+    }
+
+    const totalWeight = formMaterials.reduce((sum, m) => sum + (parseFloat(m.weight_grams) || 0), 0);
 
     try {
       const printData = {
         user_id: user.id,
         name: formData.name,
         print_type: formData.print_type,
-        order_id: formData.print_type === 'order' && formData.order_id ? formData.order_id : null,
+        order_id: formData.order_id || null,
         project_id: formData.project_id || null,
         print_time_hours: parseFloat(formData.print_time_hours) || 0,
-        material_used_grams: parseFloat(formData.material_used_grams) || 0,
+        material_used_grams: totalWeight,
         print_date: formData.print_date,
         notes: formData.notes || null,
         status: formData.status
       };
 
       if (editingPrint) {
-        const { error } = await supabase
+        const { error: printError } = await supabase
           .from("prints")
           .update(printData)
           .eq("id", editingPrint.id);
 
-        if (error) throw error;
+        if (printError) throw printError;
+
+        // Delete old materials
+        await supabase
+          .from("print_materials")
+          .delete()
+          .eq("print_id", editingPrint.id);
+
+        // Insert new materials
+        const materialsData = formMaterials.map(m => {
+          const material = materials.find(mat => mat.id === m.material_id);
+          const weight = parseFloat(m.weight_grams) || 0;
+          const cost = material ? (material.price_per_kg / 1000) * weight : 0;
+          
+          return {
+            print_id: editingPrint.id,
+            material_id: m.material_id,
+            weight_grams: weight,
+            material_cost: cost
+          };
+        });
+
+        const { error: materialsError } = await supabase
+          .from("print_materials")
+          .insert(materialsData);
+
+        if (materialsError) throw materialsError;
+
         toast.success("Impresión actualizada");
       } else {
-        const { error } = await supabase
+        const { data: print, error: printError } = await supabase
           .from("prints")
-          .insert([printData]);
+          .insert(printData)
+          .select()
+          .single();
 
-        if (error) throw error;
+        if (printError) throw printError;
+
+        // Insert materials
+        const materialsData = formMaterials.map(m => {
+          const material = materials.find(mat => mat.id === m.material_id);
+          const weight = parseFloat(m.weight_grams) || 0;
+          const cost = material ? (material.price_per_kg / 1000) * weight : 0;
+          
+          return {
+            print_id: print.id,
+            material_id: m.material_id,
+            weight_grams: weight,
+            material_cost: cost
+          };
+        });
+
+        const { error: materialsError } = await supabase
+          .from("print_materials")
+          .insert(materialsData);
+
+        if (materialsError) throw materialsError;
+
         toast.success("Impresión registrada");
       }
 
-      fetchPrints();
       setIsModalOpen(false);
-      resetForm();
+      fetchPrints();
     } catch (error: any) {
       toast.error("Error al guardar impresión");
-      console.error(error);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDeletePrint = async (id: string) => {
     try {
       const { error } = await supabase.from("prints").delete().eq("id", id);
-
       if (error) throw error;
-
       toast.success("Impresión eliminada");
       fetchPrints();
     } catch (error: any) {
@@ -256,87 +437,51 @@ const Prints = () => {
     );
   }
 
-  const totalPrintTime = prints.reduce((sum, p) => sum + Number(p.print_time_hours), 0);
-  const totalMaterial = prints.reduce((sum, p) => sum + Number(p.material_used_grams), 0);
-
   return (
-    <>
-      <div className="mb-8 flex justify-between items-center">
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-3xl font-bold mb-2">Impresiones</h2>
-          <p className="text-muted-foreground">
-            Histórico de impresiones: {prints.length} registros
+          <h1 className="text-4xl font-bold">Impresiones</h1>
+          <p className="text-muted-foreground mt-2">
+            Gestiona y registra tus impresiones 3D
           </p>
         </div>
-        <Button onClick={() => handleOpenModal()}>
+        <Button onClick={handleOpenModal}>
           <Plus className="w-4 h-4 mr-2" />
           Nueva Impresión
         </Button>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-4 mb-6">
+      {prints.length === 0 ? (
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Impresiones
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{prints.length}</div>
+          <CardContent className="py-12 text-center">
+            <Printer className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground">
+              No hay impresiones registradas. Crea tu primera impresión.
+            </p>
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tiempo Total
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalPrintTime.toFixed(1)}h</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Material Total
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{(totalMaterial / 1000).toFixed(2)}kg</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4">
-        {prints.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              <Printer className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No hay impresiones registradas</p>
-            </CardContent>
-          </Card>
-        ) : (
-          prints.map((print) => {
+      ) : (
+        <div className="grid gap-6">
+          {prints.map((print) => {
             const typeConfig = PRINT_TYPE_CONFIG[print.print_type];
-            const Icon = typeConfig.icon;
             const statusConfig = STATUS_CONFIG[print.status];
+            const TypeIcon = typeConfig.icon;
 
             return (
               <Card key={print.id}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Icon className="w-4 h-4" />
-                        <CardTitle className="text-lg">{print.name}</CardTitle>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <TypeIcon className="w-5 h-5" />
+                        <CardTitle>{print.name}</CardTitle>
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         <Badge className={typeConfig.color}>
                           {typeConfig.label}
                         </Badge>
-                        <Badge variant="outline" className={statusConfig.color}>
+                        <Badge className={statusConfig.color}>
                           {statusConfig.label}
                         </Badge>
                       </div>
@@ -345,14 +490,14 @@ const Prints = () => {
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => handleOpenModal(print)}
+                        onClick={() => handleEditPrint(print)}
                       >
                         <Edit2 className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="destructive"
                         size="icon"
-                        onClick={() => handleDelete(print.id)}
+                        onClick={() => handleDeletePrint(print.id)}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -360,182 +505,168 @@ const Prints = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Fecha</p>
-                      <p className="font-medium">
-                        {new Date(print.print_date).toLocaleDateString('es-ES', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      {print.orders && (
+                        <p className="text-sm">
+                          <span className="text-muted-foreground">Pedido:</span>{" "}
+                          {print.orders.order_number} - {print.orders.customer_name}
+                        </p>
+                      )}
+                      {print.projects && (
+                        <p className="text-sm">
+                          <span className="text-muted-foreground">Proyecto:</span>{" "}
+                          {print.projects.name}
+                        </p>
+                      )}
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">Tiempo de impresión:</span>{" "}
+                        {print.print_time_hours}h
                       </p>
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">Fecha:</span>{" "}
+                        {new Date(print.print_date).toLocaleString('es-ES')}
+                      </p>
+                      {print.notes && (
+                        <p className="text-sm">
+                          <span className="text-muted-foreground">Notas:</span> {print.notes}
+                        </p>
+                      )}
                     </div>
-
-                    {print.print_type === 'order' && print.orders && (
-                      <div>
-                        <p className="text-muted-foreground">Pedido</p>
-                        <p className="font-medium">{print.orders.order_number}</p>
-                        <p className="text-xs text-muted-foreground">{print.orders.customer_name}</p>
-                      </div>
-                    )}
-
-                    {print.projects && (
-                      <div>
-                        <p className="text-muted-foreground">Proyecto</p>
-                        <p className="font-medium">{print.projects.name}</p>
-                      </div>
-                    )}
-
                     <div>
-                      <p className="text-muted-foreground">Tiempo</p>
-                      <p className="font-medium">{print.print_time_hours}h</p>
-                    </div>
-
-                    <div>
-                      <p className="text-muted-foreground">Material</p>
-                      <p className="font-medium">{print.material_used_grams}g</p>
+                      <p className="text-sm font-semibold mb-2">Materiales utilizados:</p>
+                      {print.print_materials && print.print_materials.length > 0 ? (
+                        <div className="space-y-1">
+                          {print.print_materials.map((pm) => (
+                            <div key={pm.id} className="text-sm flex justify-between">
+                              <span>{pm.materials.name}</span>
+                              <span className="text-muted-foreground">{pm.weight_grams}g</span>
+                            </div>
+                          ))}
+                          <div className="pt-2 border-t text-sm font-medium">
+                            <div className="flex justify-between">
+                              <span>Total:</span>
+                              <span>{print.material_used_grams}g ({(print.material_used_grams / 1000).toFixed(2)}kg)</span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Sin materiales registrados</p>
+                      )}
                     </div>
                   </div>
-
-                  {print.notes && (
-                    <div className="mt-4 pt-4 border-t">
-                      <p className="text-sm text-muted-foreground mb-1">Notas:</p>
-                      <p className="text-sm">{print.notes}</p>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {editingPrint ? 'Editar Impresión' : 'Nueva Impresión'}
-            </DialogTitle>
+            <DialogTitle>{editingPrint ? 'Editar Impresión' : 'Nueva Impresión'}</DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSavePrint} className="space-y-6">
             <div className="grid md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
+              <div className="space-y-2">
                 <Label htmlFor="name">Nombre *</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Ej: Pieza para proyecto X"
                   required
                 />
               </div>
 
-              <div>
-                <Label htmlFor="print_type">Tipo *</Label>
+              <div className="space-y-2">
+                <Label htmlFor="print_type">Tipo de Impresión *</Label>
                 <Select
                   value={formData.print_type}
-                  onValueChange={(value: any) => setFormData({ ...formData, print_type: value, order_id: '' })}
+                  onValueChange={(value: any) => setFormData({ ...formData, print_type: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="print_type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="order">Pedido</SelectItem>
-                    <SelectItem value="tools">Herramientas</SelectItem>
-                    <SelectItem value="personal">Personal</SelectItem>
-                    <SelectItem value="operational">Operativa</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="status">Estado *</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value: any) => setFormData({ ...formData, status: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="printing">Imprimiendo</SelectItem>
-                    <SelectItem value="completed">Completado</SelectItem>
-                    <SelectItem value="failed">Fallido</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {formData.print_type === 'order' && (
-                <div className="md:col-span-2">
-                  <Label htmlFor="order_id">Pedido</Label>
-                  <Select
-                    value={formData.order_id}
-                    onValueChange={(value) => setFormData({ ...formData, order_id: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona un pedido" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {orders.map((order) => (
-                        <SelectItem key={order.id} value={order.id}>
-                          {order.order_number} - {order.customer_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div className="md:col-span-2">
-                <Label htmlFor="project_id">Proyecto</Label>
-                <Select
-                  value={formData.project_id}
-                  onValueChange={(value) => setFormData({ ...formData, project_id: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un proyecto (opcional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
+                    {Object.entries(PRINT_TYPE_CONFIG).map(([key, config]) => (
+                      <SelectItem key={key} value={key}>
+                        <div className="flex items-center gap-2">
+                          <config.icon className="w-4 h-4" />
+                          {config.label}
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div>
-                <Label htmlFor="print_time_hours">Tiempo (horas) *</Label>
+              <div className="space-y-2">
+                <Label htmlFor="order_id">Pedido (opcional)</Label>
+                <Select
+                  value={formData.order_id}
+                  onValueChange={(value) => setFormData({ ...formData, order_id: value })}
+                >
+                  <SelectTrigger id="order_id">
+                    <SelectValue placeholder="Seleccionar pedido" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sin pedido</SelectItem>
+                    {orders.map((order) => (
+                      <SelectItem key={order.id} value={order.id}>
+                        {order.order_number} - {order.customer_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="project_id">Proyecto (opcional)</Label>
+                <div className="flex gap-2">
+                  <Select
+                    value={formData.project_id}
+                    onValueChange={(value) => setFormData({ ...formData, project_id: value })}
+                  >
+                    <SelectTrigger id="project_id">
+                      <SelectValue placeholder="Seleccionar proyecto" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Sin proyecto</SelectItem>
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formData.project_id && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleImportFromProject}
+                      title="Importar materiales del proyecto"
+                    >
+                      <Download className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="print_time_hours">Tiempo de Impresión (horas) *</Label>
                 <Input
                   id="print_time_hours"
                   type="number"
                   step="0.1"
                   value={formData.print_time_hours}
                   onChange={(e) => setFormData({ ...formData, print_time_hours: e.target.value })}
-                  placeholder="0"
                   required
                 />
               </div>
 
-              <div>
-                <Label htmlFor="material_used_grams">Material usado (gramos) *</Label>
-                <Input
-                  id="material_used_grams"
-                  type="number"
-                  step="1"
-                  value={formData.material_used_grams}
-                  onChange={(e) => setFormData({ ...formData, material_used_grams: e.target.value })}
-                  placeholder="0"
-                  required
-                />
-              </div>
-
-              <div className="md:col-span-2">
+              <div className="space-y-2">
                 <Label htmlFor="print_date">Fecha y Hora *</Label>
                 <Input
                   id="print_date"
@@ -546,15 +677,115 @@ const Prints = () => {
                 />
               </div>
 
-              <div className="md:col-span-2">
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="status">Estado *</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value: any) => setFormData({ ...formData, status: value })}
+                >
+                  <SelectTrigger id="status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                      <SelectItem key={key} value={key}>
+                        {config.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="notes">Notas</Label>
                 <Textarea
                   id="notes"
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Detalles adicionales..."
+                  rows={3}
                 />
               </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Label className="text-lg font-semibold">Materiales *</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addMaterialRow}>
+                  <Plus className="w-3 h-3 mr-1" />
+                  Añadir Material
+                </Button>
+              </div>
+
+              {formMaterials.length === 0 ? (
+                <Card className="border-dashed">
+                  <CardContent className="py-8 text-center text-muted-foreground">
+                    <p>No hay materiales añadidos.</p>
+                    <p className="text-sm">Usa el botón de arriba o importa desde un proyecto</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Material</TableHead>
+                      <TableHead>Peso (g)</TableHead>
+                      <TableHead className="w-[100px]">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {formMaterials.map((material) => (
+                      <TableRow key={material.tempId}>
+                        <TableCell>
+                          <Select
+                            value={material.material_id}
+                            onValueChange={(value) => updateMaterialRow(material.tempId, 'material_id', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar material" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {materials.map((mat) => (
+                                <SelectItem key={mat.id} value={mat.id}>
+                                  {mat.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            value={material.weight_grams}
+                            onChange={(e) => updateMaterialRow(material.tempId, 'weight_grams', e.target.value)}
+                            placeholder="0"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => removeMaterialRow(material.tempId)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+
+              {formMaterials.length > 0 && (
+                <div className="text-right">
+                  <p className="text-sm font-medium">
+                    Total: {formMaterials.reduce((sum, m) => sum + (parseFloat(m.weight_grams) || 0), 0).toFixed(1)}g
+                    {" "}
+                    ({(formMaterials.reduce((sum, m) => sum + (parseFloat(m.weight_grams) || 0), 0) / 1000).toFixed(3)}kg)
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2 justify-end">
@@ -562,13 +793,13 @@ const Prints = () => {
                 Cancelar
               </Button>
               <Button type="submit">
-                {editingPrint ? 'Actualizar' : 'Guardar'}
+                {editingPrint ? 'Actualizar' : 'Crear'} Impresión
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 };
 
