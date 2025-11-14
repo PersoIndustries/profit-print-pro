@@ -244,6 +244,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
             order_number: orderNumber,
             customer_name: customerName,
             customer_email: customerEmail || null,
+            customer_phone: customerPhone || null,
             total_amount: totalAmount,
             notes: notes || null,
             order_date: orderDate,
@@ -310,7 +311,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
               />
             </div>
 
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2">
               <Label htmlFor="customerEmail">Email del Cliente</Label>
               <Input
                 id="customerEmail"
@@ -318,6 +319,17 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
                 value={customerEmail}
                 onChange={(e) => setCustomerEmail(e.target.value)}
                 placeholder="cliente@example.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="customerPhone">Teléfono del Cliente</Label>
+              <Input
+                id="customerPhone"
+                type="tel"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder="+34 600 000 000"
               />
             </div>
 

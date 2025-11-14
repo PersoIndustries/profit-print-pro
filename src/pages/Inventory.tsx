@@ -507,8 +507,8 @@ const Inventory = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* TAB: Tipos de Materiales */}
-        <TabsContent value="materials" className="mt-6">
+        {/* TAB: Inventario */}
+        <TabsContent value="inventory" className="mt-6">
           <div className="grid lg:grid-cols-3 gap-6">
             <Card className="lg:col-span-1">
               <CardHeader>
