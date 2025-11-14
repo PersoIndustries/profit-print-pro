@@ -107,6 +107,7 @@ const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [showLowStock, setShowLowStock] = useState(false);
+  const [stockPrints, setStockPrints] = useState<any[]>([]);
   
   const [acquisitionForm, setAcquisitionForm] = useState({
     material_id: "",
@@ -151,7 +152,8 @@ const Inventory = () => {
         fetchInventory(),
         fetchPendingMaterials(),
         fetchAcquisitions(),
-        fetchMovements()
+        fetchMovements(),
+        fetchStockPrints()
       ]);
     } finally {
       setLoadingData(false);
@@ -271,6 +273,25 @@ const Inventory = () => {
       })));
     } catch (error: any) {
       toast.error("Error al cargar movimientos");
+    }
+  };
+
+  const fetchStockPrints = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("prints")
+        .select("*, projects(name)")
+        .eq("user_id", user.id)
+        .eq("print_type", "for_sale")
+        .eq("status", "completed")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setStockPrints(data || []);
+    } catch (error: any) {
+      console.error("Error al cargar impresiones de stock:", error);
     }
   };
 
@@ -740,44 +761,52 @@ const Inventory = () => {
 
         {/* Tab de Stock */}
         <TabsContent value="stock">
-          <Card>
-            <CardHeader>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <CardTitle>Control de Stock</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="low-stock-toggle"
-                      checked={showLowStock}
-                      onChange={(e) => setShowLowStock(e.target.checked)}
-                      className="w-4 h-4 rounded border-input"
-                    />
-                    <Label htmlFor="low-stock-toggle" className="cursor-pointer">
-                      Solo mostrar alertas de stock bajo
-                    </Label>
+          <Tabs defaultValue="materials" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="materials">Materiales</TabsTrigger>
+              <TabsTrigger value="objects">Objetos ({stockPrints.length})</TabsTrigger>
+            </TabsList>
+
+            {/* Subtab de Materiales */}
+            <TabsContent value="materials">
+              <Card>
+                <CardHeader>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <CardTitle>Stock de Materiales</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="low-stock-toggle"
+                          checked={showLowStock}
+                          onChange={(e) => setShowLowStock(e.target.checked)}
+                          className="w-4 h-4 rounded border-input"
+                        />
+                        <Label htmlFor="low-stock-toggle" className="cursor-pointer">
+                          Solo mostrar alertas de stock bajo
+                        </Label>
+                      </div>
+                    </div>
+                    {showLowStock && filteredInventory.length > 0 && (
+                      <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                        <Info className="w-5 h-5 text-yellow-500" />
+                        <span className="text-sm font-medium">
+                          Se encontraron {filteredInventory.length} material(es) con stock bajo
+                        </span>
+                      </div>
+                    )}
                   </div>
-                </div>
-                {showLowStock && filteredInventory.length > 0 && (
-                  <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                    <Info className="w-5 h-5 text-yellow-500" />
-                    <span className="text-sm font-medium">
-                      Se encontraron {filteredInventory.length} material(es) con stock bajo
-                    </span>
-                  </div>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <TooltipProvider>
-                {filteredInventory.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    {showLowStock 
-                      ? "No hay materiales con stock bajo" 
-                      : "No hay materiales en inventario"}
-                  </div>
-                ) : (
-                  <Table>
+                </CardHeader>
+                <CardContent>
+                  <TooltipProvider>
+                    {filteredInventory.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        {showLowStock 
+                          ? "No hay materiales con stock bajo" 
+                          : "No hay materiales en inventario"}
+                      </div>
+                    ) : (
+                      <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Material</TableHead>
@@ -868,6 +897,57 @@ const Inventory = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Subtab de Objetos (Impresiones para vender) */}
+        <TabsContent value="objects">
+          <Card>
+            <CardHeader>
+              <CardTitle>Stock de Objetos</CardTitle>
+              <p className="text-sm text-muted-foreground mt-2">
+                Impresiones completadas para vender que aún no han sido asignadas a pedidos
+              </p>
+            </CardHeader>
+            <CardContent>
+              {stockPrints.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No hay objetos en stock
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {stockPrints.map((print: any) => (
+                    <Card key={print.id}>
+                      <CardHeader>
+                        <CardTitle className="text-base">{print.name}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        {print.projects && (
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Proyecto:</span> {print.projects.name}
+                          </p>
+                        )}
+                        <p className="text-sm">
+                          <span className="text-muted-foreground">Tiempo de impresión:</span> {print.print_time_hours}h
+                        </p>
+                        <p className="text-sm">
+                          <span className="text-muted-foreground">Material usado:</span> {print.material_used_grams}g
+                        </p>
+                        <p className="text-sm">
+                          <span className="text-muted-foreground">Fecha:</span>{" "}
+                          {format(new Date(print.print_date), "dd/MM/yyyy", { locale: es })}
+                        </p>
+                        {print.notes && (
+                          <p className="text-sm text-muted-foreground">{print.notes}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </TabsContent>
 
         {/* Tab de Adquisiciones */}
         <TabsContent value="acquisitions">

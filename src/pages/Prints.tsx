@@ -33,7 +33,7 @@ interface PrintMaterial {
 interface Print {
   id: string;
   name: string;
-  print_type: 'order' | 'tools' | 'personal' | 'operational';
+  print_type: 'order' | 'tools' | 'personal' | 'operational' | 'for_sale';
   order_id: string | null;
   project_id: string | null;
   print_time_hours: number;
@@ -79,7 +79,8 @@ const PRINT_TYPE_CONFIG = {
   order: { label: 'Pedido', icon: Package, color: 'bg-blue-500' },
   tools: { label: 'Herramientas', icon: Wrench, color: 'bg-purple-500' },
   personal: { label: 'Personal', icon: User, color: 'bg-green-500' },
-  operational: { label: 'Operativa', icon: Building, color: 'bg-orange-500' }
+  operational: { label: 'Operativa', icon: Building, color: 'bg-orange-500' },
+  for_sale: { label: 'Para Vender', icon: Package, color: 'bg-teal-500' }
 };
 
 const STATUS_CONFIG = {
@@ -102,7 +103,7 @@ const Prints = () => {
   
   const [formData, setFormData] = useState({
     name: '',
-    print_type: 'order' as 'order' | 'tools' | 'personal' | 'operational',
+    print_type: 'order' as 'order' | 'tools' | 'personal' | 'operational' | 'for_sale',
     order_id: '',
     project_id: '',
     print_time_hours: '',
