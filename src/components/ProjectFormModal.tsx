@@ -700,7 +700,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
     </Dialog>
 
     <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-      <AlertDialogContent>
+      <AlertDialogContent className="z-[100]">
         <AlertDialogHeader>
           <AlertDialogTitle>¿Salir sin guardar?</AlertDialogTitle>
           <AlertDialogDescription>

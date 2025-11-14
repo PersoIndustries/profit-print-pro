@@ -650,29 +650,11 @@ const CalculatorPage = () => {
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notas</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Detalles adicionales del proyecto..."
-            />
-          </div>
-
           <div className="flex gap-2">
-            {calculatedPrice === null && (
-              <Button onClick={calculateAndDisplay} className="flex-1">
-                Calcular Total
-              </Button>
-            )}
-            
-            {calculatedPrice !== null && (
-              <Button onClick={handleSaveProject} variant="default" className="w-full">
-                <Save className="w-4 h-4 mr-2" />
-                {isEditMode ? 'Actualizar Proyecto' : 'Crear Proyecto'}
-              </Button>
-            )}
+            <Button onClick={handleSaveProject} variant="default" className="w-full">
+              <Save className="w-4 h-4 mr-2" />
+              {isEditMode ? 'Actualizar Proyecto' : 'Crear Proyecto'}
+            </Button>
           </div>
         </CardContent>
       </Card>
