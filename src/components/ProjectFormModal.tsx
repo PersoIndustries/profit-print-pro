@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, Trash2, Plus, GripVertical } from "lucide-react";
+import { Save, Trash2, Plus, GripVertical, Upload, X, Crown } from "lucide-react";
+import { useTierFeatures } from "@/hooks/useTierFeatures";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -178,6 +179,7 @@ interface ProjectFormModalProps {
 
 export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: ProjectFormModalProps) {
   const { user } = useAuth();
+  const { isPro, isEnterprise } = useTierFeatures();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [projectName, setProjectName] = useState("");
   const [printTimeHours, setPrintTimeHours] = useState("");
@@ -189,6 +191,10 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -216,6 +222,9 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
     setCalculatedPrice(null);
     setInvoiceLines([]);
     setNextLineId(1);
+    setImageFile(null);
+    setImagePreview(null);
+    setCurrentImageUrl(null);
   };
 
   const loadProject = async (id: string) => {
@@ -243,6 +252,9 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
       setNotes(project.notes || "");
       setProfitMargin(project.profit_margin?.toString() || "30");
       setCalculatedPrice(project.total_price);
+      setCurrentImageUrl(project.image_url || null);
+      setImagePreview(null);
+      setImageFile(null);
 
       const lines: InvoiceLine[] = [];
       let lineCounter = 1;
@@ -396,6 +408,73 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
     setCalculatedPrice(total);
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Por favor selecciona un archivo de imagen válido");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("La imagen debe ser menor a 5MB");
+      return;
+    }
+
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (projectId) {
+      setCurrentImageUrl(null);
+    }
+    setHasUnsavedChanges(true);
+  };
+
+  const uploadImage = async (projectIdForUpload: string): Promise<string | null> => {
+    if (!imageFile || !user) return null;
+
+    setUploadingImage(true);
+    try {
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${user.id}/${projectIdForUpload}.${fileExt}`;
+
+      // Delete old image if exists
+      if (currentImageUrl) {
+        const oldPath = currentImageUrl.split('/').slice(-2).join('/');
+        await supabase.storage.from('project-images').remove([oldPath]);
+      }
+
+      const { error: uploadError } = await supabase.storage
+        .from('project-images')
+        .upload(fileName, imageFile, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('project-images')
+        .getPublicUrl(fileName);
+
+      return data.publicUrl;
+    } catch (error: any) {
+      toast.error("Error al subir imagen: " + error.message);
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleSaveProject = async () => {
     if (!user || calculatedPrice === null || !projectName) {
       toast.error("Calcula el precio primero y añade un nombre");
@@ -426,6 +505,16 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
 
     try {
       if (projectId) {
+        // Upload image if there's a new one
+        let imageUrl = currentImageUrl;
+        if (imageFile) {
+          const uploadedUrl = await uploadImage(projectId);
+          if (uploadedUrl) imageUrl = uploadedUrl;
+        } else if (!currentImageUrl && imagePreview === null) {
+          // User removed the image
+          imageUrl = null;
+        }
+
         const { error: projectError } = await supabase
           .from("projects")
           .update({
@@ -438,6 +527,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
             profit_margin: parseFloat(profitMargin),
             total_price: calculatedPrice,
             notes: notes || null,
+            image_url: imageUrl,
           })
           .eq("id", projectId);
 
@@ -486,6 +576,17 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
           .single();
 
         if (projectError) throw projectError;
+
+        // Upload image for new project
+        if (imageFile && project) {
+          const imageUrl = await uploadImage(project.id);
+          if (imageUrl) {
+            await supabase
+              .from("projects")
+              .update({ image_url: imageUrl })
+              .eq("id", project.id);
+          }
+        }
 
         if (materialLines.length > 0) {
           const projectMaterialsData = materialLines.map(line => {
@@ -671,6 +772,60 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
             )}
           </div>
 
+          {(isPro || isEnterprise) && (
+            <div className="space-y-2">
+              <Label>Imagen del Proyecto</Label>
+              {(imagePreview || currentImageUrl) ? (
+                <div className="relative">
+                  <img
+                    src={imagePreview || currentImageUrl || ''}
+                    alt="Preview"
+                    className="w-full h-48 object-cover rounded-lg border"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2"
+                    onClick={handleRemoveImage}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <Label htmlFor="image-upload" className="cursor-pointer flex flex-col items-center gap-2">
+                    <Upload className="w-8 h-8 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      Click para subir una imagen (máx. 5MB)
+                    </span>
+                  </Label>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!isPro && !isEnterprise && (
+            <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Crown className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Agrega imágenes a tus proyectos</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Actualiza a Pro o Business para subir imágenes de tus proyectos.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="notes">Notas</Label>
             <Textarea
@@ -689,9 +844,14 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
             )}
             
             {calculatedPrice !== null && (
-              <Button onClick={handleSaveProject} variant="default" className="w-full">
+              <Button 
+                onClick={handleSaveProject} 
+                variant="default" 
+                className="w-full"
+                disabled={uploadingImage}
+              >
                 <Save className="w-4 h-4 mr-2" />
-                {projectId ? 'Actualizar Proyecto' : 'Crear Proyecto'}
+                {uploadingImage ? 'Subiendo imagen...' : projectId ? 'Actualizar Proyecto' : 'Crear Proyecto'}
               </Button>
             )}
           </div>
