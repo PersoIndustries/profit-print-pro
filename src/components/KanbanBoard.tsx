@@ -216,12 +216,21 @@ export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
     if (activeItem.status === newStatus) return;
 
     try {
-      const { error } = await supabase
+      // Update order_items status
+      const { error: itemError } = await supabase
         .from("order_items")
         .update({ status: newStatus })
         .eq("id", activeItem.id);
 
-      if (error) throw error;
+      if (itemError) throw itemError;
+
+      // Update the order status
+      const { error: orderError } = await supabase
+        .from("orders")
+        .update({ status: newStatus })
+        .eq("id", activeItem.order_id);
+
+      if (orderError) throw orderError;
 
       setItems(items => items.map(item => 
         item.id === activeItem.id 

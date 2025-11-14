@@ -248,7 +248,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
             total_amount: totalAmount,
             notes: notes || null,
             order_date: orderDate,
-            status: 'pending'
+            status: 'design'
           })
           .select()
           .single();
