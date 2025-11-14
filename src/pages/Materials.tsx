@@ -21,6 +21,7 @@ interface Material {
   color: string | null;
   type: string | null;
   is_favorite: boolean;
+  display_mode: 'color' | 'icon';
 }
 
 interface InventoryItem {
@@ -66,12 +67,14 @@ const Materials = () => {
     price_per_kg: "",
     color: "",
     type: "",
+    display_mode: "color" as 'color' | 'icon',
   });
   const [editForm, setEditForm] = useState({
     name: "",
     price_per_kg: "",
     color: "",
     type: "",
+    display_mode: "color" as 'color' | 'icon',
   });
 
   useEffect(() => {
@@ -100,7 +103,10 @@ const Materials = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setMaterials(data || []);
+      setMaterials((data || []).map(m => ({
+        ...m,
+        display_mode: (m.display_mode || 'color') as 'color' | 'icon'
+      })));
     } catch (error: any) {
       toast.error("Error al cargar materiales");
     } finally {
@@ -118,7 +124,13 @@ const Materials = () => {
         .eq("user_id", user.id);
 
       if (error) throw error;
-      setInventory(data || []);
+      setInventory((data || []).map(inv => ({
+        ...inv,
+        materials: {
+          ...inv.materials,
+          display_mode: (inv.materials.display_mode || 'color') as 'color' | 'icon'
+        }
+      })));
     } catch (error: any) {
       toast.error("Error al cargar inventario");
     }
@@ -165,14 +177,15 @@ const Materials = () => {
         user_id: user.id,
         name: newMaterial.name,
         price_per_kg: parseFloat(newMaterial.price_per_kg),
-        color: newMaterial.color || null,
+        color: newMaterial.display_mode === 'color' ? (newMaterial.color || null) : null,
         type: newMaterial.type || null,
+        display_mode: newMaterial.display_mode,
       });
 
       if (error) throw error;
 
       toast.success("Material añadido");
-      setNewMaterial({ name: "", price_per_kg: "", color: "", type: "" });
+      setNewMaterial({ name: "", price_per_kg: "", color: "", type: "", display_mode: "color" });
       fetchMaterials();
     } catch (error: any) {
       toast.error("Error al añadir material");
@@ -216,6 +229,7 @@ const Materials = () => {
       price_per_kg: material.price_per_kg.toString(),
       color: material.color || "",
       type: material.type || "",
+      display_mode: material.display_mode || "color",
     });
     setIsEditDialogOpen(true);
   };
@@ -230,8 +244,9 @@ const Materials = () => {
         .update({
           name: editForm.name,
           price_per_kg: parseFloat(editForm.price_per_kg),
-          color: editForm.color || null,
+          color: editForm.display_mode === 'color' ? (editForm.color || null) : null,
           type: editForm.type || null,
+          display_mode: editForm.display_mode,
         })
         .eq("id", editingMaterial.id);
 
@@ -267,10 +282,24 @@ const Materials = () => {
     );
   }
 
+  const PREDEFINED_COLORS = [
+    { value: '#FF0000', label: 'Rojo' },
+    { value: '#00FF00', label: 'Verde' },
+    { value: '#0000FF', label: 'Azul' },
+    { value: '#FFFF00', label: 'Amarillo' },
+    { value: '#FF00FF', label: 'Magenta' },
+    { value: '#00FFFF', label: 'Cian' },
+    { value: '#FFA500', label: 'Naranja' },
+    { value: '#800080', label: 'Púrpura' },
+    { value: '#FFFFFF', label: 'Blanco' },
+    { value: '#000000', label: 'Negro' },
+    { value: '#808080', label: 'Gris' },
+  ];
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div>
-        <h1 className="text-4xl font-bold mb-2">Materiales e Inventario</h1>
+        <h1 className="text-4xl font-bold mb-2">Gestión de Materiales</h1>
         <p className="text-muted-foreground">
           {materials.length} materiales registrados
         </p>
@@ -316,14 +345,6 @@ const Materials = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="color">Color</Label>
-                <Input
-                  id="color"
-                  value={newMaterial.color}
-                  onChange={(e) => setNewMaterial({ ...newMaterial, color: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="type">Tipo</Label>
                 <Select
                   value={newMaterial.type}
@@ -347,6 +368,47 @@ const Materials = () => {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="display-mode">Mostrar como</Label>
+                <Select
+                  value={newMaterial.display_mode}
+                  onValueChange={(value: 'color' | 'icon') => setNewMaterial({ ...newMaterial, display_mode: value })}
+                >
+                  <SelectTrigger id="display-mode">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover z-50">
+                    <SelectItem value="color">Color</SelectItem>
+                    <SelectItem value="icon">Icono</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {newMaterial.display_mode === 'color' && (
+                <div className="space-y-2">
+                  <Label htmlFor="color">Color</Label>
+                  <Select
+                    value={newMaterial.color}
+                    onValueChange={(value) => setNewMaterial({ ...newMaterial, color: value })}
+                  >
+                    <SelectTrigger id="color">
+                      <SelectValue placeholder="Selecciona color" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover z-50">
+                      {PREDEFINED_COLORS.map((color) => (
+                        <SelectItem key={color.value} value={color.value}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-4 h-4 rounded-full border"
+                              style={{ backgroundColor: color.value }}
+                            />
+                            {color.label}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <Button type="submit" className="w-full">
                 <Plus className="w-4 h-4 mr-2" />
                 Añadir Material
@@ -386,9 +448,9 @@ const Materials = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Inventario de Materiales</CardTitle>
+              <CardTitle>Lista de Materiales</CardTitle>
               <CardDescription>
-                Stock disponible y materiales pendientes de imprimir
+                Gestiona tus materiales y precios
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -396,9 +458,7 @@ const Materials = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Material</TableHead>
-                    <TableHead>Stock Disponible</TableHead>
-                    <TableHead>Pendiente</TableHead>
-                    <TableHead>Stock Alerta</TableHead>
+                    <TableHead>Tipo</TableHead>
                     <TableHead>Precio/kg</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
@@ -406,24 +466,28 @@ const Materials = () => {
                 <TableBody>
                   {filteredMaterials.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground">
+                      <TableCell colSpan={4} className="text-center text-muted-foreground">
                         No hay materiales
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredMaterials.map((material) => {
                       const Icon = getMaterialIcon(material.type);
-                      const inventoryItem = getInventoryItem(material.id);
-                      const pendingGrams = getPendingGrams(material.id);
-                      const currentStock = inventoryItem?.quantity_grams || 0;
-                      const minStock = inventoryItem?.min_stock_alert || 500;
-                      const isLowStock = currentStock < minStock;
 
                       return (
                         <TableRow key={material.id}>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <Icon className="w-4 h-4" />
+                              {material.display_mode === 'icon' ? (
+                                <Icon className="w-5 h-5" />
+                              ) : (
+                                material.color && (
+                                  <div
+                                    className="w-5 h-5 rounded-full border-2"
+                                    style={{ backgroundColor: material.color }}
+                                  />
+                                )
+                              )}
                               <div>
                                 <div className="flex items-center gap-2">
                                   <span className="font-medium">{material.name}</span>
@@ -431,48 +495,14 @@ const Materials = () => {
                                     <Star className="w-3 h-3 fill-primary text-primary" />
                                   )}
                                 </div>
-                                {material.color && (
-                                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                    <div
-                                      className="w-3 h-3 rounded-full border"
-                                      style={{ backgroundColor: material.color }}
-                                    />
-                                    {material.color}
-                                  </div>
-                                )}
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              {isLowStock && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      <AlertTriangle className="w-4 h-4 text-orange-500" />
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      Stock bajo. Mínimo: {minStock}g
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                              <span className={isLowStock ? "text-orange-500 font-medium" : ""}>
-                                {(currentStock / 1000).toFixed(2)} kg
-                              </span>
+                              <Icon className="w-4 h-4" />
+                              {MATERIAL_TYPES.find(t => t.value === material.type)?.label || material.type}
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            {pendingGrams > 0 ? (
-                              <Badge variant="outline" className="bg-yellow-500/10">
-                                {(pendingGrams / 1000).toFixed(2)} kg
-                              </Badge>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {(minStock / 1000).toFixed(2)} kg
                           </TableCell>
                           <TableCell>€{material.price_per_kg.toFixed(2)}/kg</TableCell>
                           <TableCell>
@@ -543,14 +573,6 @@ const Materials = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-color">Color</Label>
-              <Input
-                id="edit-color"
-                value={editForm.color}
-                onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="edit-type">Tipo</Label>
               <Select
                 value={editForm.type}
@@ -574,6 +596,47 @@ const Materials = () => {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-display-mode">Mostrar como</Label>
+              <Select
+                value={editForm.display_mode}
+                onValueChange={(value: 'color' | 'icon') => setEditForm({ ...editForm, display_mode: value })}
+              >
+                <SelectTrigger id="edit-display-mode">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  <SelectItem value="color">Color</SelectItem>
+                  <SelectItem value="icon">Icono</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {editForm.display_mode === 'color' && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-color">Color</Label>
+                <Select
+                  value={editForm.color}
+                  onValueChange={(value) => setEditForm({ ...editForm, color: value })}
+                >
+                  <SelectTrigger id="edit-color">
+                    <SelectValue placeholder="Selecciona color" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover z-50">
+                    {PREDEFINED_COLORS.map((color) => (
+                      <SelectItem key={color.value} value={color.value}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-4 h-4 rounded-full border"
+                            style={{ backgroundColor: color.value }}
+                          />
+                          {color.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="flex gap-2">
               <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} className="flex-1">
                 Cancelar
