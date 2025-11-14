@@ -205,9 +205,15 @@ export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
     if (!over) return;
 
     const activeItem = items.find(item => item.id === active.id);
-    const newStatus = over.id as Status;
+    if (!activeItem) return;
 
-    if (!activeItem || activeItem.status === newStatus) return;
+    // Check if we're dropping over a droppable container (status column)
+    const newStatus = over.id as Status;
+    
+    // Validate that newStatus is a valid status
+    if (!STATUS_CONFIG[newStatus]) return;
+    
+    if (activeItem.status === newStatus) return;
 
     try {
       const { error } = await supabase

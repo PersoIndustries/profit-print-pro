@@ -47,6 +47,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [notes, setNotes] = useState("");
+  const [orderDate, setOrderDate] = useState("");
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [nextItemId, setNextItemId] = useState(1);
 
@@ -67,6 +68,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
     setCustomerName("");
     setCustomerEmail("");
     setNotes("");
+    setOrderDate(new Date().toISOString().split('T')[0]);
     setOrderItems([]);
     setNextItemId(1);
   };
@@ -103,6 +105,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
       setCustomerName(order.customer_name || "");
       setCustomerEmail(order.customer_email || "");
       setNotes(order.notes || "");
+      setOrderDate(order.order_date ? new Date(order.order_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
 
       const loadedItems: OrderItem[] = items.map((item: any, index: number) => ({
         id: `item-${index + 1}`,
@@ -205,6 +208,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
             customer_email: customerEmail || null,
             total_amount: totalAmount,
             notes: notes || null,
+            order_date: orderDate,
           })
           .eq("id", orderId);
 
@@ -238,6 +242,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
             customer_email: customerEmail || null,
             total_amount: totalAmount,
             notes: notes || null,
+            order_date: orderDate,
             status: 'pending'
           })
           .select()
@@ -309,6 +314,17 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
                 value={customerEmail}
                 onChange={(e) => setCustomerEmail(e.target.value)}
                 placeholder="cliente@example.com"
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="orderDate">Fecha del Pedido *</Label>
+              <Input
+                id="orderDate"
+                type="date"
+                value={orderDate}
+                onChange={(e) => setOrderDate(e.target.value)}
+                required
               />
             </div>
           </div>

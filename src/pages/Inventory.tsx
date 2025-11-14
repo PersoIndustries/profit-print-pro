@@ -13,12 +13,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Loader2, Plus, Trash2, Star, Edit, AlertTriangle,
   Disc, Droplet, Scissors, KeyRound, 
   Magnet as MagnetIcon, Bolt as BoltIcon, 
   Wrench, Paintbrush, FileBox, Package,
-  ShoppingCart, Archive, Crown, History, Trash
+  ShoppingCart, Archive, Crown, History, Trash, Info
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -776,13 +777,14 @@ const Inventory = () => {
                         <TableHead>Precio/kg</TableHead>
                         <TableHead>Total</TableHead>
                         <TableHead>Proveedor</TableHead>
+                        <TableHead>Notas</TableHead>
                         <TableHead></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {acquisitions.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center text-muted-foreground">
+                          <TableCell colSpan={8} className="text-center text-muted-foreground">
                             No hay adquisiciones registradas
                           </TableCell>
                         </TableRow>
@@ -797,6 +799,22 @@ const Inventory = () => {
                             <TableCell>€{acq.unit_price.toFixed(2)}/kg</TableCell>
                             <TableCell className="font-bold">€{acq.total_price.toFixed(2)}</TableCell>
                             <TableCell>{acq.supplier || '-'}</TableCell>
+                            <TableCell>
+                              {acq.notes ? (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <Info className="h-4 w-4 text-muted-foreground" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      <p>{acq.notes}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : '-'}
+                            </TableCell>
                             <TableCell>
                               <Button
                                 variant="destructive"
