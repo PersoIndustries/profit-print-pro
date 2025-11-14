@@ -400,6 +400,48 @@ export type Database = {
           },
         ]
       }
+      print_materials: {
+        Row: {
+          created_at: string
+          id: string
+          material_cost: number
+          material_id: string
+          print_id: string
+          weight_grams: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_cost: number
+          material_id: string
+          print_id: string
+          weight_grams: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_cost?: number
+          material_id?: string
+          print_id?: string
+          weight_grams?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "print_materials_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_materials_print_id_fkey"
+            columns: ["print_id"]
+            isOneToOne: false
+            referencedRelation: "prints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prints: {
         Row: {
           created_at: string
