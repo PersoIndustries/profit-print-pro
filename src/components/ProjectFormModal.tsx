@@ -476,17 +476,44 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
   };
 
   const handleSaveProject = async () => {
-    if (!user || calculatedPrice === null || !projectName) {
-      toast.error("Calcula el precio primero y añade un nombre");
+    if (!user) return;
+
+    // Validaciones completas
+    if (!projectName.trim()) {
+      toast.error("El nombre del proyecto es obligatorio");
       return;
     }
 
-    const materialLines = invoiceLines.filter(line => line.type === 'material' && line.materialId);
+    if (!printTimeHours || parseFloat(printTimeHours) <= 0) {
+      toast.error("Las horas de impresión son obligatorias y deben ser mayores a 0");
+      return;
+    }
+
+    if (calculatedPrice === null || calculatedPrice <= 0) {
+      toast.error("Debes calcular el precio total antes de guardar el proyecto");
+      return;
+    }
+
+    const materialLines = invoiceLines.filter(line => line.type === 'material');
+    
+    if (materialLines.length === 0) {
+      toast.error("Debes añadir al menos un material al proyecto");
+      return;
+    }
+
+    // Validar que todos los materiales tengan material seleccionado y cantidad válida
+    const invalidMaterials = materialLines.filter(l => !l.materialId || !l.quantity || parseFloat(l.quantity) <= 0);
+    if (invalidMaterials.length > 0) {
+      toast.error("Todos los materiales deben tener un material seleccionado y una cantidad válida mayor a 0");
+      return;
+    }
+
+    const materialLinesWithId = materialLines.filter(line => line.materialId);
     
     let totalWeightGrams = 0;
     let totalMaterialCost = 0;
     
-    for (const line of materialLines) {
+    for (const line of materialLinesWithId) {
       if (!line.materialId) continue;
       const material = materials.find(m => m.id === line.materialId);
       if (!material) continue;
@@ -535,8 +562,8 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
 
         await supabase.from("project_materials").delete().eq("project_id", projectId);
 
-        if (materialLines.length > 0) {
-          const projectMaterialsData = materialLines.map(line => {
+        if (materialLinesWithId.length > 0) {
+          const projectMaterialsData = materialLinesWithId.map(line => {
             const material = materials.find(m => m.id === line.materialId);
             if (!material) return null;
             return {
@@ -588,8 +615,8 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
           }
         }
 
-        if (materialLines.length > 0) {
-          const projectMaterialsData = materialLines.map(line => {
+        if (materialLinesWithId.length > 0) {
+          const projectMaterialsData = materialLinesWithId.map(line => {
             const material = materials.find(m => m.id === line.materialId);
             if (!material) return null;
             return {
