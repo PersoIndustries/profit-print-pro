@@ -145,7 +145,7 @@ export function CatalogItemForm({
 
       if (editingItem) {
         const { error } = await supabase
-          .from("catalog_items")
+          .from("catalog_items" as any)
           .update(catalogData)
           .eq("id", editingItem.id);
 
@@ -153,7 +153,7 @@ export function CatalogItemForm({
         toast.success("Producto actualizado");
       } else {
         const { error } = await supabase
-          .from("catalog_items")
+          .from("catalog_items" as any)
           .insert(catalogData);
 
         if (error) throw error;
