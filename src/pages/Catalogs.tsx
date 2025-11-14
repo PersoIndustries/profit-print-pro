@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Plus, Download, Trash2, Edit, Crown, Eye } from "lucide-react";
+import { CardHeader, CardContent } from "@/components/ui/card";
 import { CatalogItemForm } from "@/components/CatalogItemForm";
 import { CatalogPreview } from "@/components/CatalogPreview";
 import jsPDF from "jspdf";
@@ -255,55 +256,54 @@ export default function Catalogs() {
           </Button>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {catalogItems.map((item) => (
-            <Card key={item.id} className="overflow-hidden">
-              {item.image_url && (
-                <div className="aspect-square bg-muted overflow-hidden">
-                  <img
-                    src={item.image_url}
-                    alt={item.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-              <div className="p-4">
-                <p className="text-xs text-muted-foreground mb-1">
-                  REF: {item.reference_code}
-                </p>
-                <h3 className="text-lg font-semibold mb-2">{item.name}</h3>
-                {item.sizes && item.sizes.length > 0 && (
-                  <div className="mb-3">
-                    <p className="text-sm font-medium mb-1">Tamaños:</p>
-                    {item.sizes.map((size, idx) => (
-                      <p key={idx} className="text-xs text-muted-foreground">
-                        {size.size} - {size.dimensions}
-                      </p>
-                    ))}
+        <div className="space-y-4">
+          {/* Group by project */}
+          {Object.entries(
+            catalogItems.reduce((acc, item) => {
+              const projectName = projects.find(p => p.id === item.project_id)?.name || 'Sin proyecto';
+              if (!acc[projectName]) acc[projectName] = [];
+              acc[projectName].push(item);
+              return acc;
+            }, {} as Record<string, CatalogItem[]>)
+          ).map(([projectName, items]) => (
+            <Card key={projectName}>
+              <CardHeader>
+                <h3 className="text-xl font-bold">Proyecto: {projectName}</h3>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {items.map((item) => (
+                  <div key={item.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-accent/50 transition-colors">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-sm text-muted-foreground">{item.reference_code}</span>
+                        <span className="font-medium">{item.name}</span>
+                        {item.sizes && item.sizes.length > 0 && (
+                          <span className="text-sm text-muted-foreground">
+                            {item.sizes.map(s => s.size).join(', ')}
+                          </span>
+                        )}
+                        <span className="font-bold text-primary ml-auto">{Number(item.pvp_price).toFixed(2)}€</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(item)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                )}
-                <p className="text-xl font-bold text-primary mb-4">
-                  {Number(item.pvp_price).toFixed(2)}€
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleEdit(item)}
-                  >
-                    <Edit className="w-4 h-4 mr-1" />
-                    Editar
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(item.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
+                ))}
+              </CardContent>
             </Card>
           ))}
         </div>
