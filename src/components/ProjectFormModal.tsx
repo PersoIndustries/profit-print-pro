@@ -622,7 +622,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
   const handleCloseAttempt = (shouldClose: boolean) => {
     if (!shouldClose) return;
     
-    if (hasUnsavedChanges && !isEditMode) {
+    if (hasUnsavedChanges) {
       setShowExitDialog(true);
     } else {
       onOpenChange(false);
@@ -647,17 +647,34 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
         </DialogHeader>
         
         <div className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="projectName">Nombre del Proyecto *</Label>
-            <Input
-              id="projectName"
-              value={projectName}
-              onChange={(e) => {
-                setProjectName(e.target.value);
-                setHasUnsavedChanges(true);
-              }}
-              placeholder="Ej: Pieza para cliente X"
-            />
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="projectName">Nombre del Proyecto *</Label>
+              <Input
+                id="projectName"
+                value={projectName}
+                onChange={(e) => {
+                  setProjectName(e.target.value);
+                  setHasUnsavedChanges(true);
+                }}
+                placeholder="Ej: Pieza para cliente X"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="printTimeHours">Horas de Impresión</Label>
+              <Input
+                id="printTimeHours"
+                type="number"
+                step="0.01"
+                value={printTimeHours}
+                onChange={(e) => {
+                  setPrintTimeHours(e.target.value);
+                  setHasUnsavedChanges(true);
+                }}
+                placeholder="0.00"
+              />
+            </div>
           </div>
 
           <div className="space-y-4">

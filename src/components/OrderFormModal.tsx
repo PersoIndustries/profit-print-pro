@@ -53,6 +53,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [nextItemId, setNextItemId] = useState(1);
   const [linkedPrintsCount, setLinkedPrintsCount] = useState<Record<string, number>>({});
+  const [orderStatus, setOrderStatus] = useState("pending");
 
   useEffect(() => {
     if (open) {
@@ -75,6 +76,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
     setOrderDate(new Date().toISOString().split('T')[0]);
     setOrderItems([]);
     setNextItemId(1);
+    setOrderStatus("pending");
   };
 
   const generateOrderNumber = () => {
@@ -122,10 +124,10 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
       setOrderNumber(order.order_number);
       setCustomerName(order.customer_name || "");
       setCustomerEmail(order.customer_email || "");
-      setCustomerEmail(order.customer_email || "");
       setCustomerPhone(order.customer_phone || "");
       setNotes(order.notes || "");
       setOrderDate(order.order_date ? new Date(order.order_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+      setOrderStatus(order.status || "pending");
 
       const loadedItems: OrderItem[] = items.map((item: any, index: number) => ({
         id: `item-${index + 1}`,
@@ -232,6 +234,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
             total_amount: totalAmount,
             notes: notes || null,
             order_date: orderDate,
+            status: orderStatus,
           })
           .eq("id", orderId);
 
@@ -267,7 +270,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
             total_amount: totalAmount,
             notes: notes || null,
             order_date: orderDate,
-            status: 'design'
+            status: orderStatus
           })
           .select()
           .single();
@@ -352,7 +355,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
               />
             </div>
 
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2">
               <Label htmlFor="orderDate">Fecha del Pedido *</Label>
               <Input
                 id="orderDate"
@@ -361,6 +364,25 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
                 onChange={(e) => setOrderDate(e.target.value)}
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="orderStatus">Estado del Pedido</Label>
+              <Select value={orderStatus} onValueChange={setOrderStatus}>
+                <SelectTrigger id="orderStatus">
+                  <SelectValue placeholder="Selecciona un estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pendiente</SelectItem>
+                  <SelectItem value="design">Diseño</SelectItem>
+                  <SelectItem value="to_produce">Por Producir</SelectItem>
+                  <SelectItem value="printing">Imprimiendo</SelectItem>
+                  <SelectItem value="clean_and_packaging">Limpieza y Empaquetado</SelectItem>
+                  <SelectItem value="ready_for_delivery">Listo para Entrega</SelectItem>
+                  <SelectItem value="delivered">Entregado</SelectItem>
+                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
