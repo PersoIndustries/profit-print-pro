@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useTierFeatures } from '@/hooks/useTierFeatures';
 import { LogOut, Settings, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +18,7 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
   const { t } = useTranslation();
   const { user, signOut } = useAuth();
   const { subscription } = useSubscription();
+  const { isPro, isEnterprise } = useTierFeatures();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -152,6 +154,14 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
           >
             Impresiones
           </Button>
+          {(isPro || isEnterprise) && (
+            <Button 
+              variant={isActive('/catalogs') ? 'default' : 'ghost'}
+              onClick={() => navigate('/catalogs')}
+            >
+              Catálogos
+            </Button>
+          )}
         </div>
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
