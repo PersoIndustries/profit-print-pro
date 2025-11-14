@@ -488,9 +488,8 @@ const Inventory = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="materials" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="materials">Tipos de Materiales</TabsTrigger>
+      <Tabs defaultValue="inventory" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="inventory">
             <Archive className="w-4 h-4 mr-2" />
             Inventario

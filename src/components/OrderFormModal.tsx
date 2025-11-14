@@ -46,6 +46,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
   const [orderNumber, setOrderNumber] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [orderDate, setOrderDate] = useState("");
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
@@ -67,6 +68,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
     setOrderNumber("");
     setCustomerName("");
     setCustomerEmail("");
+    setCustomerPhone("");
     setNotes("");
     setOrderDate(new Date().toISOString().split('T')[0]);
     setOrderItems([]);
@@ -104,6 +106,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
       setOrderNumber(order.order_number);
       setCustomerName(order.customer_name || "");
       setCustomerEmail(order.customer_email || "");
+      setCustomerPhone(order.customer_phone || "");
       setNotes(order.notes || "");
       setOrderDate(order.order_date ? new Date(order.order_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
 
@@ -206,6 +209,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
             order_number: orderNumber,
             customer_name: customerName,
             customer_email: customerEmail || null,
+            customer_phone: customerPhone || null,
             total_amount: totalAmount,
             notes: notes || null,
             order_date: orderDate,
