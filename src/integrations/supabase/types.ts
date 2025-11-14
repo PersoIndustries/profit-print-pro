@@ -591,6 +591,7 @@ export type Database = {
           created_at: string | null
           electricity_cost: number | null
           id: string
+          image_url: string | null
           labor_cost: number | null
           material_cost: number | null
           material_id: string | null
@@ -607,6 +608,7 @@ export type Database = {
           created_at?: string | null
           electricity_cost?: number | null
           id?: string
+          image_url?: string | null
           labor_cost?: number | null
           material_cost?: number | null
           material_id?: string | null
@@ -623,6 +625,7 @@ export type Database = {
           created_at?: string | null
           electricity_cost?: number | null
           id?: string
+          image_url?: string | null
           labor_cost?: number | null
           material_cost?: number | null
           material_id?: string | null
