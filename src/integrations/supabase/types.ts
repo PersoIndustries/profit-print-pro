@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      catalog_items: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          name: string
+          project_id: string
+          pvp_price: number
+          reference_code: string
+          sizes: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name: string
+          project_id: string
+          pvp_price: number
+          reference_code: string
+          sizes?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          project_id?: string
+          pvp_price?: number
+          reference_code?: string
+          sizes?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       inventory_items: {
         Row: {
           created_at: string
