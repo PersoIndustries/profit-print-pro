@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,11 +17,35 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [hasValidSession, setHasValidSession] = useState<boolean | null>(null);
 
-  // Check if we have a recovery token in the URL (can be in hash or query params)
+  // Check if we have a valid session (from password recovery)
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log("Reset password session check:", session);
+      setHasValidSession(!!session);
+    };
+    
+    checkSession();
+
+    // Also listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Reset password auth event:", event, "Session:", session);
+      if (event === 'PASSWORD_RECOVERY') {
+        setHasValidSession(true);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Check if we have a recovery token in the URL
   const searchParams = new URLSearchParams(location.search);
   const hashParams = new URLSearchParams(location.hash.substring(1));
-  const hasToken = searchParams.get('type') === 'recovery' || hashParams.get('type') === 'recovery';
+  const hasTokenInUrl = searchParams.get('type') === 'recovery' || 
+                        hashParams.get('type') === 'recovery' ||
+                        hashParams.get('access_token');
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +78,20 @@ const ResetPassword = () => {
     }
   };
 
-  if (!hasToken) {
+  if (hasValidSession === null) {
+    // Still checking session
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="py-8 text-center">
+            <p>Loading...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!hasValidSession && !hasTokenInUrl) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
