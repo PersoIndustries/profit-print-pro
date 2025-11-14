@@ -4,9 +4,12 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Trash2, Edit } from "lucide-react";
+import { Loader2, Trash2, Edit, List, Grid3x3, Crown } from "lucide-react";
 import { toast } from "sonner";
 import { ProjectFormModal } from "@/components/ProjectFormModal";
+import { useTierFeatures } from "@/hooks/useTierFeatures";
+import { Badge } from "@/components/ui/badge";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface Project {
   id: string;
@@ -16,6 +19,7 @@ interface Project {
   total_price: number;
   notes: string | null;
   created_at: string;
+  image_url?: string | null;
   project_materials?: {
     material_id: string;
     weight_grams: number;
@@ -38,11 +42,13 @@ interface ProjectMaterial {
 const Projects = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { isPro, isEnterprise } = useTierFeatures();
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectMaterials, setProjectMaterials] = useState<Record<string, ProjectMaterial[]>>({});
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   useEffect(() => {
     if (!loading && !user) {
