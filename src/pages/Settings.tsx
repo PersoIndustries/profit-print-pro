@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, CreditCard, Receipt, User, TrendingUp, AlertCircle, Calendar, BarChart3 } from "lucide-react";
+import { Settings as SettingsIcon, CreditCard, Receipt, User, TrendingUp, AlertCircle, Calendar, BarChart3, Shield } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface Profile {
@@ -59,6 +59,8 @@ const Settings = () => {
   });
   const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -148,6 +150,35 @@ const Settings = () => {
     }
   };
 
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      toast.error("Las contraseñas no coinciden");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) throw error;
+      
+      toast.success("Contraseña actualizada correctamente");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      console.error("Error changing password:", error);
+      toast.error(error.message || "Error al cambiar la contraseña");
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">{t('common.loading')}</div>;
   }
@@ -186,10 +217,14 @@ const Settings = () => {
       </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 max-w-md">
+          <TabsList className="grid w-full grid-cols-4 max-w-2xl">
             <TabsTrigger value="profile">
               <User className="h-4 w-4 mr-2" />
               Profile
+            </TabsTrigger>
+            <TabsTrigger value="security">
+              <Shield className="h-4 w-4 mr-2" />
+              Security
             </TabsTrigger>
             <TabsTrigger value="subscription">
               <CreditCard className="h-4 w-4 mr-2" />
@@ -263,6 +298,45 @@ const Settings = () => {
                   </div>
 
                   <Button type="submit">{t('common.save')}</Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="security">
+            <Card>
+              <CardHeader>
+                <CardTitle>Seguridad</CardTitle>
+                <CardDescription>Administra la seguridad de tu cuenta</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handlePasswordChange} className="space-y-4">
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="new_password">Nueva Contraseña</Label>
+                      <Input
+                        id="new_password"
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Introduce tu nueva contraseña"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="confirm_password">Confirmar Contraseña</Label>
+                      <Input
+                        id="confirm_password"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Confirma tu nueva contraseña"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <Button type="submit">Cambiar Contraseña</Button>
                 </form>
               </CardContent>
             </Card>
