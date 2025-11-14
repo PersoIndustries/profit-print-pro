@@ -23,6 +23,7 @@ export function PrintsStats({ userId }: PrintsStatsProps) {
   const [totalMaterial, setTotalMaterial] = useState(0);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
   const [typeData, setTypeData] = useState<any[]>([]);
+  const [topMaterials, setTopMaterials] = useState<any[]>([]);
 
   useEffect(() => {
     fetchPrintsStats();
@@ -32,11 +33,38 @@ export function PrintsStats({ userId }: PrintsStatsProps) {
     try {
       const { data: prints, error } = await supabase
         .from("prints")
-        .select("print_time_hours, material_used_grams, print_type, print_date")
+        .select("id, print_time_hours, material_used_grams, print_type, print_date")
         .eq("user_id", userId)
         .eq("status", "completed");
 
       if (error) throw error;
+
+      // Fetch material usage with print_id join
+      const { data: printMaterials, error: materialsError } = await supabase
+        .from("print_materials")
+        .select(`
+          weight_grams,
+          print_id,
+          materials (name)
+        `);
+
+      if (!materialsError && printMaterials && prints) {
+        const printIds = prints.map(p => p.id);
+        const relevantMaterials = printMaterials.filter((pm: any) => printIds.includes(pm.print_id));
+        
+        const materialMap: Record<string, number> = {};
+        relevantMaterials.forEach((pm: any) => {
+          const name = pm.materials?.name || "Desconocido";
+          materialMap[name] = (materialMap[name] || 0) + Number(pm.weight_grams);
+        });
+
+        const topMats = Object.entries(materialMap)
+          .map(([name, grams]) => ({ name, grams }))
+          .sort((a, b) => b.grams - a.grams)
+          .slice(0, 5);
+
+        setTopMaterials(topMats);
+      }
 
       // Total time and material
       const totalTime = prints?.reduce((sum, p) => sum + Number(p.print_time_hours), 0) || 0;
@@ -206,6 +234,33 @@ export function PrintsStats({ userId }: PrintsStatsProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Top Materials */}
+      {topMaterials.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Materiales Más Usados</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {topMaterials.map((mat, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <span className="text-sm font-bold text-primary">#{index + 1}</span>
+                    </div>
+                    <span className="font-medium">{mat.name}</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold">{(mat.grams / 1000).toFixed(2)} kg</div>
+                    <div className="text-xs text-muted-foreground">{mat.grams.toFixed(0)}g</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

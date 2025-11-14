@@ -63,10 +63,9 @@ const STATUS_CONFIG: Record<Status, { label: string; color: string }> = {
 
 interface KanbanCardProps {
   item: OrderItem;
-  onAddPrint: (item: OrderItem) => void;
 }
 
-function KanbanCard({ item, onAddPrint }: KanbanCardProps) {
+function KanbanCard({ item }: KanbanCardProps) {
   const {
     attributes,
     listeners,
@@ -121,18 +120,6 @@ function KanbanCard({ item, onAddPrint }: KanbanCardProps) {
             <span className="font-bold">€{item.total_price.toFixed(2)}</span>
           </div>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="w-full"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAddPrint(item);
-          }}
-        >
-          <Plus className="w-3 h-3 mr-1" />
-          Agregar Impresión
-        </Button>
       </CardContent>
     </Card>
   );
@@ -147,13 +134,6 @@ export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<OrderItem | null>(null);
-  const [printForm, setPrintForm] = useState({
-    name: '',
-    print_time_hours: '',
-    material_used_grams: '',
-    notes: ''
-  });
   const [filters, setFilters] = useState({
     customer: '',
     project: '',
@@ -270,48 +250,6 @@ export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
 
   const hasActiveFilters = filters.customer || filters.project || filters.dateFrom || filters.dateTo;
 
-  const handleAddPrint = (item: OrderItem) => {
-    setSelectedItem(item);
-    setPrintForm({
-      name: item.projects.name,
-      print_time_hours: '',
-      material_used_grams: '',
-      notes: `Pedido: ${item.orders.order_number} - Cliente: ${item.orders.customer_name}`
-    });
-    setIsPrintModalOpen(true);
-  };
-
-  const handleSavePrint = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !selectedItem) return;
-
-    try {
-      const { error } = await supabase
-        .from("prints")
-        .insert({
-          user_id: user.id,
-          name: printForm.name,
-          print_type: 'order',
-          order_id: selectedItem.order_id,
-          project_id: selectedItem.project_id,
-          print_time_hours: parseFloat(printForm.print_time_hours) || 0,
-          material_used_grams: parseFloat(printForm.material_used_grams) || 0,
-          print_date: new Date().toISOString(),
-          notes: printForm.notes || null,
-          status: 'completed'
-        });
-
-      if (error) throw error;
-
-      toast.success("Impresión registrada");
-      setIsPrintModalOpen(false);
-      setPrintForm({ name: '', print_time_hours: '', material_used_grams: '', notes: '' });
-      setSelectedItem(null);
-    } catch (error: any) {
-      toast.error("Error al guardar impresión");
-      console.error(error);
-    }
-  };
 
   const activeItem = activeId ? items.find(item => item.id === activeId) : null;
 
@@ -413,7 +351,7 @@ export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
                     </p>
                   ) : (
                     statusItems.map((item) => (
-                      <KanbanCard key={item.id} item={item} onAddPrint={handleAddPrint} />
+                      <KanbanCard key={item.id} item={item} />
                     ))
                   )}
                 </div>
@@ -442,72 +380,6 @@ export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
           </Card>
         ) : null}
       </DragOverlay>
-
-      {/* Modal para agregar impresión */}
-      <Dialog open={isPrintModalOpen} onOpenChange={setIsPrintModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Registrar Impresión</DialogTitle>
-          </DialogHeader>
-
-          <form onSubmit={handleSavePrint} className="space-y-4">
-            <div>
-              <Label htmlFor="print_name">Nombre *</Label>
-              <Input
-                id="print_name"
-                value={printForm.name}
-                onChange={(e) => setPrintForm({ ...printForm, name: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="print_time">Tiempo (horas) *</Label>
-                <Input
-                  id="print_time"
-                  type="number"
-                  step="0.1"
-                  value={printForm.print_time_hours}
-                  onChange={(e) => setPrintForm({ ...printForm, print_time_hours: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="material">Material (gramos) *</Label>
-                <Input
-                  id="material"
-                  type="number"
-                  step="1"
-                  value={printForm.material_used_grams}
-                  onChange={(e) => setPrintForm({ ...printForm, material_used_grams: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="print_notes">Notas</Label>
-              <Textarea
-                id="print_notes"
-                value={printForm.notes}
-                onChange={(e) => setPrintForm({ ...printForm, notes: e.target.value })}
-                rows={3}
-              />
-            </div>
-
-            <div className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={() => setIsPrintModalOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit">
-                Guardar Impresión
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
     </DndContext>
   );
 }

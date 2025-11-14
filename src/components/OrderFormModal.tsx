@@ -31,6 +31,7 @@ interface OrderItem {
   unit_price: number;
   total_price: number;
   status: string;
+  linked_prints?: number;
 }
 
 interface OrderFormModalProps {
@@ -51,6 +52,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
   const [orderDate, setOrderDate] = useState("");
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [nextItemId, setNextItemId] = useState(1);
+  const [linkedPrintsCount, setLinkedPrintsCount] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (open) {
@@ -103,8 +105,23 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
 
       if (itemsError) throw itemsError;
 
+      // Fetch linked prints count for each item
+      const { data: prints, error: printsError } = await supabase
+        .from("prints")
+        .select("id, order_id")
+        .eq("order_id", id);
+
+      if (!printsError && prints) {
+        const counts: Record<string, number> = {};
+        prints.forEach((print: any) => {
+          counts[print.order_id] = (counts[print.order_id] || 0) + 1;
+        });
+        setLinkedPrintsCount(counts);
+      }
+
       setOrderNumber(order.order_number);
       setCustomerName(order.customer_name || "");
+      setCustomerEmail(order.customer_email || "");
       setCustomerEmail(order.customer_email || "");
       setCustomerPhone(order.customer_phone || "");
       setNotes(order.notes || "");
@@ -117,7 +134,8 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
         quantity: item.quantity,
         unit_price: item.unit_price,
         total_price: item.total_price,
-        status: item.status
+        status: item.status,
+        linked_prints: 0
       }));
 
       setOrderItems(loadedItems);
@@ -154,7 +172,8 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
       quantity: 1,
       unit_price: 0,
       total_price: 0,
-      status: 'design'
+      status: 'design',
+      linked_prints: 0
     };
     setOrderItems([...orderItems, newItem]);
     setNextItemId(nextItemId + 1);

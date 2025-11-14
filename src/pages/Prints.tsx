@@ -285,6 +285,7 @@ const Prints = () => {
   };
 
   const handleOpenModal = () => {
+    setEditingPrint(null);
     resetForm();
     setIsModalOpen(true);
   };
@@ -562,7 +563,13 @@ const Prints = () => {
         </div>
       )}
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      <Dialog open={isModalOpen} onOpenChange={(open) => {
+        if (!open) {
+          setIsModalOpen(false);
+          setEditingPrint(null);
+          resetForm();
+        }
+      }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingPrint ? 'Editar Impresión' : 'Nueva Impresión'}</DialogTitle>
