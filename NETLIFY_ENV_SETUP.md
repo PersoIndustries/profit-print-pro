@@ -7,6 +7,17 @@ Para que la aplicación funcione correctamente, necesitas configurar las siguien
 1. **VITE_SUPABASE_URL**: URL de tu proyecto Supabase
 2. **VITE_SUPABASE_ANON_KEY**: Clave pública (anon key) de tu proyecto Supabase
 
+## Cómo Obtener los Valores de Supabase
+
+1. Ve a tu proyecto en [Supabase Dashboard](https://supabase.com/dashboard)
+2. Selecciona tu proyecto
+3. Ve a **Settings** → **API**
+4. Encontrarás:
+   - **Project URL**: Este es el valor para `VITE_SUPABASE_URL`
+   - **anon/public key**: Este es el valor para `VITE_SUPABASE_ANON_KEY`
+
+**Nota**: Aunque la "anon key" es una clave pública diseñada para ser usada en el frontend, es una buena práctica mantenerla en variables de entorno y no hardcodearla en el repositorio.
+
 ## Cómo Configurar las Variables en Netlify
 
 ### Opción 1: Desde el Dashboard de Netlify (Recomendado)
@@ -16,10 +27,10 @@ Para que la aplicación funcione correctamente, necesitas configurar las siguien
 3. Haz clic en **Add a variable**
 4. Agrega cada variable:
    - **Key**: `VITE_SUPABASE_URL`
-   - **Value**: `https://qjacgxvzjfjxytfggqro.supabase.co`
+   - **Value**: [Tu URL de Supabase desde el dashboard]
 5. Haz clic en **Add a variable** nuevamente para la segunda:
    - **Key**: `VITE_SUPABASE_ANON_KEY`
-   - **Value**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqYWNneHZ6amZqeHl0ZmdncXJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODI5MDIsImV4cCI6MjA3Nzk1ODkwMn0.sQ9bJcFERX57OhAgFC3-iwegAA18yqI6J8juEakEKjI`
+   - **Value**: [Tu anon key desde el dashboard de Supabase]
 6. Guarda los cambios
 
 ### Opción 2: Desde netlify.toml (No recomendado para valores sensibles)
@@ -28,24 +39,17 @@ Puedes agregar las variables directamente en `netlify.toml`, pero **NO es recome
 
 ```toml
 [build.environment]
-  VITE_SUPABASE_URL = "https://qjacgxvzjfjxytfggqro.supabase.co"
+  VITE_SUPABASE_URL = "tu_url_aqui"
   VITE_SUPABASE_ANON_KEY = "tu_clave_aqui"
 ```
-
-## Valores Actuales
-
-**⚠️ IMPORTANTE**: Estos son los valores que estaban hardcodeados en el código. Úsalos para configurar las variables en Netlify:
-
-- **VITE_SUPABASE_URL**: `https://qjacgxvzjfjxytfggqro.supabase.co`
-- **VITE_SUPABASE_ANON_KEY**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqYWNneHZ6amZqeHl0ZmdncXJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODI5MDIsImV4cCI6MjA3Nzk1ODkwMn0.sQ9bJcFERX57OhAgFC3-iwegAA18yqI6J8juEakEKjI`
 
 ## Configuración para Desarrollo Local
 
 Para desarrollo local, crea un archivo `.env.local` en la raíz del proyecto:
 
 ```env
-VITE_SUPABASE_URL=https://qjacgxvzjfjxytfggqro.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqYWNneHZ6amZqeHl0ZmdncXJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODI5MDIsImV4cCI6MjA3Nzk1ODkwMn0.sQ9bJcFERX57OhAgFC3-iwegAA18yqI6J8juEakEKjI
+VITE_SUPABASE_URL=tu_url_de_supabase_aqui
+VITE_SUPABASE_ANON_KEY=tu_anon_key_de_supabase_aqui
 ```
 
 **Nota**: El archivo `.env.local` está en `.gitignore` y no se subirá al repositorio.
