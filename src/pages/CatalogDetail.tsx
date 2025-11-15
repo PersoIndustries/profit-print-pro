@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Trash2, Edit, Loader2, Image as ImageIcon } from "lucide-react";
+import { CatalogProjectFormModal } from "@/components/CatalogProjectFormModal";
 
 interface CatalogProject {
   id: string;
@@ -23,6 +24,8 @@ export default function CatalogDetail() {
   const [catalogName, setCatalogName] = useState("");
   const [projects, setProjects] = useState<CatalogProject[]>([]);
   const [loading, setLoading] = useState(true);
+  const [projectModalOpen, setProjectModalOpen] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState<string | undefined>();
 
   useEffect(() => {
     if (user && catalogId) {
@@ -90,6 +93,20 @@ export default function CatalogDetail() {
     }
   };
 
+  const handleEditProject = (projectId: string) => {
+    setEditingProjectId(projectId);
+    setProjectModalOpen(true);
+  };
+
+  const handleNewProject = () => {
+    setEditingProjectId(undefined);
+    setProjectModalOpen(true);
+  };
+
+  const handleViewProducts = (projectId: string) => {
+    navigate(`/catalogs/${catalogId}/project/${projectId}/products`);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -112,7 +129,7 @@ export default function CatalogDetail() {
           <h1 className="text-3xl font-bold">{catalogName}</h1>
           <p className="text-muted-foreground">Proyectos del catálogo</p>
         </div>
-        <Button onClick={() => navigate(`/catalogs/${catalogId}/project/new`)}>
+        <Button onClick={handleNewProject}>
           <Plus className="w-4 h-4 mr-2" />
           Nuevo Proyecto
         </Button>
@@ -122,8 +139,11 @@ export default function CatalogDetail() {
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg mb-2">No hay proyectos en este catálogo</p>
-            <p className="text-sm">Añade tu primer proyecto para empezar</p>
+            <p>No hay proyectos en este catálogo</p>
+            <Button onClick={handleNewProject} variant="outline" className="mt-4">
+              <Plus className="w-4 h-4 mr-2" />
+              Crear primer proyecto
+            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -146,7 +166,7 @@ export default function CatalogDetail() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => navigate(`/catalogs/${catalogId}/project/${project.id}/edit`)}
+                      onClick={() => handleEditProject(project.id)}
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
@@ -173,7 +193,7 @@ export default function CatalogDetail() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => navigate(`/catalogs/${catalogId}/project/${project.id}`)}
+                    onClick={() => handleViewProducts(project.id)}
                   >
                     Ver Productos
                   </Button>
@@ -182,6 +202,16 @@ export default function CatalogDetail() {
             </Card>
           ))}
         </div>
+      )}
+
+      {catalogId && (
+        <CatalogProjectFormModal
+          open={projectModalOpen}
+          onOpenChange={setProjectModalOpen}
+          catalogId={catalogId}
+          projectId={editingProjectId}
+          onSuccess={fetchCatalogData}
+        />
       )}
     </div>
   );
