@@ -118,19 +118,23 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
                 reader.readAsDataURL(blob);
               }));
             
-            pdf.addImage(imgData, 'JPEG', margin, yPosition, 60, 40);
-            yPosition += 45;
+            pdf.addImage(imgData, 'JPEG', margin, yPosition, 50, 50);
           } catch (error) {
             console.error("Error loading image:", error);
           }
         }
 
+        // Content to the right of image
+        const contentStartX = margin + 55;
+        const contentWidth = pageWidth - contentStartX - margin;
+
+
         // Project description
         if (project.description) {
           pdf.setFontSize(10);
           pdf.setTextColor(80, 80, 80);
-          const lines = pdf.splitTextToSize(project.description, pageWidth - 2 * margin);
-          pdf.text(lines, margin, yPosition);
+          const lines = pdf.splitTextToSize(project.description, contentWidth);
+          pdf.text(lines, contentStartX, yPosition);
           yPosition += lines.length * 5 + 5;
         }
 
@@ -138,10 +142,10 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
         if (project.colors && project.colors.length > 0) {
           pdf.setFontSize(10);
           pdf.setTextColor(0, 0, 0);
-          pdf.text("Colores disponibles:", margin, yPosition);
+          pdf.text("Colores disponibles:", contentStartX, yPosition);
           yPosition += 7;
 
-          let xPos = margin;
+          let xPos = contentStartX;
           project.colors.forEach((color) => {
             const rgb = hexToRgb(color);
             if (rgb) {
@@ -153,6 +157,12 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
             }
           });
           yPosition += 12;
+        }
+
+        // Products list - start below image if needed
+        const imageBottomY = margin + 55;
+        if (yPosition < imageBottomY) {
+          yPosition = imageBottomY;
         }
 
         // Products list
@@ -260,61 +270,69 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
               <div key={project.id} className="space-y-4 border-b pb-8">
                 <h2 className="text-2xl font-bold">{project.name}</h2>
 
-                {project.image_url && (
-                  <img
-                    src={project.image_url}
-                    alt={project.name}
-                    className="w-48 h-32 object-cover rounded-md"
-                  />
-                )}
-
-                {project.description && (
-                  <p className="text-muted-foreground">{project.description}</p>
-                )}
-
-                {project.colors && project.colors.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium mb-2">Colores disponibles:</p>
-                    <div className="flex gap-2">
-                      {project.colors.map((color, idx) => (
-                        <div
-                          key={idx}
-                          className="w-8 h-8 rounded-md border-2 border-border"
-                          style={{ backgroundColor: color }}
-                          title={color}
-                        />
-                      ))}
+                <div className="flex gap-6">
+                  {/* Image - Left side, square */}
+                  {project.image_url && (
+                    <div className="flex-shrink-0">
+                      <img
+                        src={project.image_url}
+                        alt={project.name}
+                        className="w-48 h-48 object-cover rounded-md"
+                      />
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {project.products.length > 0 && (
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold">Productos</h3>
-                    <div className="border rounded-md overflow-hidden">
-                      <table className="w-full">
-                        <thead className="bg-muted">
-                          <tr>
-                            <th className="text-left p-2 text-sm font-medium">Ref.</th>
-                            <th className="text-left p-2 text-sm font-medium">Nombre</th>
-                            <th className="text-left p-2 text-sm font-medium">Dimensiones</th>
-                            <th className="text-right p-2 text-sm font-medium">Precio</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {project.products.map((product) => (
-                            <tr key={product.id} className="border-t">
-                              <td className="p-2 text-sm">{product.reference_code}</td>
-                              <td className="p-2 text-sm">{product.name}</td>
-                              <td className="p-2 text-sm">{product.dimensions || "-"}</td>
-                              <td className="p-2 text-sm text-right font-medium">{product.price.toFixed(2)} €</td>
-                            </tr>
+                  {/* Content - Right side */}
+                  <div className="flex-1 space-y-4">
+                    {project.description && (
+                      <p className="text-muted-foreground">{project.description}</p>
+                    )}
+
+                    {project.colors && project.colors.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium mb-2">Colores disponibles:</p>
+                        <div className="flex gap-2">
+                          {project.colors.map((color, idx) => (
+                            <div
+                              key={idx}
+                              className="w-8 h-8 rounded-md border-2 border-border"
+                              style={{ backgroundColor: color }}
+                              title={color}
+                            />
                           ))}
-                        </tbody>
-                      </table>
-                    </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {project.products.length > 0 && (
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-semibold">Productos</h3>
+                        <div className="border rounded-md overflow-hidden">
+                          <table className="w-full">
+                            <thead className="bg-muted">
+                              <tr>
+                                <th className="text-left p-2 text-sm font-medium">Ref.</th>
+                                <th className="text-left p-2 text-sm font-medium">Nombre</th>
+                                <th className="text-left p-2 text-sm font-medium">Dimensiones</th>
+                                <th className="text-right p-2 text-sm font-medium">Precio</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {project.products.map((product) => (
+                                <tr key={product.id} className="border-t">
+                                  <td className="p-2 text-sm">{product.reference_code}</td>
+                                  <td className="p-2 text-sm">{product.name}</td>
+                                  <td className="p-2 text-sm">{product.dimensions || "-"}</td>
+                                  <td className="p-2 text-sm text-right font-medium">{product.price.toFixed(2)} €</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             ))}
           </div>
