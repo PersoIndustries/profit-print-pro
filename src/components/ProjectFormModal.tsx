@@ -424,24 +424,38 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
     if (!file) return;
 
     // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error("Por favor selecciona un archivo de imagen válido");
+    if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') {
+      toast.error("Solo se permiten imágenes JPG/JPEG");
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("La imagen debe ser menor a 5MB");
-      return;
-    }
+    // Validate dimensions
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      
+      if (img.width !== 500 || img.height !== 500) {
+        toast.error("La imagen debe ser de 500x500 píxeles");
+        return;
+      }
 
-    setImageFile(file);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      setHasUnsavedChanges(true);
     };
-    reader.readAsDataURL(file);
-    setHasUnsavedChanges(true);
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      toast.error("Error al cargar la imagen");
+    };
+
+    img.src = objectUrl;
   };
 
   const handleRemoveImage = () => {
@@ -834,7 +848,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
                 <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
                   <Input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/jpg"
                     onChange={handleImageChange}
                     className="hidden"
                     id="image-upload"
@@ -842,7 +856,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
                   <Label htmlFor="image-upload" className="cursor-pointer flex flex-col items-center gap-2">
                     <Upload className="w-8 h-8 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">
-                      Click para subir una imagen (máx. 5MB)
+                      Click para subir imagen (500x500 JPG)
                     </span>
                   </Label>
                 </div>

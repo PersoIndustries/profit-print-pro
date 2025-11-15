@@ -106,31 +106,57 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
     const file = e.target.files?.[0];
     if (!file) return;
 
-    try {
-      setUploading(true);
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("catalog-images")
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("catalog-images")
-        .getPublicUrl(filePath);
-
-      setImageUrl(publicUrl);
-      setHasUnsavedChanges(true);
-      toast.success("Imagen subida");
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      toast.error("Error al subir la imagen");
-    } finally {
-      setUploading(false);
+    // Validate file type
+    if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') {
+      toast.error("Solo se permiten imágenes JPG/JPEG");
+      return;
     }
+
+    // Validate dimensions
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    
+    img.onload = async () => {
+      URL.revokeObjectURL(objectUrl);
+      
+      if (img.width !== 500 || img.height !== 500) {
+        toast.error("La imagen debe ser de 500x500 píxeles");
+        return;
+      }
+
+      try {
+        setUploading(true);
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("catalog-images")
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("catalog-images")
+          .getPublicUrl(filePath);
+
+        setImageUrl(publicUrl);
+        setHasUnsavedChanges(true);
+        toast.success("Imagen subida");
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        toast.error("Error al subir la imagen");
+      } finally {
+        setUploading(false);
+      }
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      toast.error("Error al cargar la imagen");
+    };
+
+    img.src = objectUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -289,9 +315,9 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="image">Imagen</Label>
+              <Label htmlFor="image">Imagen (500x500 JPG)</Label>
               {imageUrl && (
-                <div className="relative w-full h-48 mb-2">
+                <div className="relative w-32 h-32 mb-2">
                   <img src={imageUrl} alt="Preview" className="w-full h-full object-cover rounded-md" />
                   <Button
                     type="button"
@@ -311,12 +337,15 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
                 <Input
                   id="image"
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/jpg"
                   onChange={handleImageUpload}
                   disabled={uploading}
                 />
                 {uploading && <Loader2 className="w-4 h-4 animate-spin" />}
               </div>
+              <p className="text-xs text-muted-foreground">
+                La imagen debe ser JPG y exactamente 500x500 píxeles
+              </p>
             </div>
 
             <div className="space-y-2">
