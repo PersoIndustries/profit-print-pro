@@ -14,15 +14,10 @@ interface CatalogProduct {
   name: string;
   dimensions: string | null;
   price: number;
-  colors: string[] | null;
 }
 
-interface CatalogProductData {
-  id: string;
-  reference_code: string;
+interface ProjectData {
   name: string;
-  dimensions: string | null;
-  price: number;
   colors: any;
 }
 
@@ -31,6 +26,7 @@ export default function CatalogProjectDetail() {
   const { catalogId, projectId } = useParams<{ catalogId: string; projectId: string }>();
   const { user } = useAuth();
   const [projectName, setProjectName] = useState("");
+  const [projectColors, setProjectColors] = useState<string[]>([]);
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [productModalOpen, setProductModalOpen] = useState(false);
@@ -49,12 +45,14 @@ export default function CatalogProjectDetail() {
       // Fetch project info
       const { data: projectData, error: projectError } = await supabase
         .from("catalog_projects")
-        .select("name")
+        .select("name, colors")
         .eq("id", projectId)
         .single();
 
       if (projectError) throw projectError;
       setProjectName(projectData.name);
+      const colorsArray = Array.isArray(projectData.colors) ? projectData.colors.filter((c): c is string => typeof c === 'string') : [];
+      setProjectColors(colorsArray);
 
       // Fetch products
       const { data: productsData, error: productsError } = await supabase
@@ -64,13 +62,7 @@ export default function CatalogProjectDetail() {
         .order("reference_code");
 
       if (productsError) throw productsError;
-      
-      const mappedProducts: CatalogProduct[] = (productsData || []).map((p: CatalogProductData) => ({
-        ...p,
-        colors: Array.isArray(p.colors) ? p.colors.filter((c): c is string => typeof c === 'string') : null
-      }));
-      
-      setProducts(mappedProducts);
+      setProducts(productsData || []);
     } catch (error) {
       console.error("Error fetching project data:", error);
       toast.error("Error al cargar los datos del proyecto");
@@ -128,6 +120,21 @@ export default function CatalogProjectDetail() {
         <div>
           <h1 className="text-3xl font-bold">{projectName}</h1>
           <p className="text-muted-foreground">Productos del proyecto</p>
+          {projectColors.length > 0 && (
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-sm font-medium">Colores:</span>
+              <div className="flex gap-1">
+                {projectColors.map((color, idx) => (
+                  <div
+                    key={idx}
+                    className="w-6 h-6 rounded-md border-2 border-border"
+                    style={{ backgroundColor: color }}
+                    title={color}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <Button onClick={handleNewProduct}>
           <Plus className="w-4 h-4 mr-2" />
@@ -184,22 +191,6 @@ export default function CatalogProjectDetail() {
                   <p className="text-lg font-bold text-primary">
                     {product.price.toFixed(2)} €
                   </p>
-
-                  {product.colors && product.colors.length > 0 && (
-                    <div className="pt-2">
-                      <p className="text-sm font-medium mb-2">Colores:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {product.colors.map((color, idx) => (
-                          <span
-                            key={idx}
-                            className="bg-secondary text-secondary-foreground px-2 py-1 rounded text-xs"
-                          >
-                            {color}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>

@@ -5,8 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, Edit, Loader2, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit, Loader2, Image as ImageIcon, Eye } from "lucide-react";
 import { CatalogProjectFormModal } from "@/components/CatalogProjectFormModal";
+import { CatalogPreviewModal } from "@/components/CatalogPreviewModal";
 
 interface CatalogProject {
   id: string;
@@ -14,6 +15,7 @@ interface CatalogProject {
   description: string | null;
   image_url: string | null;
   project_id: string | null;
+  colors: string[] | null;
   _count?: { products: number };
 }
 
@@ -25,6 +27,7 @@ export default function CatalogDetail() {
   const [projects, setProjects] = useState<CatalogProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [projectModalOpen, setProjectModalOpen] = useState(false);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<string | undefined>();
 
   useEffect(() => {
@@ -61,6 +64,7 @@ export default function CatalogDetail() {
 
       const projectsWithCount = (projectsData || []).map((project: any) => ({
         ...project,
+        colors: Array.isArray(project.colors) ? project.colors.filter((c): c is string => typeof c === 'string') : null,
         _count: {
           products: project.catalog_products?.[0]?.count || 0
         }
@@ -129,10 +133,16 @@ export default function CatalogDetail() {
           <h1 className="text-3xl font-bold">{catalogName}</h1>
           <p className="text-muted-foreground">Proyectos del catálogo</p>
         </div>
-        <Button onClick={handleNewProject}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nuevo Proyecto
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setPreviewModalOpen(true)}>
+            <Eye className="w-4 h-4 mr-2" />
+            Vista Previa
+          </Button>
+          <Button onClick={handleNewProject}>
+            <Plus className="w-4 h-4 mr-2" />
+            Nuevo Proyecto
+          </Button>
+        </div>
       </div>
 
       {projects.length === 0 ? (
@@ -186,6 +196,18 @@ export default function CatalogDetail() {
                     {project.description}
                   </p>
                 )}
+                {project.colors && project.colors.length > 0 && (
+                  <div className="flex gap-1 mb-3">
+                    {project.colors.map((color, idx) => (
+                      <div
+                        key={idx}
+                        className="w-6 h-6 rounded-md border-2 border-border"
+                        style={{ backgroundColor: color }}
+                        title={color}
+                      />
+                    ))}
+                  </div>
+                )}
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">
                     {project._count?.products || 0} producto(s)
@@ -205,13 +227,21 @@ export default function CatalogDetail() {
       )}
 
       {catalogId && (
-        <CatalogProjectFormModal
-          open={projectModalOpen}
-          onOpenChange={setProjectModalOpen}
-          catalogId={catalogId}
-          projectId={editingProjectId}
-          onSuccess={fetchCatalogData}
-        />
+        <>
+          <CatalogProjectFormModal
+            open={projectModalOpen}
+            onOpenChange={setProjectModalOpen}
+            catalogId={catalogId}
+            projectId={editingProjectId}
+            onSuccess={fetchCatalogData}
+          />
+          <CatalogPreviewModal
+            open={previewModalOpen}
+            onOpenChange={setPreviewModalOpen}
+            catalogId={catalogId}
+            catalogName={catalogName}
+          />
+        </>
       )}
     </div>
   );

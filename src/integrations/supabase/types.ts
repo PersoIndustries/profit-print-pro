@@ -65,7 +65,6 @@ export type Database = {
       catalog_products: {
         Row: {
           catalog_project_id: string
-          colors: Json | null
           created_at: string | null
           dimensions: string | null
           id: string
@@ -76,7 +75,6 @@ export type Database = {
         }
         Insert: {
           catalog_project_id: string
-          colors?: Json | null
           created_at?: string | null
           dimensions?: string | null
           id?: string
@@ -87,7 +85,6 @@ export type Database = {
         }
         Update: {
           catalog_project_id?: string
-          colors?: Json | null
           created_at?: string | null
           dimensions?: string | null
           id?: string
@@ -109,6 +106,7 @@ export type Database = {
       catalog_projects: {
         Row: {
           catalog_id: string
+          colors: Json | null
           created_at: string | null
           description: string | null
           id: string
@@ -119,6 +117,7 @@ export type Database = {
         }
         Insert: {
           catalog_id: string
+          colors?: Json | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -129,6 +128,7 @@ export type Database = {
         }
         Update: {
           catalog_id?: string
+          colors?: Json | null
           created_at?: string | null
           description?: string | null
           id?: string
