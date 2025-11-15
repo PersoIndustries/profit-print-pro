@@ -4,213 +4,199 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTierFeatures } from "@/hooks/useTierFeatures";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Download, Trash2, Edit, Crown, Eye } from "lucide-react";
-import { CardHeader, CardContent } from "@/components/ui/card";
-import { CatalogItemForm } from "@/components/CatalogItemForm";
-import { CatalogPreview } from "@/components/CatalogPreview";
-import jsPDF from "jspdf";
+import { Plus, Trash2, Edit, Crown, Loader2, FolderOpen } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
-interface CatalogItem {
+interface Catalog {
   id: string;
-  user_id: string;
-  project_id: string;
-  reference_code: string;
   name: string;
-  sizes: Array<{ size: string; dimensions: string }>;
-  pvp_price: number;
-  image_url: string | null;
+  description: string | null;
   created_at: string;
-}
-
-interface Project {
-  id: string;
-  name: string;
+  _count?: { projects: number };
 }
 
 export default function Catalogs() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isPro, isEnterprise, loading: tierLoading } = useTierFeatures();
-  const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [catalogs, setCatalogs] = useState<Catalog[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<CatalogItem | null>(null);
+  const [editingCatalog, setEditingCatalog] = useState<Catalog | null>(null);
+  const [formName, setFormName] = useState("");
+  const [formDescription, setFormDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
 
   useEffect(() => {
     if (user) {
-      fetchData();
+      fetchCatalogs();
     }
   }, [user]);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    if (isFormOpen) {
+      if (editingCatalog) {
+        setFormName(editingCatalog.name);
+        setFormDescription(editingCatalog.description || "");
+      } else {
+        setFormName("");
+        setFormDescription("");
+      }
+      setHasUnsavedChanges(false);
+    }
+  }, [isFormOpen, editingCatalog]);
+
+  const fetchCatalogs = async () => {
     try {
       setLoading(true);
-      
-      // Fetch projects
-      const { data: projectsData, error: projectsError } = await supabase
-        .from("projects")
-        .select("id, name")
-        .order("name");
 
-      if (projectsError) throw projectsError;
-      setProjects(projectsData || []);
-
-      // Fetch catalog items
-      const { data: catalogData, error: catalogError } = await supabase
-        .from("catalog_items" as any)
-        .select("*")
+      const { data: catalogsData, error } = await supabase
+        .from("catalogs")
+        .select(`
+          *,
+          catalog_projects (count)
+        `)
         .order("created_at", { ascending: false });
 
-      if (catalogError) throw catalogError;
-      setCatalogItems((catalogData || []).map((item: any) => ({
-        ...item,
-        sizes: item.sizes as Array<{ size: string; dimensions: string }>
-      })));
+      if (error) throw error;
+
+      const catalogsWithCount = (catalogsData || []).map((catalog: any) => ({
+        ...catalog,
+        _count: {
+          projects: catalog.catalog_projects?.[0]?.count || 0
+        }
+      }));
+
+      setCatalogs(catalogsWithCount);
     } catch (error) {
-      console.error("Error fetching data:", error);
-      toast.error("Error al cargar los datos");
+      console.error("Error fetching catalogs:", error);
+      toast.error("Error al cargar los catálogos");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar este item del catálogo?")) return;
+  const handleDelete = async (catalogId: string) => {
+    if (!confirm("¿Eliminar este catálogo? Se eliminarán todos sus proyectos y productos.")) return;
 
     try {
       const { error } = await supabase
-        .from("catalog_items" as any)
+        .from("catalogs")
         .delete()
-        .eq("id", id);
+        .eq("id", catalogId);
 
       if (error) throw error;
-      toast.success("Item eliminado del catálogo");
-      fetchData();
+      toast.success("Catálogo eliminado");
+      fetchCatalogs();
     } catch (error) {
-      console.error("Error deleting catalog item:", error);
-      toast.error("Error al eliminar el item");
+      console.error("Error deleting catalog:", error);
+      toast.error("Error al eliminar el catálogo");
     }
   };
 
-  const handleEdit = (item: CatalogItem) => {
-    setEditingItem(item);
+  const handleEdit = (catalog: Catalog) => {
+    setEditingCatalog(catalog);
     setIsFormOpen(true);
   };
 
-  const handleFormClose = () => {
-    setIsFormOpen(false);
-    setEditingItem(null);
-    fetchData();
+  const handleNewCatalog = () => {
+    setEditingCatalog(null);
+    setIsFormOpen(true);
   };
 
-  const generatePDF = async () => {
-    try {
-      const pdf = new jsPDF();
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-
-      // Cover page
-      pdf.setFontSize(32);
-      pdf.setTextColor(147, 51, 234); // purple
-      pdf.text("Catálogo de Productos", pageWidth / 2, 100, { align: "center" });
-      
-      pdf.setFontSize(16);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text("Impresión 3D", pageWidth / 2, 120, { align: "center" });
-      
-      pdf.setFontSize(12);
-      pdf.text(new Date().toLocaleDateString("es-ES"), pageWidth / 2, 140, { align: "center" });
-
-      // Product pages
-      for (let i = 0; i < catalogItems.length; i++) {
-        const item = catalogItems[i];
-        pdf.addPage();
-
-        let yPos = 20;
-
-        // Reference code
-        pdf.setFontSize(10);
-        pdf.setTextColor(100, 100, 100);
-        pdf.text(`REF: ${item.reference_code}`, 20, yPos);
-        yPos += 10;
-
-        // Product name
-        pdf.setFontSize(20);
-        pdf.setTextColor(0, 0, 0);
-        pdf.text(item.name, 20, yPos);
-        yPos += 15;
-
-        // Image
-        if (item.image_url) {
-          try {
-            const imgData = await fetch(item.image_url).then(r => r.blob()).then(b => {
-              return new Promise<string>((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.readAsDataURL(b);
-              });
-            });
-            pdf.addImage(imgData, "JPEG", 20, yPos, 80, 80);
-            yPos += 90;
-          } catch (error) {
-            console.error("Error loading image:", error);
-          }
-        }
-
-        // Sizes
-        if (item.sizes && item.sizes.length > 0) {
-          pdf.setFontSize(14);
-          pdf.setTextColor(0, 0, 0);
-          pdf.text("Tamaños disponibles:", 20, yPos);
-          yPos += 8;
-
-          pdf.setFontSize(10);
-          item.sizes.forEach((size) => {
-            pdf.text(`• ${size.size} - ${size.dimensions}`, 25, yPos);
-            yPos += 6;
-          });
-          yPos += 5;
-        }
-
-        // Price
-        pdf.setFontSize(18);
-        pdf.setTextColor(147, 51, 234);
-        pdf.text(`PVP: ${Number(item.pvp_price).toFixed(2)}€`, 20, yPos);
-      }
-
-      pdf.save(`catalogo-${new Date().getTime()}.pdf`);
-      toast.success("Catálogo descargado");
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast.error("Error al generar el PDF");
+  const handleCloseAttempt = () => {
+    if (hasUnsavedChanges) {
+      setShowUnsavedDialog(true);
+    } else {
+      setIsFormOpen(false);
+      setEditingCatalog(null);
     }
   };
 
-  if (!isPro && !isEnterprise && !tierLoading) {
+  const handleConfirmClose = () => {
+    setShowUnsavedDialog(false);
+    setHasUnsavedChanges(false);
+    setIsFormOpen(false);
+    setEditingCatalog(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+
+    try {
+      if (editingCatalog) {
+        const { error } = await supabase
+          .from("catalogs")
+          .update({
+            name: formName,
+            description: formDescription || null,
+          })
+          .eq("id", editingCatalog.id);
+
+        if (error) throw error;
+        toast.success("Catálogo actualizado");
+      } else {
+        const { error } = await supabase
+          .from("catalogs")
+          .insert({
+            name: formName,
+            description: formDescription || null,
+            user_id: user!.id,
+          });
+
+        if (error) throw error;
+        toast.success("Catálogo creado");
+      }
+
+      setHasUnsavedChanges(false);
+      setIsFormOpen(false);
+      setEditingCatalog(null);
+      fetchCatalogs();
+    } catch (error) {
+      console.error("Error saving catalog:", error);
+      toast.error("Error al guardar el catálogo");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (tierLoading || loading) {
     return (
-      <div className="container mx-auto p-6">
-        <Card className="p-8 text-center">
-          <Crown className="w-16 h-16 mx-auto mb-4 text-yellow-500" />
-          <h2 className="text-2xl font-bold mb-2">Función Business</h2>
-          <p className="text-muted-foreground mb-4">
-            Los catálogos están disponibles solo para usuarios Profesional y Empresa
-          </p>
-          <Button onClick={() => navigate("/pricing")}>
-            Ver Planes
-          </Button>
-        </Card>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
       </div>
     );
   }
 
-  if (loading) {
+  if (!isPro && !isEnterprise) {
     return (
       <div className="container mx-auto p-6">
-        <p>Cargando...</p>
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Crown className="w-5 h-5 text-primary" />
+              Catálogos - Función Pro
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              Los catálogos son una función exclusiva para usuarios Pro y Enterprise.
+              Actualiza tu plan para acceder a esta funcionalidad.
+            </p>
+            <Button onClick={() => navigate("/pricing")}>
+              Ver Planes
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -219,113 +205,147 @@ export default function Catalogs() {
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Catálogos</h1>
-          <p className="text-muted-foreground">
-            Crea catálogos profesionales con tus productos
-          </p>
+          <h1 className="text-3xl font-bold">Catálogos</h1>
+          <p className="text-muted-foreground">Gestiona tus catálogos de productos</p>
         </div>
-        <div className="flex gap-2">
-          {catalogItems.length > 0 && (
-            <>
-              <Button onClick={() => setIsPreviewOpen(true)} variant="outline">
-                <Eye className="w-4 h-4 mr-2" />
-                Vista Previa
-              </Button>
-              <Button onClick={generatePDF} variant="outline">
-                <Download className="w-4 h-4 mr-2" />
-                Descargar PDF
-              </Button>
-            </>
-          )}
-          <Button onClick={() => setIsFormOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Añadir Producto
-          </Button>
-        </div>
+        <Button onClick={handleNewCatalog}>
+          <Plus className="w-4 h-4 mr-2" />
+          Nuevo Catálogo
+        </Button>
       </div>
 
-      {catalogItems.length === 0 ? (
-        <Card className="p-12 text-center">
-          <h3 className="text-xl font-semibold mb-2">No hay productos en el catálogo</h3>
-          <p className="text-muted-foreground mb-4">
-            Añade productos desde tus proyectos para crear tu catálogo
-          </p>
-          <Button onClick={() => setIsFormOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Añadir Primer Producto
-          </Button>
+      {catalogs.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            <FolderOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p className="text-lg mb-2">No tienes catálogos creados</p>
+            <p className="text-sm mb-4">Crea tu primer catálogo para empezar a organizar tus productos</p>
+            <Button onClick={handleNewCatalog} variant="outline">
+              <Plus className="w-4 h-4 mr-2" />
+              Crear primer catálogo
+            </Button>
+          </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {/* Group by project */}
-          {Object.entries(
-            catalogItems.reduce((acc, item) => {
-              const projectName = projects.find(p => p.id === item.project_id)?.name || 'Sin proyecto';
-              if (!acc[projectName]) acc[projectName] = [];
-              acc[projectName].push(item);
-              return acc;
-            }, {} as Record<string, CatalogItem[]>)
-          ).map(([projectName, items]) => (
-            <Card key={projectName}>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {catalogs.map((catalog) => (
+            <Card 
+              key={catalog.id} 
+              className="hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => navigate(`/catalogs/${catalog.id}`)}
+            >
               <CardHeader>
-                <h3 className="text-xl font-bold">Proyecto: {projectName}</h3>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {items.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-accent/50 transition-colors">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-sm text-muted-foreground">{item.reference_code}</span>
-                        <span className="font-medium">{item.name}</span>
-                        {item.sizes && item.sizes.length > 0 && (
-                          <span className="text-sm text-muted-foreground">
-                            {item.sizes.map(s => s.size).join(', ')}
-                          </span>
-                        )}
-                        <span className="font-bold text-primary ml-auto">{Number(item.pvp_price).toFixed(2)}€</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 ml-4">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(item)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(item.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+                <CardTitle className="flex items-center justify-between">
+                  <span className="truncate">{catalog.name}</span>
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEdit(catalog)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(catalog.id)}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
                   </div>
-                ))}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {catalog.description && (
+                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                    {catalog.description}
+                  </p>
+                )}
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">
+                    {catalog._count?.projects || 0} proyecto(s)
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/catalogs/${catalog.id}`);
+                    }}
+                  >
+                    Ver Proyectos
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
 
-      {isFormOpen && (
-        <CatalogItemForm
-          isOpen={isFormOpen}
-          onClose={handleFormClose}
-          projects={projects}
-          editingItem={editingItem}
-        />
-      )}
+      <Dialog open={isFormOpen} onOpenChange={handleCloseAttempt}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingCatalog ? "Editar Catálogo" : "Nuevo Catálogo"}</DialogTitle>
+          </DialogHeader>
 
-      {isPreviewOpen && (
-        <CatalogPreview
-          isOpen={isPreviewOpen}
-          onClose={() => setIsPreviewOpen(false)}
-          items={catalogItems}
-          onDownload={generatePDF}
-        />
-      )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nombre del Catálogo *</Label>
+              <Input
+                id="name"
+                value={formName}
+                onChange={(e) => {
+                  setFormName(e.target.value);
+                  setHasUnsavedChanges(true);
+                }}
+                placeholder="Ej: Catálogo Primavera 2024"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Descripción</Label>
+              <Textarea
+                id="description"
+                value={formDescription}
+                onChange={(e) => {
+                  setFormDescription(e.target.value);
+                  setHasUnsavedChanges(true);
+                }}
+                placeholder="Descripción del catálogo (opcional)"
+                rows={4}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={handleCloseAttempt} disabled={saving}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={saving || !formName}>
+                {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {editingCatalog ? "Actualizar" : "Crear"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Descartar cambios?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tienes cambios sin guardar. ¿Estás seguro de que quieres salir sin guardar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar editando</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmClose}>
+              Descartar cambios
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
