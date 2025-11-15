@@ -62,6 +62,125 @@ export type Database = {
         }
         Relationships: []
       }
+      catalog_products: {
+        Row: {
+          catalog_project_id: string
+          colors: Json | null
+          created_at: string | null
+          dimensions: string | null
+          id: string
+          name: string
+          price: number
+          reference_code: string
+          updated_at: string | null
+        }
+        Insert: {
+          catalog_project_id: string
+          colors?: Json | null
+          created_at?: string | null
+          dimensions?: string | null
+          id?: string
+          name: string
+          price: number
+          reference_code: string
+          updated_at?: string | null
+        }
+        Update: {
+          catalog_project_id?: string
+          colors?: Json | null
+          created_at?: string | null
+          dimensions?: string | null
+          id?: string
+          name?: string
+          price?: number
+          reference_code?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_products_catalog_project_id_fkey"
+            columns: ["catalog_project_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_projects: {
+        Row: {
+          catalog_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          project_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          catalog_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          project_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          catalog_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          project_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_projects_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "catalogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_projects_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalogs: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       inventory_items: {
         Row: {
           created_at: string
