@@ -22,8 +22,6 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
   const [name, setName] = useState("");
   const [dimensions, setDimensions] = useState("");
   const [price, setPrice] = useState("");
-  const [colors, setColors] = useState<string[]>([]);
-  const [newColor, setNewColor] = useState("");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
 
@@ -52,8 +50,6 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
       setName(data.name);
       setDimensions(data.dimensions || "");
       setPrice(data.price.toString());
-      const colorsArray = Array.isArray(data.colors) ? data.colors.filter((c): c is string => typeof c === 'string') : [];
-      setColors(colorsArray);
     } catch (error) {
       console.error("Error fetching product:", error);
       toast.error("Error al cargar el producto");
@@ -65,22 +61,7 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
     setName("");
     setDimensions("");
     setPrice("");
-    setColors([]);
-    setNewColor("");
     setHasUnsavedChanges(false);
-  };
-
-  const handleAddColor = () => {
-    if (newColor.trim() && !colors.includes(newColor.trim())) {
-      setColors([...colors, newColor.trim()]);
-      setNewColor("");
-      setHasUnsavedChanges(true);
-    }
-  };
-
-  const handleRemoveColor = (colorToRemove: string) => {
-    setColors(colors.filter(c => c !== colorToRemove));
-    setHasUnsavedChanges(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,7 +75,6 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
         name,
         dimensions: dimensions || null,
         price: parseFloat(price),
-        colors: colors.length > 0 ? colors : null,
       };
 
       if (productId) {
@@ -204,45 +184,6 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
                 placeholder="0.00"
                 required
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Colores (opcional)</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={newColor}
-                  onChange={(e) => setNewColor(e.target.value)}
-                  placeholder="Añadir color"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddColor();
-                    }
-                  }}
-                />
-                <Button type="button" onClick={handleAddColor} size="icon" variant="outline">
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-              {colors.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {colors.map((color, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-1 bg-secondary text-secondary-foreground px-3 py-1 rounded-full"
-                    >
-                      <span>{color}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveColor(color)}
-                        className="hover:text-destructive"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
 
             <div className="flex justify-end gap-2 pt-4">

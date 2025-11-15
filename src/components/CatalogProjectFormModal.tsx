@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Upload, X } from "lucide-react";
+import { Loader2, X, Plus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { HexColorPicker } from "react-colorful";
 
 interface CatalogProjectFormModalProps {
   open: boolean;
@@ -33,8 +34,12 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [existingProjects, setExistingProjects] = useState<ExistingProject[]>([]);
   const [useExistingProject, setUseExistingProject] = useState(false);
+  const [colors, setColors] = useState<string[]>([]);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [currentColor, setCurrentColor] = useState("#000000");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [canEditNameAndImage, setCanEditNameAndImage] = useState(true);
 
   useEffect(() => {
     if (open) {
@@ -63,6 +68,9 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
       setImageUrl(data.image_url);
       setSelectedProjectId(data.project_id || "");
       setUseExistingProject(!!data.project_id);
+      const colorsArray = Array.isArray(data.colors) ? data.colors.filter((c): c is string => typeof c === 'string') : [];
+      setColors(colorsArray);
+      setCanEditNameAndImage(true);
     } catch (error) {
       console.error("Error fetching project:", error);
       toast.error("Error al cargar el proyecto");
@@ -89,6 +97,8 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
     setImageUrl(null);
     setSelectedProjectId("");
     setUseExistingProject(false);
+    setColors([]);
+    setCanEditNameAndImage(true);
     setHasUnsavedChanges(false);
   };
 
@@ -134,6 +144,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
         description: description || null,
         image_url: imageUrl,
         project_id: useExistingProject && selectedProjectId ? selectedProjectId : null,
+        colors: colors.length > 0 ? colors : null,
       };
 
       if (projectId) {
@@ -185,6 +196,20 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
       setName(project.name);
       setImageUrl(project.image_url);
     }
+    setCanEditNameAndImage(true);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleAddColor = () => {
+    if (!colors.includes(currentColor)) {
+      setColors([...colors, currentColor]);
+      setHasUnsavedChanges(true);
+    }
+    setShowColorPicker(false);
+  };
+
+  const handleRemoveColor = (colorToRemove: string) => {
+    setColors(colors.filter(c => c !== colorToRemove));
     setHasUnsavedChanges(true);
   };
 
@@ -246,7 +271,6 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
                 }}
                 placeholder="Nombre del proyecto"
                 required
-                disabled={useExistingProject && !!selectedProjectId}
               />
             </div>
 
@@ -289,10 +313,59 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
                   type="file"
                   accept="image/*"
                   onChange={handleImageUpload}
-                  disabled={uploading || (useExistingProject && !!selectedProjectId)}
+                  disabled={uploading}
                 />
                 {uploading && <Loader2 className="w-4 h-4 animate-spin" />}
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Colores disponibles</Label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {colors.map((color, index) => (
+                  <div
+                    key={index}
+                    className="relative group"
+                  >
+                    <div
+                      className="w-10 h-10 rounded-md border-2 border-border cursor-pointer"
+                      style={{ backgroundColor: color }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveColor(color)}
+                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="w-10 h-10"
+                  onClick={() => setShowColorPicker(!showColorPicker)}
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+              {showColorPicker && (
+                <div className="p-4 border rounded-md space-y-2">
+                  <HexColorPicker color={currentColor} onChange={setCurrentColor} />
+                  <div className="flex gap-2 items-center pt-2">
+                    <Input
+                      type="text"
+                      value={currentColor}
+                      onChange={(e) => setCurrentColor(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button type="button" onClick={handleAddColor}>
+                      Añadir
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
