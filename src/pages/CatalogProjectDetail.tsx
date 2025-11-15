@@ -1,0 +1,221 @@
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { toast } from "sonner";
+import { ArrowLeft, Plus, Trash2, Edit, Loader2, Package } from "lucide-react";
+import { CatalogProductFormModal } from "@/components/CatalogProductFormModal";
+
+interface CatalogProduct {
+  id: string;
+  reference_code: string;
+  name: string;
+  dimensions: string | null;
+  price: number;
+  colors: string[] | null;
+}
+
+interface CatalogProductData {
+  id: string;
+  reference_code: string;
+  name: string;
+  dimensions: string | null;
+  price: number;
+  colors: any;
+}
+
+export default function CatalogProjectDetail() {
+  const navigate = useNavigate();
+  const { catalogId, projectId } = useParams<{ catalogId: string; projectId: string }>();
+  const { user } = useAuth();
+  const [projectName, setProjectName] = useState("");
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [productModalOpen, setProductModalOpen] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (user && projectId) {
+      fetchProjectData();
+    }
+  }, [user, projectId]);
+
+  const fetchProjectData = async () => {
+    try {
+      setLoading(true);
+
+      // Fetch project info
+      const { data: projectData, error: projectError } = await supabase
+        .from("catalog_projects")
+        .select("name")
+        .eq("id", projectId)
+        .single();
+
+      if (projectError) throw projectError;
+      setProjectName(projectData.name);
+
+      // Fetch products
+      const { data: productsData, error: productsError } = await supabase
+        .from("catalog_products")
+        .select("*")
+        .eq("catalog_project_id", projectId)
+        .order("reference_code");
+
+      if (productsError) throw productsError;
+      
+      const mappedProducts: CatalogProduct[] = (productsData || []).map((p: CatalogProductData) => ({
+        ...p,
+        colors: Array.isArray(p.colors) ? p.colors.filter((c): c is string => typeof c === 'string') : null
+      }));
+      
+      setProducts(mappedProducts);
+    } catch (error) {
+      console.error("Error fetching project data:", error);
+      toast.error("Error al cargar los datos del proyecto");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
+    if (!confirm("¿Eliminar este producto?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("catalog_products")
+        .delete()
+        .eq("id", productId);
+
+      if (error) throw error;
+      toast.success("Producto eliminado");
+      fetchProjectData();
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      toast.error("Error al eliminar el producto");
+    }
+  };
+
+  const handleEditProduct = (productId: string) => {
+    setEditingProductId(productId);
+    setProductModalOpen(true);
+  };
+
+  const handleNewProduct = () => {
+    setEditingProductId(undefined);
+    setProductModalOpen(true);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6">
+      <div className="mb-6">
+        <Button variant="ghost" onClick={() => navigate(`/catalogs/${catalogId}`)}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Volver al Catálogo
+        </Button>
+      </div>
+
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">{projectName}</h1>
+          <p className="text-muted-foreground">Productos del proyecto</p>
+        </div>
+        <Button onClick={handleNewProduct}>
+          <Plus className="w-4 h-4 mr-2" />
+          Nuevo Producto
+        </Button>
+      </div>
+
+      {products.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No hay productos en este proyecto</p>
+            <Button onClick={handleNewProduct} variant="outline" className="mt-4">
+              <Plus className="w-4 h-4 mr-2" />
+              Crear primer producto
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {products.map((product) => (
+            <Card key={product.id} className="hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1 flex-1">
+                      <p className="text-sm text-muted-foreground">{product.reference_code}</p>
+                      <h3 className="font-semibold text-lg">{product.name}</h3>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleEditProduct(product.id)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleDeleteProduct(product.id)}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {product.dimensions && (
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium">Dimensiones:</span> {product.dimensions}
+                    </p>
+                  )}
+
+                  <p className="text-lg font-bold text-primary">
+                    {product.price.toFixed(2)} €
+                  </p>
+
+                  {product.colors && product.colors.length > 0 && (
+                    <div className="pt-2">
+                      <p className="text-sm font-medium mb-2">Colores:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {product.colors.map((color, idx) => (
+                          <span
+                            key={idx}
+                            className="bg-secondary text-secondary-foreground px-2 py-1 rounded text-xs"
+                          >
+                            {color}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {projectId && (
+        <CatalogProductFormModal
+          open={productModalOpen}
+          onOpenChange={setProductModalOpen}
+          catalogProjectId={projectId}
+          productId={editingProductId}
+          onSuccess={fetchProjectData}
+        />
+      )}
+    </div>
+  );
+}

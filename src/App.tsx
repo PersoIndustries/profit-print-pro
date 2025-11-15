@@ -18,6 +18,8 @@ import ResetPassword from "./pages/ResetPassword";
 import AdminDashboard from "./pages/AdminDashboard";
 import Terms from "./pages/Terms";
 import Catalogs from "./pages/Catalogs";
+import CatalogDetail from "./pages/CatalogDetail";
+import CatalogProjectDetail from "./pages/CatalogProjectDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +47,8 @@ const App = () => (
           <Route path="/calculator/:projectId" element={<AppLayout><CalculatorPage /></AppLayout>} />
           <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
           <Route path="/catalogs" element={<AppLayout><Catalogs /></AppLayout>} />
+          <Route path="/catalogs/:catalogId" element={<AppLayout><CatalogDetail /></AppLayout>} />
+          <Route path="/catalogs/:catalogId/project/:projectId/products" element={<AppLayout><CatalogProjectDetail /></AppLayout>} />
           <Route path="/admin" element={<AppLayout><AdminDashboard /></AppLayout>} />
           
           <Route path="*" element={<NotFound />} />
