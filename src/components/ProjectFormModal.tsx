@@ -204,6 +204,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
 
   useEffect(() => {
     if (open) {
+      setHasUnsavedChanges(false);
       fetchMaterials();
       if (projectId) {
         loadProject(projectId);
@@ -223,6 +224,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
     setImageFile(null);
     setImagePreview(null);
     setCurrentImageUrl(null);
+    setHasUnsavedChanges(false);
   };
 
   const loadProject = async (id: string) => {
@@ -653,13 +655,15 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
     }
   };
 
-  const handleCloseAttempt = (shouldClose: boolean) => {
-    if (!shouldClose) return;
+  const handleCloseAttempt = (open: boolean) => {
+    if (open) return; // Si está abriendo el modal, no hacer nada
     
+    // Si está cerrando el modal (open = false)
     if (hasUnsavedChanges) {
       setShowExitDialog(true);
     } else {
       onOpenChange(false);
+      resetForm();
     }
   };
 
