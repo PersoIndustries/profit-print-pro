@@ -229,6 +229,54 @@
     "processRefund": "Traiter le Remboursement",
     "viewDetails": "Voir les Détails"
   },
+  "pricing": {
+    "title": "Tarifs",
+    "subtitle": "Choisissez le plan parfait pour votre entreprise",
+    "monthly": "/mois",
+    "free": {
+      "name": "Gratuit",
+      "cta": "Commencer Gratuitement",
+      "features": [
+        "10 matériaux",
+        "15 projets",
+        "15 commandes/mois",
+        "Calculateur de coûts",
+        "Support de base"
+      ]
+    },
+    "tier1": {
+      "name": "Pro",
+      "cta": "Démarrer l'Essai Gratuit",
+      "features": [
+        "50 matériaux",
+        "100 projets",
+        "50 commandes/mois",
+        "Historique de 60 jours",
+        "Catalogues personnalisés",
+        "Support prioritaire"
+      ]
+    },
+    "tier2": {
+      "name": "Enterprise",
+      "cta": "Démarrer l'Essai Gratuit",
+      "features": [
+        "Matériaux illimités",
+        "Projets illimités",
+        "Commandes illimitées",
+        "Historique de 2 ans",
+        "Catalogues personnalisés",
+        "Support dédié 24/7",
+        "Accès API"
+      ]
+    }
+  },
+  "trial": {
+    "expiringToday": "Votre essai gratuit se termine aujourd'hui",
+    "oneDayLeft": "Il vous reste 1 jour d'essai gratuit",
+    "daysLeft": "Il vous reste {{days}} jours d'essai gratuit",
+    "upgradeMessage": "Mettez à niveau maintenant pour continuer à profiter de toutes les fonctionnalités premium",
+    "upgradeNow": "Voir les Plans"
+  },
   "common": {
     "loading": "Chargement...",
     "error": "Une erreur s'est produite",
