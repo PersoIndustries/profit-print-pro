@@ -21,6 +21,7 @@ interface Project {
   notes: string | null;
   created_at: string;
   image_url?: string | null;
+  tags?: string[] | null;
   project_materials?: {
     material_id: string;
     weight_grams: number;
@@ -54,6 +55,7 @@ const Projects = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -135,6 +137,20 @@ const Projects = () => {
     fetchProjects();
   };
 
+  // Obtener todos los tags únicos de los proyectos
+  const allTags = Array.from(
+    new Set(
+      projects
+        .flatMap(p => p.tags || [])
+        .filter(Boolean)
+    )
+  ).sort();
+
+  // Filtrar proyectos por tag seleccionado
+  const filteredProjects = selectedTag
+    ? projects.filter(p => p.tags && p.tags.includes(selectedTag))
+    : projects;
+
   if (loading || projectsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -164,6 +180,34 @@ const Projects = () => {
         </div>
       </div>
 
+      {/* Filtro de tags */}
+      {allTags.length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-medium text-muted-foreground">Filtrar por tag:</span>
+              <Button
+                variant={selectedTag === null ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedTag(null)}
+              >
+                Todos
+              </Button>
+              {allTags.map((tag) => (
+                <Button
+                  key={tag}
+                  variant={selectedTag === tag ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedTag(tag)}
+                >
+                  {tag}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {!canAddImages && (
         <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
           <CardContent className="p-6">
@@ -183,7 +227,7 @@ const Projects = () => {
         </Card>
       )}
 
-      {projects.length === 0 ? (
+      {filteredProjects.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
             <p className="text-muted-foreground">
@@ -193,7 +237,7 @@ const Projects = () => {
         </Card>
       ) : viewMode === "grid" ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project) => (
+          {filteredProjects.map((project) => (
             <Card key={project.id} className="overflow-hidden">
               {canAddImages && project.image_url && (
                 <div className="h-48 overflow-hidden bg-muted">
@@ -255,6 +299,18 @@ const Projects = () => {
                     <p className="font-medium">{project.total_price?.toFixed(2)}€</p>
                   </div>
                 </div>
+                {project.tags && project.tags.length > 0 && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Tags:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {project.tags.map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {project.notes && (
                   <div>
                     <p className="text-sm text-muted-foreground">Notas:</p>
@@ -267,7 +323,7 @@ const Projects = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {projects.map((project) => (
+          {filteredProjects.map((project) => (
             <Card key={project.id}>
               <CardContent className="p-6">
                 <div className="flex items-start gap-6">
@@ -330,6 +386,18 @@ const Projects = () => {
                           <p className="font-medium">{project.total_price?.toFixed(2)}€</p>
                         </div>
                       </div>
+                      {project.tags && project.tags.length > 0 && (
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-2">Tags:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {project.tags.map((tag) => (
+                              <Badge key={tag} variant="secondary" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {project.notes && (
                         <div>
                           <p className="text-sm text-muted-foreground">Notas:</p>

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, Trash2, Plus, GripVertical, Upload, X, Crown } from "lucide-react";
+import { Save, Trash2, Plus, GripVertical, Upload, X, Crown, Tag } from "lucide-react";
 import { useTierFeatures } from "@/hooks/useTierFeatures";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -44,6 +44,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface Material {
   id: string;
@@ -194,6 +195,8 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [tags, setTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -225,6 +228,8 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
     setImagePreview(null);
     setCurrentImageUrl(null);
     setHasUnsavedChanges(false);
+    setTags([]);
+    setNewTag("");
   };
 
   const loadProject = async (id: string) => {
@@ -254,6 +259,12 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
       setCurrentImageUrl(project.image_url || null);
       setImagePreview(null);
       setImageFile(null);
+      // Cargar tags
+      if (project.tags && Array.isArray(project.tags)) {
+        setTags(project.tags);
+      } else {
+        setTags([]);
+      }
 
       const lines: InvoiceLine[] = [];
       let lineCounter = 1;
@@ -419,6 +430,32 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
     setCalculatedPrice(total);
   };
 
+  const addTag = () => {
+    const trimmedTag = newTag.trim();
+    if (!trimmedTag) return;
+    
+    if (tags.includes(trimmedTag)) {
+      toast.error("Este tag ya existe");
+      return;
+    }
+    
+    setTags([...tags, trimmedTag]);
+    setNewTag("");
+    setHasUnsavedChanges(true);
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+    setHasUnsavedChanges(true);
+  };
+
+  const handleTagKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTag();
+    }
+  };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -578,6 +615,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
             total_price: calculatedPrice,
             notes: notes || null,
             image_url: imageUrl,
+            tags: tags.length > 0 ? tags : null,
           })
           .eq("id", projectId);
 
@@ -621,6 +659,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
             profit_margin: parseFloat(profitMargin),
             total_price: calculatedPrice,
             notes: notes || null,
+            tags: tags.length > 0 ? tags : null,
           })
           .select()
           .single();
@@ -877,6 +916,48 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
               </div>
             </div>
           )}
+
+          <div className="space-y-2">
+            <Label htmlFor="tags">Tags</Label>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  id="tags"
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onKeyPress={handleTagKeyPress}
+                  placeholder="Escribe un tag y presiona Enter"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addTag}
+                  disabled={!newTag.trim()}
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {tags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                      <Tag className="w-3 h-3" />
+                      {tag}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-4 w-4 p-0 hover:bg-destructive/20"
+                        onClick={() => removeTag(tag)}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notas</Label>
