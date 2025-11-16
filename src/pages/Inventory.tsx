@@ -1203,16 +1203,10 @@ const Inventory = () => {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Adquisiciones Recientes</CardTitle>
-                <div className="flex gap-2">
-                  <Button onClick={() => setIsWasteDialogOpen(true)} variant="outline">
-                    <Trash className="w-4 h-4 mr-2" />
-                    Registrar Desperdicio
-                  </Button>
-                  <Button onClick={() => setIsAcquisitionDialogOpen(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nueva Adquisición
-                  </Button>
-                </div>
+                <Button onClick={() => setIsAcquisitionDialogOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nueva Adquisición
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -1262,7 +1256,13 @@ const Inventory = () => {
         <TabsContent value="history">
           <Card>
             <CardHeader>
-              <CardTitle>Historial de Movimientos</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>Historial de Movimientos</CardTitle>
+                <Button onClick={() => setIsWasteDialogOpen(true)} variant="outline">
+                  <Trash className="w-4 h-4 mr-2" />
+                  Registrar Desperdicio
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <Table>
