@@ -564,6 +564,39 @@ export type Database = {
           },
         ]
       }
+      printers: {
+        Row: {
+          brand: string
+          created_at: string
+          id: string
+          model: string
+          notes: string | null
+          updated_at: string
+          usage_hours: number
+          user_id: string
+        }
+        Insert: {
+          brand: string
+          created_at?: string
+          id?: string
+          model: string
+          notes?: string | null
+          updated_at?: string
+          usage_hours?: number
+          user_id: string
+        }
+        Update: {
+          brand?: string
+          created_at?: string
+          id?: string
+          model?: string
+          notes?: string | null
+          updated_at?: string
+          usage_hours?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       prints: {
         Row: {
           created_at: string
@@ -721,6 +754,7 @@ export type Database = {
           notes: string | null
           print_time_hours: number
           profit_margin: number | null
+          tags: Json | null
           total_price: number | null
           updated_at: string | null
           user_id: string
@@ -738,6 +772,7 @@ export type Database = {
           notes?: string | null
           print_time_hours: number
           profit_margin?: number | null
+          tags?: Json | null
           total_price?: number | null
           updated_at?: string | null
           user_id: string
@@ -755,6 +790,7 @@ export type Database = {
           notes?: string | null
           print_time_hours?: number
           profit_margin?: number | null
+          tags?: Json | null
           total_price?: number | null
           updated_at?: string | null
           user_id?: string
