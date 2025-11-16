@@ -132,24 +132,18 @@ function KanbanCard({ item }: KanbanCardProps) {
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-xs font-medium line-clamp-2">
-                {item.projects.name}
+              <CardTitle className="text-xs font-semibold line-clamp-1">
+                {item.orders.order_number}
               </CardTitle>
-              {item.quantity > 1 && (
-                <Badge variant="secondary" className="text-[10px] mt-1">
-                  x{item.quantity}
-                </Badge>
-              )}
+              <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                {item.projects.name}
+              </p>
             </div>
           </div>
         </div>
       </CardHeader>
       <CardContent className="pb-2 space-y-1">
         <div className="space-y-0.5 text-[10px]">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Order:</span>
-            <span className="font-medium truncate ml-1">{item.orders.order_number}</span>
-          </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Customer:</span>
             <span className="font-medium truncate ml-1">{item.orders.customer_name}</span>
@@ -158,6 +152,14 @@ function KanbanCard({ item }: KanbanCardProps) {
             <span className="text-muted-foreground">Total:</span>
             <span className="font-bold">€{item.total_price.toFixed(2)}</span>
           </div>
+          {item.quantity > 1 && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Cantidad:</span>
+              <Badge variant="secondary" className="text-[9px] h-4">
+                x{item.quantity}
+              </Badge>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

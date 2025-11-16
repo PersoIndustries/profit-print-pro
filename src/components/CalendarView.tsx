@@ -151,8 +151,8 @@ function OrderCard({ item }: OrderCardProps) {
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <p className="font-medium truncate text-[10px]">{item.projects.name}</p>
-          <p className="text-muted-foreground text-[9px] truncate">{item.orders.customer_name}</p>
+          <p className="font-semibold truncate text-[10px]">{item.orders.order_number}</p>
+          <p className="text-muted-foreground text-[9px] truncate">{item.projects.name}</p>
         </div>
         <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-0.5 ${STATUS_COLORS[item.status]}`} />
       </div>
