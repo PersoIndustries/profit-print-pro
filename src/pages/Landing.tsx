@@ -65,7 +65,7 @@ const Landing = () => {
         <div className="text-center">
           <h3 className="text-3xl font-bold mb-4">¿Listo para comenzar?</h3>
           <p className="text-muted-foreground mb-6">
-            Únete a cientos de emprendedores que ya optimizan su negocio con Print3D Manager
+            Únete a cientos de emprendedores que ya optimizan su negocio con Layer Suite
           </p>
           <Button size="lg" onClick={() => navigate("/auth")}>
             Crear Cuenta Gratuita

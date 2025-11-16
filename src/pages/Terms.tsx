@@ -16,7 +16,7 @@ const Terms = () => {
             <section>
               <h2 className="text-xl font-semibold mb-3">1. Aceptación de los Términos</h2>
               <p className="text-muted-foreground">
-                Al acceder y utilizar Print3D Manager, usted acepta estar sujeto a estos términos y condiciones de uso. 
+                Al acceder y utilizar Layer Suite, usted acepta estar sujeto a estos términos y condiciones de uso. 
                 Si no está de acuerdo con alguno de estos términos, no debe utilizar este servicio.
               </p>
             </section>
@@ -24,7 +24,7 @@ const Terms = () => {
             <section>
               <h2 className="text-xl font-semibold mb-3">2. Descripción del Servicio</h2>
               <p className="text-muted-foreground">
-                Print3D Manager es una plataforma de gestión empresarial diseñada para ayudar a los emprendedores 
+                Layer Suite es una plataforma de gestión empresarial diseñada para ayudar a los emprendedores 
                 de impresión 3D a administrar sus materiales, proyectos, calculadora de precios y pedidos.
               </p>
             </section>
@@ -59,7 +59,7 @@ const Terms = () => {
             <section>
               <h2 className="text-xl font-semibold mb-3">5. Planes y Pagos</h2>
               <p className="text-muted-foreground">
-                Print3D Manager ofrece diferentes planes de suscripción. Los precios y características de cada plan 
+                Layer Suite ofrece diferentes planes de suscripción. Los precios y características de cada plan 
                 están detallados en nuestra página de precios. Los pagos se procesan de manera segura a través de 
                 nuestros proveedores de pago autorizados.
               </p>
@@ -69,7 +69,7 @@ const Terms = () => {
               <h2 className="text-xl font-semibold mb-3">6. Propiedad Intelectual</h2>
               <p className="text-muted-foreground">
                 Todo el contenido, características y funcionalidad del servicio (incluyendo pero no limitado a 
-                información, software, texto, gráficos, logos) son propiedad exclusiva de Print3D Manager y están 
+                información, software, texto, gráficos, logos) son propiedad exclusiva de Layer Suite y están 
                 protegidos por leyes de derechos de autor, marcas registradas y otras leyes de propiedad intelectual.
               </p>
             </section>
@@ -86,7 +86,7 @@ const Terms = () => {
             <section>
               <h2 className="text-xl font-semibold mb-3">8. Limitación de Responsabilidad</h2>
               <p className="text-muted-foreground">
-                Print3D Manager se proporciona "tal cual" sin garantías de ningún tipo. No garantizamos que el servicio 
+                Layer Suite se proporciona "tal cual" sin garantías de ningún tipo. No garantizamos que el servicio 
                 será ininterrumpido, seguro o libre de errores. En ningún caso seremos responsables por daños indirectos, 
                 incidentales, especiales o consecuentes que resulten del uso o la imposibilidad de usar el servicio.
               </p>

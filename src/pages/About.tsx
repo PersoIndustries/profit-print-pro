@@ -17,7 +17,7 @@ const About = () => {
       <main className="flex-1 container mx-auto px-4 py-16">
         {/* Hero Section */}
         <div className="text-center max-w-4xl mx-auto mb-16">
-          <h1 className="text-5xl font-bold mb-6">Acerca de Print3D Manager</h1>
+          <h1 className="text-5xl font-bold mb-6">Acerca de Layer Suite</h1>
           <p className="text-xl text-muted-foreground mb-8">
             La solución completa para gestionar y optimizar tu negocio de impresión 3D
           </p>
@@ -34,7 +34,7 @@ const About = () => {
             </CardHeader>
             <CardContent>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Print3D Manager nació de la necesidad de simplificar la gestión de negocios de impresión 3D. 
+                Layer Suite nació de la necesidad de simplificar la gestión de negocios de impresión 3D. 
                 Nuestro objetivo es proporcionar a emprendedores y profesionales las herramientas necesarias 
                 para calcular costes con precisión, gestionar inventarios eficientemente y hacer crecer sus 
                 negocios de forma sostenible.
@@ -139,7 +139,7 @@ const About = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Diseñamos Print3D Manager para ser intuitivo y fácil de usar. 
+                  Diseñamos Layer Suite para ser intuitivo y fácil de usar. 
                   No necesitas conocimientos técnicos avanzados para aprovechar todas sus funciones.
                 </p>
               </CardContent>
@@ -192,7 +192,7 @@ const About = () => {
                     multidisciplinarios, colaborando en el desarrollo de videojuegos Web3 y Web2.
                   </p>
                   <p className="text-muted-foreground mb-4 leading-relaxed">
-                    La historia de Print3D Manager comenzó de forma personal: al adquirir mi impresora 
+                    La historia de Layer Suite comenzó de forma personal: al adquirir mi impresora 
                     3D Bambu Lab P2S y empezar a gestionar mi propio negocio, me di cuenta de que 
                     necesitaba una herramienta para gestionar mi stock, materiales y pedidos de forma 
                     eficiente. Así que creé una aplicación para uso personal.
@@ -200,7 +200,7 @@ const About = () => {
                   <p className="text-muted-foreground mb-6 leading-relaxed">
                     Al ver que realmente solventaba un problema real en la industria y que podía ayudar 
                     a otros emprendedores y profesionales del sector, decidí compartirla con todo el 
-                    mundo. Print3D Manager es el resultado de combinar mi experiencia técnica con las 
+                    mundo. Layer Suite es el resultado de combinar mi experiencia técnica con las 
                     necesidades reales que descubrí en mi propio día a día.
                   </p>
                   <div className="flex flex-wrap gap-3 justify-center md:justify-start">

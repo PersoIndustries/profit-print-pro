@@ -183,7 +183,7 @@ const Auth = () => {
       <div className="flex-1 container mx-auto px-4 py-16 flex items-center justify-center">
         <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Print3D Manager</CardTitle>
+          <CardTitle>Layer Suite</CardTitle>
           <CardDescription>Gestiona tu emprendimiento de impresión 3D</CardDescription>
         </CardHeader>
         <CardContent>

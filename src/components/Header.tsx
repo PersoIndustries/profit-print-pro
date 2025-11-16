@@ -49,7 +49,7 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
               className="text-2xl font-bold text-primary cursor-pointer" 
               onClick={() => navigate('/')}
             >
-              Print3D Manager
+              Layer Suite
             </h1>
             <Button variant="ghost" onClick={() => navigate('/')}>
               {t('nav.home')}
@@ -75,7 +75,7 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
               className="text-2xl font-bold text-primary cursor-pointer" 
               onClick={() => navigate('/')}
             >
-              Print3D Manager
+              Layer Suite
             </h1>
             <Button variant="ghost" onClick={() => navigate('/')}>
               {t('nav.home')}
@@ -120,7 +120,7 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
               className="text-2xl font-bold text-primary cursor-pointer" 
               onClick={() => navigate('/dashboard')}
             >
-              Print3D Manager
+              Layer Suite
             </h1>
             {getTierBadge()}
           </div>

@@ -21,7 +21,7 @@
     }
   },
   "auth": {
-    "title": "Print3D Manager",
+    "title": "Layer Suite",
     "subtitle": "Gestiona tu emprendimiento de impresión 3D",
     "login": "Iniciar Sesión",
     "signup": "Registrarse",
