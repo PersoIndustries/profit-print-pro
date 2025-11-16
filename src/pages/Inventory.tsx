@@ -62,6 +62,16 @@ interface Movement {
   materials: Material;
 }
 
+interface Printer {
+  id: string;
+  brand: string;
+  model: string;
+  usage_hours: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 const MATERIAL_TYPES = [
   { value: 'filament', label: 'Filamento', icon: Disc },
   { value: 'resin', label: 'Resina', icon: Droplet },
@@ -114,6 +124,9 @@ const Inventory = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const [stockPrints, setStockPrints] = useState<any[]>([]);
+  const [printers, setPrinters] = useState<Printer[]>([]);
+  const [isPrinterDialogOpen, setIsPrinterDialogOpen] = useState(false);
+  const [editingPrinter, setEditingPrinter] = useState<Printer | null>(null);
   
   const [acquisitionForm, setAcquisitionForm] = useState({
     material_id: "",
@@ -138,6 +151,13 @@ const Inventory = () => {
     display_mode: "color" as 'color' | 'icon',
   });
 
+  const [printerForm, setPrinterForm] = useState({
+    brand: "",
+    model: "",
+    usage_hours: "",
+    notes: ""
+  });
+
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
@@ -160,7 +180,8 @@ const Inventory = () => {
         fetchAcquisitions(),
         fetchMovements(),
         fetchStockPrints(),
-        fetchOrders()
+        fetchOrders(),
+        fetchPrinters()
       ]);
     } finally {
       setLoadingData(false);
@@ -302,6 +323,24 @@ const Inventory = () => {
     }
   };
 
+  const fetchPrinters = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("printers")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setPrinters(data || []);
+    } catch (error: any) {
+      console.error("Error al cargar impresoras:", error);
+      toast.error("Error al cargar impresoras");
+    }
+  };
+
   const fetchOrders = async () => {
     if (!user) return;
 
@@ -422,6 +461,95 @@ const Inventory = () => {
     } catch (error: any) {
       toast.error("Error al eliminar material");
     }
+  };
+
+  const handleAddPrinter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from("printers")
+        .insert([
+          {
+            user_id: user.id,
+            brand: printerForm.brand,
+            model: printerForm.model,
+            usage_hours: parseFloat(printerForm.usage_hours) || 0,
+            notes: printerForm.notes || null
+          }
+        ]);
+
+      if (error) throw error;
+
+      toast.success("Impresora agregada");
+      setIsPrinterDialogOpen(false);
+      setPrinterForm({
+        brand: "",
+        model: "",
+        usage_hours: "",
+        notes: ""
+      });
+      fetchPrinters();
+    } catch (error: any) {
+      toast.error("Error al agregar impresora");
+    }
+  };
+
+  const handleUpdatePrinter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !editingPrinter) return;
+
+    try {
+      const { error } = await supabase
+        .from("printers")
+        .update({
+          brand: printerForm.brand,
+          model: printerForm.model,
+          usage_hours: parseFloat(printerForm.usage_hours) || 0,
+          notes: printerForm.notes || null
+        })
+        .eq("id", editingPrinter.id);
+
+      if (error) throw error;
+
+      toast.success("Impresora actualizada");
+      setIsPrinterDialogOpen(false);
+      setEditingPrinter(null);
+      setPrinterForm({
+        brand: "",
+        model: "",
+        usage_hours: "",
+        notes: ""
+      });
+      fetchPrinters();
+    } catch (error: any) {
+      toast.error("Error al actualizar impresora");
+    }
+  };
+
+  const handleDeletePrinter = async (id: string) => {
+    if (!confirm("¿Eliminar esta impresora?")) return;
+
+    try {
+      const { error } = await supabase.from("printers").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Impresora eliminada");
+      fetchPrinters();
+    } catch (error: any) {
+      toast.error("Error al eliminar impresora");
+    }
+  };
+
+  const handleEditPrinter = (printer: Printer) => {
+    setEditingPrinter(printer);
+    setPrinterForm({
+      brand: printer.brand,
+      model: printer.model,
+      usage_hours: printer.usage_hours.toString(),
+      notes: printer.notes || ""
+    });
+    setIsPrinterDialogOpen(true);
   };
 
   const handleToggleFavorite = async (material: Material) => {
@@ -823,6 +951,7 @@ const Inventory = () => {
             <TabsList>
               <TabsTrigger value="materials">Materiales</TabsTrigger>
               <TabsTrigger value="objects">Objetos ({stockPrints.length})</TabsTrigger>
+              <TabsTrigger value="printers">Impresoras ({printers.length})</TabsTrigger>
             </TabsList>
 
             {/* Subtab de Materiales */}
@@ -1009,6 +1138,84 @@ const Inventory = () => {
                     </Card>
                   ))}
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Subtab de Impresoras */}
+        <TabsContent value="printers">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Gestión de Impresoras</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Administra tus impresoras 3D y sus horas de uso
+                  </p>
+                </div>
+                <Button
+                  onClick={() => {
+                    setEditingPrinter(null);
+                    setPrinterForm({
+                      brand: "",
+                      model: "",
+                      usage_hours: "",
+                      notes: ""
+                    });
+                    setIsPrinterDialogOpen(true);
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Añadir Impresora
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {printers.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No hay impresoras registradas
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Marca</TableHead>
+                      <TableHead>Modelo</TableHead>
+                      <TableHead>Horas de Uso</TableHead>
+                      <TableHead>Notas</TableHead>
+                      <TableHead>Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {printers.map((printer) => (
+                      <TableRow key={printer.id}>
+                        <TableCell className="font-medium">{printer.brand}</TableCell>
+                        <TableCell>{printer.model}</TableCell>
+                        <TableCell>{printer.usage_hours.toFixed(1)}h</TableCell>
+                        <TableCell>{printer.notes || "-"}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditPrinter(printer)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeletePrinter(printer.id)}
+                            >
+                              <Trash className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </CardContent>
           </Card>
@@ -1215,6 +1422,77 @@ const Inventory = () => {
               </Button>
               <Button type="submit">
                 {editingMaterial ? "Actualizar" : "Crear"} Material
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para añadir/editar impresora */}
+      <Dialog open={isPrinterDialogOpen} onOpenChange={setIsPrinterDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingPrinter ? "Editar Impresora" : "Añadir Impresora"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={editingPrinter ? handleUpdatePrinter : handleAddPrinter} className="space-y-4">
+            <div>
+              <Label htmlFor="printer_brand">Marca *</Label>
+              <Input
+                id="printer_brand"
+                value={printerForm.brand}
+                onChange={(e) => setPrinterForm({ ...printerForm, brand: e.target.value })}
+                required
+                placeholder="Ej: Creality, Prusa, etc."
+              />
+            </div>
+            <div>
+              <Label htmlFor="printer_model">Modelo *</Label>
+              <Input
+                id="printer_model"
+                value={printerForm.model}
+                onChange={(e) => setPrinterForm({ ...printerForm, model: e.target.value })}
+                required
+                placeholder="Ej: Ender 3, i3 MK3S, etc."
+              />
+            </div>
+            <div>
+              <Label htmlFor="printer_hours">Horas de Uso *</Label>
+              <Input
+                id="printer_hours"
+                type="number"
+                step="0.1"
+                min="0"
+                value={printerForm.usage_hours}
+                onChange={(e) => setPrinterForm({ ...printerForm, usage_hours: e.target.value })}
+                required
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <Label htmlFor="printer_notes">Notas</Label>
+              <Textarea
+                id="printer_notes"
+                value={printerForm.notes}
+                onChange={(e) => setPrinterForm({ ...printerForm, notes: e.target.value })}
+                placeholder="Información adicional sobre la impresora..."
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button type="button" variant="outline" onClick={() => {
+                setIsPrinterDialogOpen(false);
+                setEditingPrinter(null);
+                setPrinterForm({
+                  brand: "",
+                  model: "",
+                  usage_hours: "",
+                  notes: ""
+                });
+              }}>
+                Cancelar
+              </Button>
+              <Button type="submit">
+                {editingPrinter ? "Actualizar" : "Crear"} Impresora
               </Button>
             </div>
           </form>
