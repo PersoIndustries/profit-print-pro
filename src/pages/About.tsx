@@ -187,10 +187,9 @@ const About = () => {
                 <div className="flex-1 text-center md:text-left">
                   <h3 className="text-2xl font-bold mb-4">Carlos Peralta Sorolla</h3>
                   <p className="text-lg text-muted-foreground mb-4 leading-relaxed">
-                    Con más de 10 años de experiencia en tecnologías de la información, he trabajado 
-                    como desarrollador front-end, ingeniero de software y líder de equipos técnicos 
-                    multidisciplinarios en sectores como ciberseguridad, biotecnología, comercio 
-                    electrónico y fintech, tanto en startups como en grandes empresas de América Latina.
+                    Con más de 5 años de experiencia en la industria del gaming, he trabajado 
+                    en gestión de proyectos, dirección creativa y liderazgo de equipos técnicos 
+                    multidisciplinarios, colaborando en el desarrollo de videojuegos Web3 y Web2.
                   </p>
                   <p className="text-muted-foreground mb-4 leading-relaxed">
                     La historia de Print3D Manager comenzó de forma personal: al adquirir mi impresora 
