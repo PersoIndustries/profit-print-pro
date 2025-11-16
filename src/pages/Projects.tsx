@@ -3,8 +3,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, Trash2, Edit, List, Grid3x3, Crown } from "lucide-react";
+import { Loader2, Trash2, Edit, List, Grid3x3, Crown, ArrowLeft, Clock, Package, Euro, Weight, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { ProjectFormModal } from "@/components/ProjectFormModal";
 import { useTierFeatures } from "@/hooks/useTierFeatures";
@@ -56,6 +58,9 @@ const Projects = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [projectPrints, setProjectPrints] = useState<any[]>([]);
+  const [loadingPrints, setLoadingPrints] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -133,8 +138,47 @@ const Projects = () => {
     setIsModalOpen(true);
   };
 
+  const handleViewProject = async (project: Project) => {
+    setSelectedProject(project);
+    await fetchProjectPrints(project.id);
+  };
+
+  const fetchProjectPrints = async (projectId: string) => {
+    if (!user) return;
+
+    setLoadingPrints(true);
+    try {
+      const { data, error } = await supabase
+        .from("prints")
+        .select(`
+          *,
+          print_materials(
+            id,
+            material_id,
+            weight_grams,
+            material_cost,
+            materials(name, color, type, display_mode, price_per_kg)
+          )
+        `)
+        .eq("project_id", projectId)
+        .eq("user_id", user.id)
+        .order("print_date", { ascending: false });
+
+      if (error) throw error;
+      setProjectPrints(data || []);
+    } catch (error: any) {
+      console.error("Error al cargar impresiones:", error);
+      toast.error("Error al cargar historial de impresiones");
+    } finally {
+      setLoadingPrints(false);
+    }
+  };
+
   const handleModalSuccess = () => {
     fetchProjects();
+    if (selectedProject) {
+      fetchProjectPrints(selectedProject.id);
+    }
   };
 
   // Obtener todos los tags únicos de los proyectos
@@ -238,7 +282,7 @@ const Projects = () => {
       ) : viewMode === "grid" ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredProjects.map((project) => (
-            <Card key={project.id} className="overflow-hidden">
+            <Card key={project.id} className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleViewProject(project)}>
               {canAddImages && project.image_url && (
                 <div className="h-32 overflow-hidden bg-muted">
                   <img 
@@ -251,7 +295,7 @@ const Projects = () => {
               <CardHeader className="pb-2">
                 <CardTitle className="flex justify-between items-center text-base">
                   <span className="truncate">{project.name}</span>
-                  <div className="flex gap-1 flex-shrink-0">
+                  <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditProject(project.id)}>
                       <Edit className="w-3.5 h-3.5" />
                     </Button>
@@ -310,7 +354,7 @@ const Projects = () => {
       ) : (
         <div className="space-y-3">
           {filteredProjects.map((project) => (
-            <Card key={project.id}>
+            <Card key={project.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleViewProject(project)}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
                   {canAddImages && project.image_url && (
@@ -325,7 +369,7 @@ const Projects = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center mb-2">
                       <h3 className="text-base font-semibold truncate">{project.name}</h3>
-                      <div className="flex gap-1 flex-shrink-0">
+                      <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditProject(project.id)}>
                           <Edit className="w-3.5 h-3.5" />
                         </Button>
@@ -391,6 +435,218 @@ const Projects = () => {
         projectId={selectedProjectId}
         onSuccess={handleModalSuccess}
       />
+
+      {/* Dialog de detalle del proyecto */}
+      <Dialog open={!!selectedProject} onOpenChange={(open) => !open && setSelectedProject(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          {selectedProject && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center justify-between">
+                  <DialogTitle className="text-2xl">{selectedProject.name}</DialogTitle>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedProject(null);
+                      handleEditProject(selectedProject.id);
+                    }}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar
+                  </Button>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-6 mt-4">
+                {/* Imagen del proyecto */}
+                {canAddImages && selectedProject.image_url && (
+                  <div className="w-full h-64 overflow-hidden rounded-lg bg-muted">
+                    <img 
+                      src={selectedProject.image_url} 
+                      alt={selectedProject.name} 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
+                {/* Información principal */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Información del Proyecto</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center gap-2">
+                          <Weight className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Peso</p>
+                            <p className="font-semibold">{selectedProject.weight_grams}g</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Tiempo</p>
+                            <p className="font-semibold">{selectedProject.print_time_hours}h</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 col-span-2">
+                          <Euro className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Precio</p>
+                            <p className="font-semibold text-lg">{selectedProject.total_price?.toFixed(2)}€</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {selectedProject.tags && selectedProject.tags.length > 0 && (
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-2">Tags</p>
+                          <div className="flex flex-wrap gap-1">
+                            {selectedProject.tags.map((tag) => (
+                              <Badge key={tag} variant="secondary">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedProject.notes && (
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-2">Notas</p>
+                          <p className="text-sm">{selectedProject.notes}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Materiales</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {projectMaterials[selectedProject.id] && projectMaterials[selectedProject.id].length > 0 ? (
+                        <div className="space-y-2">
+                          {projectMaterials[selectedProject.id].map((pm, idx) => {
+                            const MaterialIcon = pm.materials?.display_mode === 'icon' ? getMaterialIcon(pm.materials.type) : null;
+                            return (
+                              <div key={idx} className="flex items-center justify-between p-2 rounded border">
+                                <div className="flex items-center gap-2">
+                                  {pm.materials?.display_mode === 'color' && pm.materials?.color && (
+                                    <span 
+                                      className="inline-block w-4 h-4 rounded-full border border-border"
+                                      style={{ backgroundColor: pm.materials.color }}
+                                    />
+                                  )}
+                                  {MaterialIcon && (
+                                    <MaterialIcon className="w-4 h-4" />
+                                  )}
+                                  <span className="font-medium">{pm.materials?.name}</span>
+                                </div>
+                                <span className="text-sm text-muted-foreground">{pm.weight_grams}g</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Sin materiales</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Historial de impresiones */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Package className="w-5 h-5" />
+                      Historial de Impresiones
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {loadingPrints ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                      </div>
+                    ) : projectPrints.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        No hay impresiones registradas para este proyecto
+                      </p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Fecha</TableHead>
+                              <TableHead>Nombre</TableHead>
+                              <TableHead>Materiales</TableHead>
+                              <TableHead>Tiempo</TableHead>
+                              <TableHead>Estado</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {projectPrints.map((print) => (
+                              <TableRow key={print.id}>
+                                <TableCell className="text-sm">
+                                  {new Date(print.print_date).toLocaleDateString('es-ES', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric'
+                                  })}
+                                </TableCell>
+                                <TableCell className="font-medium">{print.name}</TableCell>
+                                <TableCell>
+                                  {print.print_materials && print.print_materials.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1">
+                                      {print.print_materials.slice(0, 2).map((pm: any, idx: number) => (
+                                        <div key={idx} className="text-xs flex items-center gap-1">
+                                          {pm.materials?.display_mode === 'color' && pm.materials?.color && (
+                                            <span 
+                                              className="inline-block w-2.5 h-2.5 rounded-full border border-border"
+                                              style={{ backgroundColor: pm.materials.color }}
+                                            />
+                                          )}
+                                          <span>{pm.materials?.name}</span>
+                                          <span className="text-muted-foreground">({pm.weight_grams}g)</span>
+                                        </div>
+                                      ))}
+                                      {print.print_materials.length > 2 && (
+                                        <span className="text-xs text-muted-foreground">+{print.print_materials.length - 2} más</span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">{print.material_used_grams}g</span>
+                                  )}
+                                </TableCell>
+                                <TableCell>{print.print_time_hours}h</TableCell>
+                                <TableCell>
+                                  <Badge 
+                                    variant={
+                                      print.status === 'completed' ? 'default' :
+                                      print.status === 'printing' ? 'secondary' :
+                                      'destructive'
+                                    }
+                                  >
+                                    {print.status === 'completed' ? 'Completada' :
+                                     print.status === 'printing' ? 'Imprimiendo' :
+                                     'Fallida'}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
