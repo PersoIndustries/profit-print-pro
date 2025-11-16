@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, Edit, Loader2, Image as ImageIcon, Eye } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit, Loader2, Image as ImageIcon, Eye, Grid3x3, List } from "lucide-react";
 import { CatalogProjectFormModal } from "@/components/CatalogProjectFormModal";
 import { CatalogPreviewModal } from "@/components/CatalogPreviewModal";
 
@@ -29,6 +29,7 @@ export default function CatalogDetail() {
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<string | undefined>();
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
     if (user && catalogId) {
@@ -134,6 +135,24 @@ export default function CatalogDetail() {
           <p className="text-muted-foreground">Proyectos del catálogo</p>
         </div>
         <div className="flex gap-2">
+          <div className="flex items-center gap-1 border rounded-md p-1">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setViewMode('grid')}
+            >
+              <Grid3x3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setViewMode('list')}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
           <Button variant="outline" onClick={() => setPreviewModalOpen(true)}>
             <Eye className="w-4 h-4 mr-2" />
             Vista Previa
@@ -156,7 +175,7 @@ export default function CatalogDetail() {
             </Button>
           </CardContent>
         </Card>
-      ) : (
+      ) : viewMode === 'grid' ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((project) => (
             <Card key={project.id} className="hover:shadow-lg transition-shadow">
@@ -219,6 +238,78 @@ export default function CatalogDetail() {
                   >
                     Ver Productos
                   </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {projects.map((project) => (
+            <Card key={project.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
+                  {project.image_url && (
+                    <div className="w-24 h-24 flex-shrink-0 overflow-hidden rounded-lg">
+                      <img
+                        src={project.image_url}
+                        alt={project.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-lg mb-1">{project.name}</CardTitle>
+                        {project.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-1 mb-2">
+                            {project.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-4">
+                          {project.colors && project.colors.length > 0 && (
+                            <div className="flex gap-1">
+                              {project.colors.map((color, idx) => (
+                                <div
+                                  key={idx}
+                                  className="w-5 h-5 rounded-md border-2 border-border"
+                                  style={{ backgroundColor: color }}
+                                  title={color}
+                                />
+                              ))}
+                            </div>
+                          )}
+                          <span className="text-sm text-muted-foreground">
+                            {project._count?.products || 0} producto(s)
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewProducts(project.id)}
+                        >
+                          Ver Productos
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditProject(project.id)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteProject(project.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

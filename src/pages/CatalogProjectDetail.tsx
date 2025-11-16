@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, Edit, Loader2, Package } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit, Loader2, Package, Grid3x3, List } from "lucide-react";
 import { CatalogProductFormModal } from "@/components/CatalogProductFormModal";
 
 interface CatalogProduct {
@@ -31,6 +31,7 @@ export default function CatalogProjectDetail() {
   const [loading, setLoading] = useState(true);
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | undefined>();
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
     if (user && projectId) {
@@ -136,10 +137,30 @@ export default function CatalogProjectDetail() {
             </div>
           )}
         </div>
-        <Button onClick={handleNewProduct}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nuevo Producto
-        </Button>
+        <div className="flex gap-2">
+          <div className="flex items-center gap-1 border rounded-md p-1">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setViewMode('grid')}
+            >
+              <Grid3x3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setViewMode('list')}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button onClick={handleNewProduct}>
+            <Plus className="w-4 h-4 mr-2" />
+            Nuevo Producto
+          </Button>
+        </div>
       </div>
 
       {products.length === 0 ? (
@@ -153,7 +174,7 @@ export default function CatalogProjectDetail() {
             </Button>
           </CardContent>
         </Card>
-      ) : (
+      ) : viewMode === 'grid' ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {products.map((product) => (
             <Card key={product.id} className="hover:shadow-lg transition-shadow">
@@ -191,6 +212,51 @@ export default function CatalogProjectDetail() {
                   <p className="text-lg font-bold text-primary">
                     {product.price.toFixed(2)} €
                   </p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {products.map((product) => (
+            <Card key={product.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-muted-foreground mb-1">{product.reference_code}</p>
+                        <h3 className="font-semibold text-base mb-1">{product.name}</h3>
+                        {product.dimensions && (
+                          <p className="text-sm text-muted-foreground">
+                            <span className="font-medium">Dimensiones:</span> {product.dimensions}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-primary">
+                          {product.price.toFixed(2)} €
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleEditProduct(product.id)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleDeleteProduct(product.id)}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
