@@ -698,8 +698,7 @@ const Inventory = () => {
               
               {/* Filtros */}
               <div className="grid md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="search">Buscar por nombre</Label>
+                <div>
                   <Input
                     id="search"
                     placeholder="Buscar material..."
@@ -707,8 +706,7 @@ const Inventory = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="filter-type">Filtrar por tipo</Label>
+                <div>
                   <Select value={filterType} onValueChange={setFilterType}>
                     <SelectTrigger id="filter-type">
                       <SelectValue />
