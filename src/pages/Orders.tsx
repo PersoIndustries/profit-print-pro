@@ -101,9 +101,8 @@ const Orders = () => {
   };
 
   const handleViewOrder = async (order: Order | any) => {
-    // If order comes from Kanban/Calendar, it might not have all order_items
-    // Fetch the complete order data
-    if (order && order.id && (!order.order_items || order.order_items.length === 0)) {
+    // Always fetch complete order data with images to ensure we have all information
+    if (order && order.id) {
       try {
         const { data, error } = await supabase
           .from("orders")

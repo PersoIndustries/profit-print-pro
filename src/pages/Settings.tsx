@@ -211,13 +211,13 @@ const Settings = () => {
 
   return (
     <>
-      <div className="flex items-center gap-3 mb-6">
-        <SettingsIcon className="h-8 w-8 text-primary" />
-        <h2 className="text-3xl font-bold">Settings</h2>
+      <div className="flex items-center gap-3 mb-4">
+        <SettingsIcon className="h-6 w-6 text-primary" />
+        <h2 className="text-2xl font-bold">Settings</h2>
       </div>
 
-        <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+        <Tabs defaultValue="profile" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4 max-w-xl">
             <TabsTrigger value="profile">
               <User className="h-4 w-4 mr-2" />
               Profile
@@ -238,66 +238,71 @@ const Settings = () => {
 
           <TabsContent value="profile">
             <Card>
-              <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
-                <CardDescription>Update your personal and billing information</CardDescription>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg">Profile Information</CardTitle>
+                <CardDescription className="text-sm">Update your personal and billing information</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleProfileUpdate} className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
+                <form onSubmit={handleProfileUpdate} className="space-y-4 max-w-2xl">
+                  <div className="grid md:grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor="full_name">Full Name</Label>
+                      <Label htmlFor="full_name" className="text-sm">Full Name</Label>
                       <Input
                         id="full_name"
                         value={profile.full_name}
                         onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
+                        className="h-9 text-sm"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="email">Email (Read-only)</Label>
-                      <Input id="email" value={profile.email} disabled />
+                      <Label htmlFor="email" className="text-sm">Email (Read-only)</Label>
+                      <Input id="email" value={profile.email} disabled className="h-9 text-sm" />
                     </div>
                   </div>
 
                   <div className="border-t pt-4 mt-4">
-                    <h3 className="text-lg font-semibold mb-4">Billing Address</h3>
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <h3 className="text-base font-semibold mb-3">Billing Address</h3>
+                    <div className="grid md:grid-cols-2 gap-3">
                       <div className="md:col-span-2">
-                        <Label htmlFor="billing_address">Address</Label>
+                        <Label htmlFor="billing_address" className="text-sm">Address</Label>
                         <Input
                           id="billing_address"
                           value={profile.billing_address}
                           onChange={(e) => setProfile({ ...profile, billing_address: e.target.value })}
+                          className="h-9 text-sm"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="billing_city">City</Label>
+                        <Label htmlFor="billing_city" className="text-sm">City</Label>
                         <Input
                           id="billing_city"
                           value={profile.billing_city}
                           onChange={(e) => setProfile({ ...profile, billing_city: e.target.value })}
+                          className="h-9 text-sm"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="billing_postal_code">Postal Code</Label>
+                        <Label htmlFor="billing_postal_code" className="text-sm">Postal Code</Label>
                         <Input
                           id="billing_postal_code"
                           value={profile.billing_postal_code}
                           onChange={(e) => setProfile({ ...profile, billing_postal_code: e.target.value })}
+                          className="h-9 text-sm"
                         />
                       </div>
                       <div className="md:col-span-2">
-                        <Label htmlFor="billing_country">Country</Label>
+                        <Label htmlFor="billing_country" className="text-sm">Country</Label>
                         <Input
                           id="billing_country"
                           value={profile.billing_country}
                           onChange={(e) => setProfile({ ...profile, billing_country: e.target.value })}
+                          className="h-9 text-sm"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <Button type="submit">{t('common.save')}</Button>
+                  <Button type="submit" size="sm" className="mt-4">{t('common.save')}</Button>
                 </form>
               </CardContent>
             </Card>
@@ -305,38 +310,40 @@ const Settings = () => {
 
           <TabsContent value="security">
             <Card>
-              <CardHeader>
-                <CardTitle>Seguridad</CardTitle>
-                <CardDescription>Administra la seguridad de tu cuenta</CardDescription>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg">Seguridad</CardTitle>
+                <CardDescription className="text-sm">Administra la seguridad de tu cuenta</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handlePasswordChange} className="space-y-4">
-                  <div className="space-y-4">
+                <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
+                  <div className="space-y-3">
                     <div>
-                      <Label htmlFor="new_password">Nueva Contraseña</Label>
+                      <Label htmlFor="new_password" className="text-sm">Nueva Contraseña</Label>
                       <Input
                         id="new_password"
                         type="password"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="Introduce tu nueva contraseña"
+                        className="h-9 text-sm"
                         required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="confirm_password">Confirmar Contraseña</Label>
+                      <Label htmlFor="confirm_password" className="text-sm">Confirmar Contraseña</Label>
                       <Input
                         id="confirm_password"
                         type="password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="Confirma tu nueva contraseña"
+                        className="h-9 text-sm"
                         required
                       />
                     </div>
                   </div>
 
-                  <Button type="submit">Cambiar Contraseña</Button>
+                  <Button type="submit" size="sm" className="mt-2">Cambiar Contraseña</Button>
                 </form>
               </CardContent>
             </Card>
@@ -344,27 +351,27 @@ const Settings = () => {
 
           <TabsContent value="subscription">
             <Card>
-              <CardHeader>
-                <CardTitle>Subscription Management</CardTitle>
-                <CardDescription>Manage your subscription plan and usage</CardDescription>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg">Subscription Management</CardTitle>
+                <CardDescription className="text-sm">Manage your subscription plan and usage</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-5">
                 {subscriptionInfo && subscription && (
                   <div className="space-y-6">
                     {/* Plan Information */}
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid md:grid-cols-2 gap-4 max-w-2xl">
                       <div>
-                        <Label className="text-muted-foreground">Current Plan</Label>
+                        <Label className="text-sm text-muted-foreground">Current Plan</Label>
                         <div className="flex items-center gap-2 mt-1">
-                          <p className="text-2xl font-bold">{getTierName(subscriptionInfo.tier)}</p>
+                          <p className="text-xl font-bold">{getTierName(subscriptionInfo.tier)}</p>
                           <Badge className={getTierBadgeColor(subscriptionInfo.tier)}>
                             {subscriptionInfo.tier === 'free' ? 'FREE' : subscriptionInfo.tier === 'tier_1' ? 'PRO' : 'BUSINESS'}
                           </Badge>
                         </div>
                       </div>
                       <div>
-                        <Label className="text-muted-foreground">Status</Label>
-                        <p className={`text-xl font-semibold mt-1 ${
+                        <Label className="text-sm text-muted-foreground">Status</Label>
+                        <p className={`text-lg font-semibold mt-1 ${
                           subscriptionInfo.status === 'active' ? 'text-primary' : 'text-destructive'
                         }`}>
                           {subscriptionInfo.status.toUpperCase()}
@@ -376,33 +383,33 @@ const Settings = () => {
                     {subscriptionInfo.tier === 'free' && (
                       <>
                         <Card className="border-primary/50 bg-gradient-to-br from-primary/5 via-background to-background">
-                          <CardHeader className="text-center pb-4">
-                            <TrendingUp className="h-12 w-12 mx-auto mb-4 text-primary" />
-                            <CardTitle className="text-2xl">Desbloquea Estadísticas Avanzadas</CardTitle>
-                            <CardDescription className="text-base">
+                          <CardHeader className="text-center pb-3">
+                            <TrendingUp className="h-10 w-10 mx-auto mb-3 text-primary" />
+                            <CardTitle className="text-xl">Desbloquea Estadísticas Avanzadas</CardTitle>
+                            <CardDescription className="text-sm">
                               Actualiza a un plan profesional para acceder a métricas detalladas de tu negocio
                             </CardDescription>
                           </CardHeader>
-                          <CardContent className="space-y-6">
-                            <div className="grid md:grid-cols-3 gap-4">
-                              <div className="flex flex-col items-center text-center p-4 rounded-lg bg-card">
-                                <Calendar className="h-8 w-8 text-primary mb-2" />
-                                <h3 className="font-semibold mb-1">Historial Completo</h3>
-                                <p className="text-sm text-muted-foreground">
+                          <CardContent className="space-y-4">
+                            <div className="grid md:grid-cols-3 gap-3">
+                              <div className="flex flex-col items-center text-center p-3 rounded-lg bg-card">
+                                <Calendar className="h-6 w-6 text-primary mb-2" />
+                                <h3 className="font-semibold text-sm mb-1">Historial Completo</h3>
+                                <p className="text-xs text-muted-foreground">
                                   Accede a métricas de hasta 2 años
                                 </p>
                               </div>
-                              <div className="flex flex-col items-center text-center p-4 rounded-lg bg-card">
-                                <BarChart3 className="h-8 w-8 text-primary mb-2" />
-                                <h3 className="font-semibold mb-1">Análisis Detallado</h3>
-                                <p className="text-sm text-muted-foreground">
+                              <div className="flex flex-col items-center text-center p-3 rounded-lg bg-card">
+                                <BarChart3 className="h-6 w-6 text-primary mb-2" />
+                                <h3 className="font-semibold text-sm mb-1">Análisis Detallado</h3>
+                                <p className="text-xs text-muted-foreground">
                                   Filtra por día, semana, mes o trimestre
                                 </p>
                               </div>
-                              <div className="flex flex-col items-center text-center p-4 rounded-lg bg-card">
-                                <TrendingUp className="h-8 w-8 text-primary mb-2" />
-                                <h3 className="font-semibold mb-1">Proyecciones</h3>
-                                <p className="text-sm text-muted-foreground">
+                              <div className="flex flex-col items-center text-center p-3 rounded-lg bg-card">
+                                <TrendingUp className="h-6 w-6 text-primary mb-2" />
+                                <h3 className="font-semibold text-sm mb-1">Proyecciones</h3>
+                                <p className="text-xs text-muted-foreground">
                                   Predicciones de ingresos y tendencias
                                 </p>
                               </div>
@@ -410,7 +417,7 @@ const Settings = () => {
                             
                             <div className="flex justify-center">
                               <Button 
-                                size="lg" 
+                                size="sm" 
                                 onClick={() => navigate("/pricing")}
                                 className="w-full md:w-auto"
                               >
@@ -421,13 +428,13 @@ const Settings = () => {
                         </Card>
 
                         <Card>
-                          <CardHeader>
-                            <CardTitle>Plan Actual: Free</CardTitle>
-                            <CardDescription>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-base">Plan Actual: Free</CardTitle>
+                            <CardDescription className="text-sm">
                               Tu plan incluye funcionalidades básicas para empezar
                             </CardDescription>
                           </CardHeader>
-                          <CardContent className="space-y-2">
+                          <CardContent className="space-y-1.5">
                             <div className="flex justify-between text-sm">
                               <span className="text-muted-foreground">Materiales</span>
                               <span className="font-medium">Hasta 10</span>
@@ -450,51 +457,51 @@ const Settings = () => {
                     )}
 
                     {/* Usage Statistics */}
-                    <div className="border-t pt-6">
-                      <h3 className="font-semibold mb-4 flex items-center gap-2">
-                        <AlertCircle className="h-5 w-5" />
+                    <div className="border-t pt-4 max-w-2xl">
+                      <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
                         Uso Actual
                       </h3>
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         {/* Materials Usage */}
                         <div>
-                          <div className="flex justify-between mb-2">
-                            <Label>Materiales</Label>
-                            <span className={`text-sm font-medium ${getUsageColor(getUsagePercentage(subscription.usage.materials, subscription.limits.materials))}`}>
+                          <div className="flex justify-between mb-1.5">
+                            <Label className="text-sm">Materiales</Label>
+                            <span className={`text-xs font-medium ${getUsageColor(getUsagePercentage(subscription.usage.materials, subscription.limits.materials))}`}>
                               {subscription.usage.materials} / {subscription.limits.materials}
                             </span>
                           </div>
                           <Progress 
                             value={getUsagePercentage(subscription.usage.materials, subscription.limits.materials)} 
-                            className="h-2"
+                            className="h-1.5"
                           />
                         </div>
 
                         {/* Projects Usage */}
                         <div>
-                          <div className="flex justify-between mb-2">
-                            <Label>Proyectos</Label>
-                            <span className={`text-sm font-medium ${getUsageColor(getUsagePercentage(subscription.usage.projects, subscription.limits.projects))}`}>
+                          <div className="flex justify-between mb-1.5">
+                            <Label className="text-sm">Proyectos</Label>
+                            <span className={`text-xs font-medium ${getUsageColor(getUsagePercentage(subscription.usage.projects, subscription.limits.projects))}`}>
                               {subscription.usage.projects} / {subscription.limits.projects}
                             </span>
                           </div>
                           <Progress 
                             value={getUsagePercentage(subscription.usage.projects, subscription.limits.projects)} 
-                            className="h-2"
+                            className="h-1.5"
                           />
                         </div>
 
                         {/* Orders Usage */}
                         <div>
-                          <div className="flex justify-between mb-2">
-                            <Label>Pedidos Mensuales</Label>
-                            <span className={`text-sm font-medium ${getUsageColor(getUsagePercentage(subscription.usage.monthlyOrders, subscription.limits.monthlyOrders))}`}>
+                          <div className="flex justify-between mb-1.5">
+                            <Label className="text-sm">Pedidos Mensuales</Label>
+                            <span className={`text-xs font-medium ${getUsageColor(getUsagePercentage(subscription.usage.monthlyOrders, subscription.limits.monthlyOrders))}`}>
                               {subscription.usage.monthlyOrders} / {subscription.limits.monthlyOrders}
                             </span>
                           </div>
                           <Progress 
                             value={getUsagePercentage(subscription.usage.monthlyOrders, subscription.limits.monthlyOrders)} 
-                            className="h-2"
+                            className="h-1.5"
                           />
                           <p className="text-xs text-muted-foreground mt-1">
                             Se reinicia el primer día de cada mes
@@ -505,16 +512,16 @@ const Settings = () => {
 
                     {/* Billing Info */}
                     {subscriptionInfo.tier !== 'free' && (
-                      <div className="border-t pt-6">
+                      <div className="border-t pt-4 max-w-2xl">
                         <div className="grid md:grid-cols-2 gap-4">
                           <div>
-                            <Label className="text-muted-foreground">Billing Period</Label>
-                            <p className="text-lg font-medium capitalize">{subscriptionInfo.billing_period}</p>
+                            <Label className="text-sm text-muted-foreground">Billing Period</Label>
+                            <p className="text-base font-medium capitalize mt-1">{subscriptionInfo.billing_period}</p>
                           </div>
                           {subscriptionInfo.next_billing_date && (
                             <div>
-                              <Label className="text-muted-foreground">Next Billing Date</Label>
-                              <p className="text-lg font-medium">
+                              <Label className="text-sm text-muted-foreground">Next Billing Date</Label>
+                              <p className="text-base font-medium mt-1">
                                 {new Date(subscriptionInfo.next_billing_date).toLocaleDateString()}
                               </p>
                             </div>
@@ -524,12 +531,12 @@ const Settings = () => {
                     )}
 
                     {/* Actions */}
-                    <div className="flex gap-4 pt-4">
-                      <Button variant="outline" onClick={() => navigate('/pricing')}>
+                    <div className="flex gap-3 pt-3">
+                      <Button variant="outline" size="sm" onClick={() => navigate('/pricing')}>
                         {subscriptionInfo.tier === 'free' ? 'Upgrade Plan' : 'Change Plan'}
                       </Button>
                       {subscriptionInfo.status === 'active' && subscriptionInfo.tier !== 'free' && (
-                        <Button variant="destructive" onClick={handleCancelSubscription}>
+                        <Button variant="destructive" size="sm" onClick={handleCancelSubscription}>
                           Cancel Subscription
                         </Button>
                       )}
@@ -542,9 +549,9 @@ const Settings = () => {
 
           <TabsContent value="invoices">
             <Card>
-              <CardHeader>
-                <CardTitle>Invoice History</CardTitle>
-                <CardDescription>View and download your invoices</CardDescription>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg">Invoice History</CardTitle>
+                <CardDescription className="text-sm">View and download your invoices</CardDescription>
               </CardHeader>
               <CardContent>
                 {invoices.length === 0 ? (
