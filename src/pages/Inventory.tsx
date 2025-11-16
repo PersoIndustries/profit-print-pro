@@ -773,6 +773,16 @@ const Inventory = () => {
   const filteredMaterials = materials.filter(material => {
     const matchesSearch = material.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === "all" || material.type === filterType;
+    
+    // Si showLowStock está activo, filtrar solo materiales con stock bajo
+    if (showLowStock) {
+      const inventoryItem = inventory.find(inv => inv.material_id === material.id);
+      if (!inventoryItem) return false; // No mostrar materiales sin stock
+      const pending = pendingMaterials[material.id] || 0;
+      const realStock = inventoryItem.quantity_grams - pending;
+      return matchesSearch && matchesType && realStock < (inventoryItem.min_stock_alert || 0);
+    }
+    
     return matchesSearch && matchesType;
   });
 
@@ -794,34 +804,69 @@ const Inventory = () => {
 
   return (
     <div className="container mx-auto p-6">
-      <Tabs defaultValue="materials" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="materials">Materiales</TabsTrigger>
+      <Tabs defaultValue="stock" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="stock">Stock</TabsTrigger>
           <TabsTrigger value="acquisitions">Adquisiciones</TabsTrigger>
           <TabsTrigger value="history">Historial</TabsTrigger>
         </TabsList>
 
-        {/* Tab de Materiales */}
-        <TabsContent value="materials">
+        {/* Tab de Stock */}
+        <TabsContent value="stock">
+          <Tabs defaultValue="materials" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="materials">Materiales</TabsTrigger>
+              <TabsTrigger value="objects">Objetos ({stockPrints.length})</TabsTrigger>
+              <TabsTrigger value="printers">Impresoras ({printers.length})</TabsTrigger>
+            </TabsList>
+
+            {/* Subtab de Materiales */}
+            <TabsContent value="materials">
           <Card>
             <CardHeader>
-              <div className="flex justify-between items-center mb-4">
-                <CardTitle>Gestión de Materiales</CardTitle>
-                <Button onClick={() => {
-                  setEditingMaterial(null);
-                  setMaterialForm({
-                    name: "",
-                    price_per_kg: "",
-                    color: "",
-                    type: "",
-                    display_mode: "color",
-                  });
-                  setIsMaterialDialogOpen(true);
-                }}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Añadir Material
-                </Button>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <CardTitle>Gestión de Materiales y Stock</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="low-stock-toggle-main"
+                      checked={showLowStock}
+                      onChange={(e) => setShowLowStock(e.target.checked)}
+                      className="w-4 h-4 rounded border-input"
+                    />
+                    <Label htmlFor="low-stock-toggle-main" className="cursor-pointer text-sm">
+                      Solo stock bajo
+                    </Label>
+                    <Button onClick={() => {
+                      setEditingMaterial(null);
+                      setMaterialForm({
+                        name: "",
+                        price_per_kg: "",
+                        color: "",
+                        type: "",
+                        display_mode: "color",
+                      });
+                      setIsMaterialDialogOpen(true);
+                    }}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Añadir Material
+                    </Button>
+                  </div>
+                </div>
+                {showLowStock && filteredMaterials.some(m => {
+                  const invItem = inventory.find(inv => inv.material_id === m.id);
+                  const pending = pendingMaterials[m.id] || 0;
+                  const realStock = (invItem?.quantity_grams || 0) - pending;
+                  return invItem && realStock < (invItem.min_stock_alert || 0);
+                }) && (
+                  <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                    <Info className="w-5 h-5 text-yellow-500" />
+                    <span className="text-sm font-medium">
+                      Hay materiales con stock bajo (marcados en amarillo)
+                    </span>
+                  </div>
+                )}
               </div>
               
               {/* Filtros */}
@@ -868,135 +913,14 @@ const Inventory = () => {
                   No se encontraron materiales con los filtros aplicados
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Favorito</TableHead>
-                      <TableHead>Material</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Precio/kg</TableHead>
-                      <TableHead>Modo</TableHead>
-                      <TableHead>Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredMaterials.map((material) => {
-                    const Icon = getMaterialIcon(material.type);
-                    return (
-                      <TableRow key={material.id}>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleToggleFavorite(material)}
-                          >
-                            <Star
-                              className={`w-4 h-4 ${material.is_favorite ? 'fill-yellow-500 text-yellow-500' : ''}`}
-                            />
-                          </Button>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {material.display_mode === 'color' ? (
-                              <div
-                                className="w-5 h-5 rounded-full border"
-                                style={{ backgroundColor: material.color || '#gray' }}
-                              />
-                            ) : (
-                              <Icon className="w-5 h-5" />
-                            )}
-                            <span>{material.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {material.type ? MATERIAL_TYPES.find(t => t.value === material.type)?.label || material.type : '-'}
-                        </TableCell>
-                        <TableCell>{material.price_per_kg.toFixed(2)}€</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {material.display_mode === 'color' ? 'Color' : 'Icono'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleEditMaterial(material)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              onClick={() => handleDeleteMaterial(material.id)}
-                            >
-                              <Trash className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Tab de Stock */}
-        <TabsContent value="stock">
-          <Tabs defaultValue="materials" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="materials">Materiales</TabsTrigger>
-              <TabsTrigger value="objects">Objetos ({stockPrints.length})</TabsTrigger>
-              <TabsTrigger value="printers">Impresoras ({printers.length})</TabsTrigger>
-            </TabsList>
-
-            {/* Subtab de Materiales */}
-            <TabsContent value="materials">
-              <Card>
-                <CardHeader>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <CardTitle>Stock de Materiales</CardTitle>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="low-stock-toggle"
-                          checked={showLowStock}
-                          onChange={(e) => setShowLowStock(e.target.checked)}
-                          className="w-4 h-4 rounded border-input"
-                        />
-                        <Label htmlFor="low-stock-toggle" className="cursor-pointer">
-                          Solo mostrar alertas de stock bajo
-                        </Label>
-                      </div>
-                    </div>
-                    {showLowStock && filteredInventory.length > 0 && (
-                      <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                        <Info className="w-5 h-5 text-yellow-500" />
-                        <span className="text-sm font-medium">
-                          Se encontraron {filteredInventory.length} material(es) con stock bajo
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <TooltipProvider>
-                    {filteredInventory.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        {showLowStock 
-                          ? "No hay materiales con stock bajo" 
-                          : "No hay materiales en inventario"}
-                      </div>
-                    ) : (
-                      <Table>
+                <TooltipProvider>
+                  <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>Favorito</TableHead>
                         <TableHead>Material</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Precio/kg</TableHead>
                         <TableHead>
                           <div className="flex items-center gap-2">
                             Stock Disponible
@@ -1012,13 +936,13 @@ const Inventory = () => {
                         </TableHead>
                         <TableHead>
                           <div className="flex items-center gap-2">
-                            Pendiente Impresión
+                            Pendiente
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Info className="w-4 h-4 text-muted-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Cantidad de material reservado para impresiones pendientes o en curso</p>
+                                <p>Material reservado para impresiones pendientes</p>
                               </TooltipContent>
                             </Tooltip>
                           </div>
@@ -1031,56 +955,106 @@ const Inventory = () => {
                                 <Info className="w-4 h-4 text-muted-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Stock disponible menos el pendiente de impresión</p>
+                                <p>Stock disponible menos pendiente de impresión</p>
                               </TooltipContent>
                             </Tooltip>
                           </div>
                         </TableHead>
-                        <TableHead>Ubicación</TableHead>
+                        <TableHead>Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredInventory.map((item) => {
-                      const pending = pendingMaterials[item.material_id] || 0;
-                      const realStock = item.quantity_grams - pending;
-                      const Icon = getMaterialIcon(item.materials.type);
+                      {filteredMaterials.map((material) => {
+                        const Icon = getMaterialIcon(material.type);
+                        // Buscar el item de inventario correspondiente
+                        const inventoryItem = inventory.find(inv => inv.material_id === material.id);
+                        const pending = pendingMaterials[material.id] || 0;
+                        const stockAvailable = inventoryItem ? inventoryItem.quantity_grams : 0;
+                        const realStock = stockAvailable - pending;
+                        const isLowStock = inventoryItem && realStock < (inventoryItem.min_stock_alert || 0);
 
-                      return (
-                        <TableRow key={item.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              {item.materials.display_mode === 'color' ? (
-                                <div
-                                  className="w-5 h-5 rounded-full border"
-                                  style={{ backgroundColor: item.materials.color || '#gray' }}
+                        return (
+                          <TableRow key={material.id} className={isLowStock ? 'bg-yellow-50 dark:bg-yellow-950/20' : ''}>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleToggleFavorite(material)}
+                              >
+                                <Star
+                                  className={`w-4 h-4 ${material.is_favorite ? 'fill-yellow-500 text-yellow-500' : ''}`}
                                 />
+                              </Button>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                {material.display_mode === 'color' ? (
+                                  <div
+                                    className="w-5 h-5 rounded-full border"
+                                    style={{ backgroundColor: material.color || '#gray' }}
+                                  />
+                                ) : (
+                                  <Icon className="w-5 h-5" />
+                                )}
+                                <span>{material.name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {material.type ? MATERIAL_TYPES.find(t => t.value === material.type)?.label || material.type : '-'}
+                            </TableCell>
+                            <TableCell>{material.price_per_kg.toFixed(2)}€</TableCell>
+                            <TableCell>
+                              {inventoryItem ? (
+                                <span className={isLowStock ? 'text-red-500 font-semibold' : ''}>
+                                  {stockAvailable}g ({(stockAvailable / 1000).toFixed(2)}kg)
+                                </span>
                               ) : (
-                                <Icon className="w-5 h-5" />
+                                <span className="text-muted-foreground">Sin stock</span>
                               )}
-                              <span>{item.materials.name}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {item.quantity_grams}g ({(item.quantity_grams / 1000).toFixed(2)}kg)
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={pending > 0 ? "default" : "outline"}>
-                              {pending}g ({(pending / 1000).toFixed(2)}kg)
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <span className={realStock < item.min_stock_alert ? "text-red-500 font-bold" : ""}>
-                              {realStock}g ({(realStock / 1000).toFixed(2)}kg)
-                            </span>
-                          </TableCell>
-                          <TableCell>{item.location || "-"}</TableCell>
-                        </TableRow>
-                      );
+                            </TableCell>
+                            <TableCell>
+                              {pending > 0 ? (
+                                <Badge variant="default">
+                                  {pending}g ({(pending / 1000).toFixed(2)}kg)
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {inventoryItem ? (
+                                <span className={isLowStock ? 'text-red-500 font-bold' : ''}>
+                                  {realStock}g ({(realStock / 1000).toFixed(2)}kg)
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => handleEditMaterial(material)}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="icon"
+                                  onClick={() => handleDeleteMaterial(material.id)}
+                                >
+                                  <Trash className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
                       })}
                     </TableBody>
                   </Table>
-                )}
-              </TooltipProvider>
+                </TooltipProvider>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
