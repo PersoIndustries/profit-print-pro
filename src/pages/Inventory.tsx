@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, ShoppingCart, History, Trash, Edit, Star, Info, Disc, Droplet, KeyRound, Wrench, Paintbrush, FileBox, Package, PackagePlus } from "lucide-react";
+import { Loader2, Plus, ShoppingCart, History, Trash, Edit, Star, Info, Disc, Droplet, KeyRound, Wrench, Paintbrush, FileBox, Package, PackagePlus, Printer } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -1063,10 +1063,23 @@ const Inventory = () => {
         <TabsContent value="objects">
           <Card>
             <CardHeader>
-              <CardTitle>Stock de Objetos</CardTitle>
-              <p className="text-sm text-muted-foreground mt-2">
-                Impresiones completadas para vender que aún no han sido asignadas a pedidos
-              </p>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>Stock de Objetos</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Impresiones completadas para vender que aún no han sido asignadas a pedidos
+                  </p>
+                </div>
+                {stockPrints.length > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => window.print()}
+                  >
+                    <Printer className="w-4 h-4 mr-2" />
+                    Imprimir
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {stockPrints.length === 0 ? (
