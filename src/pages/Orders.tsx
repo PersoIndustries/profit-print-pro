@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Trash2, Plus, Package, Edit, Kanban, Calendar, TrendingUp, User, Mail, Euro, FileText } from "lucide-react";
+import { Trash2, Plus, Package, Edit, Kanban, Calendar, TrendingUp, User, Mail, Euro, FileText, Search } from "lucide-react";
 import { OrderFormModal } from "@/components/OrderFormModal";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { CalendarView } from "@/components/CalendarView";
@@ -49,6 +50,7 @@ const Orders = () => {
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("list");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -172,9 +174,27 @@ const Orders = () => {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const filteredOrders = statusFilter === "all" 
-    ? orders 
-    : orders.filter(order => order.status === statusFilter);
+  const filteredOrders = orders.filter(order => {
+    // Filter by status
+    if (statusFilter !== "all" && order.status !== statusFilter) {
+      return false;
+    }
+    
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      const matchesOrderNumber = order.order_number.toLowerCase().includes(query);
+      const matchesCustomer = order.customer_name?.toLowerCase().includes(query) || false;
+      const matchesEmail = order.customer_email?.toLowerCase().includes(query) || false;
+      const matchesProjects = order.order_items?.some(item => 
+        item.projects.name.toLowerCase().includes(query)
+      ) || false;
+      
+      return matchesOrderNumber || matchesCustomer || matchesEmail || matchesProjects;
+    }
+    
+    return true;
+  });
 
   if (loading || subLoading || authLoading) {
     return <div className="flex items-center justify-center min-h-screen">{t('common.loading')}</div>;
@@ -228,7 +248,16 @@ const Orders = () => {
         </TabsList>
 
         <TabsContent value="list" className="space-y-4">
-          <div className="flex justify-end">
+          <div className="flex items-center gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por número de pedido, cliente, email o proyecto..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Todos los estados" />
