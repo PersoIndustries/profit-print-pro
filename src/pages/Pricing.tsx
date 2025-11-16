@@ -1,20 +1,50 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check } from 'lucide-react';
+import { Check, CheckCircle2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
+import { supabase } from '@/integrations/supabase/client';
 
 const Pricing = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { subscription } = useSubscription();
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [isAnnual, setIsAnnual] = useState(false);
+
+  useEffect(() => {
+    const fetchSubscriptionStatus = async () => {
+      if (!user) {
+        setSubscriptionStatus(null);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('user_subscriptions')
+          .select('status, tier')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+        setSubscriptionStatus(data?.status || null);
+      } catch (error) {
+        console.error('Error fetching subscription status:', error);
+        setSubscriptionStatus(null);
+      }
+    };
+
+    fetchSubscriptionStatus();
+  }, [user]);
 
   const tiers = [
     {
@@ -105,16 +135,25 @@ const Pricing = () => {
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {tiers.map((tier) => {
             const savings = getSavings(tier);
+            const isCurrentPlan = user && subscription && subscription.tier === tier.tier && subscriptionStatus === 'active';
             return (
               <Card 
                 key={tier.tier} 
-                className={`relative ${tier.popular ? 'border-primary shadow-lg scale-105' : ''}`}
+                className={`relative ${tier.popular ? 'border-primary shadow-lg scale-105' : ''} ${isCurrentPlan ? 'border-primary/50 ring-2 ring-primary/20' : ''}`}
               >
-                {tier.popular && (
+                {tier.popular && !isCurrentPlan && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                     <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-semibold">
                       Popular
                     </span>
+                  </div>
+                )}
+                {isCurrentPlan && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <Badge className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Tu plan actual
+                    </Badge>
                   </div>
                 )}
                 <CardHeader>
@@ -158,13 +197,24 @@ const Pricing = () => {
                   </ul>
                 </CardContent>
                 <CardFooter>
-                  <Button 
-                    className="w-full" 
-                    variant={tier.popular ? 'default' : 'outline'}
-                    onClick={() => handleSelectPlan(tier.tier, isAnnual ? 'annual' : 'monthly')}
-                  >
-                    {tier.cta}
-                  </Button>
+                  {isCurrentPlan ? (
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      disabled
+                    >
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Ya estás suscrito a este plan
+                    </Button>
+                  ) : (
+                    <Button 
+                      className="w-full" 
+                      variant={tier.popular ? 'default' : 'outline'}
+                      onClick={() => handleSelectPlan(tier.tier, isAnnual ? 'annual' : 'monthly')}
+                    >
+                      {tier.cta}
+                    </Button>
+                  )}
                 </CardFooter>
               </Card>
             );
