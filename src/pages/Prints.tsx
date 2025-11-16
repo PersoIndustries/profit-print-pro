@@ -16,6 +16,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -97,9 +107,19 @@ const Prints = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [inventory, setInventory] = useState<Array<{ material_id: string; quantity_grams: number }>>([]);
   const [printsLoading, setPrintsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPrint, setEditingPrint] = useState<Print | null>(null);
+  const [stockWarning, setStockWarning] = useState<{
+    show: boolean;
+    insufficientMaterials: Array<{ materialName: string; available: number; needed: number }>;
+    onConfirm: () => void;
+  }>({
+    show: false,
+    insufficientMaterials: [],
+    onConfirm: () => {}
+  });
   
   const [formData, setFormData] = useState({
     name: '',
@@ -127,6 +147,7 @@ const Prints = () => {
       fetchOrders();
       fetchProjects();
       fetchMaterials();
+      fetchInventory();
     }
   }, [user]);
 
@@ -208,6 +229,22 @@ const Prints = () => {
       setMaterials(data || []);
     } catch (error: any) {
       console.error("Error fetching materials:", error);
+    }
+  };
+
+  const fetchInventory = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("inventory_items")
+        .select("material_id, quantity_grams")
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      setInventory(data || []);
+    } catch (error: any) {
+      console.error("Error fetching inventory:", error);
     }
   };
 
@@ -321,6 +358,30 @@ const Prints = () => {
     setIsModalOpen(true);
   };
 
+  const checkStockAvailability = (): Array<{ materialName: string; available: number; needed: number }> => {
+    const insufficient: Array<{ materialName: string; available: number; needed: number }> = [];
+
+    formMaterials.forEach(formMaterial => {
+      const material = materials.find(m => m.id === formMaterial.material_id);
+      const needed = parseFloat(formMaterial.weight_grams) || 0;
+      
+      if (needed > 0 && material) {
+        const inventoryItem = inventory.find(inv => inv.material_id === formMaterial.material_id);
+        const available = inventoryItem ? inventoryItem.quantity_grams : 0;
+
+        if (available < needed) {
+          insufficient.push({
+            materialName: material.name,
+            available,
+            needed
+          });
+        }
+      }
+    });
+
+    return insufficient;
+  };
+
   const handleSavePrint = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -329,6 +390,31 @@ const Prints = () => {
       toast.error("Añade al menos un material");
       return;
     }
+
+    const totalWeight = formMaterials.reduce((sum, m) => sum + (parseFloat(m.weight_grams) || 0), 0);
+
+    // Check stock availability only for new prints (not when editing)
+    if (!editingPrint) {
+      const insufficientMaterials = checkStockAvailability();
+      
+      if (insufficientMaterials.length > 0) {
+        setStockWarning({
+          show: true,
+          insufficientMaterials,
+          onConfirm: () => {
+            setStockWarning({ show: false, insufficientMaterials: [], onConfirm: () => {} });
+            proceedWithSave();
+          }
+        });
+        return;
+      }
+    }
+
+    proceedWithSave();
+  };
+
+  const proceedWithSave = async () => {
+    if (!user) return;
 
     const totalWeight = formMaterials.reduce((sum, m) => sum + (parseFloat(m.weight_grams) || 0), 0);
 
@@ -415,6 +501,7 @@ const Prints = () => {
 
       setIsModalOpen(false);
       fetchPrints();
+      fetchInventory(); // Refresh inventory after saving
     } catch (error: any) {
       toast.error("Error al guardar impresión");
     }
@@ -807,6 +894,42 @@ const Prints = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Alert Dialog for Stock Warning */}
+      <AlertDialog open={stockWarning.show} onOpenChange={(open) => {
+        if (!open) {
+          setStockWarning({ show: false, insufficientMaterials: [], onConfirm: () => {} });
+        }
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>⚠️ Stock Insuficiente</AlertDialogTitle>
+            <AlertDialogDescription>
+              No hay suficiente stock disponible para algunos materiales:
+              <ul className="list-disc list-inside mt-3 space-y-1">
+                {stockWarning.insufficientMaterials.map((item, idx) => (
+                  <li key={idx} className="text-sm">
+                    <strong>{item.materialName}</strong>: Disponible {item.available.toFixed(0)}g, 
+                    Necesitas {item.needed.toFixed(0)}g 
+                    <span className="text-destructive">
+                      (Faltan {(item.needed - item.available).toFixed(0)}g)
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-sm">
+                El stock puede quedar negativo. ¿Deseas continuar de todas formas?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={stockWarning.onConfirm}>
+              Continuar de todas formas
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
