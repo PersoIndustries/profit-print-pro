@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Package } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -65,9 +65,10 @@ const STATUS_CONFIG: Record<Status, { label: string; color: string }> = {
 
 interface KanbanCardProps {
   item: OrderItem;
+  onViewOrder?: (order: any) => void;
 }
 
-function KanbanCard({ item }: KanbanCardProps) {
+function KanbanCard({ item, onViewOrder }: KanbanCardProps) {
   const {
     attributes,
     listeners,
@@ -411,7 +412,7 @@ export function KanbanBoard({ onRefresh, onViewOrder }: KanbanBoardProps) {
                     </p>
                   ) : (
                     statusItems.map((item) => (
-                      <KanbanCard key={item.id} item={item} />
+                      <KanbanCard key={item.id} item={item} onViewOrder={onViewOrder} />
                     ))
                   )}
                 </div>

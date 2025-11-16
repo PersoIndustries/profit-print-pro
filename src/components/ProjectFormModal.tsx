@@ -266,7 +266,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
       setImageFile(null);
       // Cargar tags
       if (project.tags && Array.isArray(project.tags)) {
-        setTags(project.tags);
+        setTags(project.tags.filter((tag): tag is string => typeof tag === 'string'));
       } else {
         setTags([]);
       }

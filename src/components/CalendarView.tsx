@@ -88,9 +88,10 @@ const STATUS_COLORS: Record<string, string> = {
 
 interface OrderCardProps {
   item: OrderItem;
+  onViewOrder?: (order: any) => void;
 }
 
-function OrderCard({ item }: OrderCardProps) {
+function OrderCard({ item, onViewOrder }: OrderCardProps) {
   const {
     attributes,
     listeners,
@@ -408,7 +409,7 @@ export function CalendarView({ onRefresh, onViewOrder }: CalendarViewProps) {
                         
                         <div className="space-y-1 overflow-y-auto max-h-[80px]">
                           {dayItems.map((item) => (
-                            <OrderCard key={item.id} item={item} />
+                            <OrderCard key={item.id} item={item} onViewOrder={onViewOrder} />
                           ))}
                         </div>
                       </div>

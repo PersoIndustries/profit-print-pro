@@ -23,7 +23,7 @@ interface Project {
   notes: string | null;
   created_at: string;
   image_url?: string | null;
-  tags?: string[] | null;
+  tags?: any;
   project_materials?: {
     material_id: string;
     weight_grams: number;
