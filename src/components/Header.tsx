@@ -54,6 +54,9 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
             <Button variant="ghost" onClick={() => navigate('/')}>
               {t('nav.home')}
             </Button>
+            <Button variant="ghost" onClick={() => navigate('/about')}>
+              Acerca de
+            </Button>
             <Button variant="ghost" onClick={() => navigate('/pricing')}>
               {t('nav.pricing')}
             </Button>
@@ -76,6 +79,9 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
             </h1>
             <Button variant="ghost" onClick={() => navigate('/')}>
               {t('nav.home')}
+            </Button>
+            <Button variant="ghost" onClick={() => navigate('/about')}>
+              Acerca de
             </Button>
             <Button variant="ghost" onClick={() => navigate('/pricing')}>
               {t('nav.pricing')}

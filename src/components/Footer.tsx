@@ -26,6 +26,11 @@ export const Footer = ({ variant = 'app' }: FooterProps) => {
               <h4 className="font-semibold mb-3">Producto</h4>
               <ul className="space-y-2 text-sm">
                 <li>
+                  <button onClick={() => navigate('/about')} className="text-muted-foreground hover:text-primary transition-colors">
+                    Acerca de
+                  </button>
+                </li>
+                <li>
                   <button onClick={() => navigate('/pricing')} className="text-muted-foreground hover:text-primary transition-colors">
                     Precios
                   </button>

@@ -20,6 +20,7 @@ import Terms from "./pages/Terms";
 import Catalogs from "./pages/Catalogs";
 import CatalogDetail from "./pages/CatalogDetail";
 import CatalogProjectDetail from "./pages/CatalogProjectDetail";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/pricing" element={<Pricing />} />
+          <Route path="/about" element={<About />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/terms" element={<Terms />} />
           
