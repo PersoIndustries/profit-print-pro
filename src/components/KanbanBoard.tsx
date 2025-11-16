@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -25,15 +25,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 
 interface OrderItem {
   id: string;
@@ -153,7 +146,6 @@ export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
   const { user } = useAuth();
   const [items, setItems] = useState<OrderItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [filters, setFilters] = useState({
     customer: '',
     project: '',
@@ -343,7 +335,7 @@ export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {Object.entries(STATUS_CONFIG).map(([status, config]) => {
           const statusItems = getItemsByStatus(status as Status);
           
