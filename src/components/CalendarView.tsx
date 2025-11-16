@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Package } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -38,12 +38,18 @@ interface OrderItem {
   total_price: number;
   status: string;
   orders: {
+    id: string;
     order_number: string;
     customer_name: string;
+    customer_email: string;
+    status: string;
+    total_amount: number;
+    notes: string;
     order_date: string;
   };
   projects: {
     name: string;
+    image_url?: string | null;
   };
 }
 
@@ -68,6 +74,7 @@ function DroppableDay({ id, date, children, className }: DroppableDayProps) {
 
 interface CalendarViewProps {
   onRefresh?: () => void;
+  onViewOrder?: (order: any) => void;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -105,20 +112,55 @@ function OrderCard({ item }: OrderCardProps) {
       style={style}
       {...attributes}
       {...listeners}
-      className="bg-card border border-border rounded p-2 mb-1 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow text-xs"
+      className="bg-card border border-border rounded p-1.5 mb-1 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow text-xs"
+      onClick={(e) => {
+        // Only open modal if not dragging
+        if (!isDragging && onViewOrder) {
+          e.stopPropagation();
+          onViewOrder({
+            id: item.orders.id,
+            order_number: item.orders.order_number,
+            customer_name: item.orders.customer_name,
+            customer_email: item.orders.customer_email,
+            status: item.orders.status,
+            total_amount: item.orders.total_amount,
+            notes: item.orders.notes,
+            order_date: item.orders.order_date,
+            order_items: [{
+              id: item.id,
+              quantity: item.quantity,
+              projects: {
+                name: item.projects.name,
+                image_url: item.projects.image_url
+              }
+            }]
+          });
+        }
+      }}
     >
-      <div className="flex items-start justify-between gap-1">
+      <div className="flex items-start gap-1.5">
+        {item.projects.image_url ? (
+          <img
+            src={item.projects.image_url}
+            alt={item.projects.name}
+            className="w-6 h-6 rounded object-cover flex-shrink-0"
+          />
+        ) : (
+          <div className="w-6 h-6 rounded bg-muted flex items-center justify-center flex-shrink-0">
+            <Package className="w-3 h-3 text-muted-foreground" />
+          </div>
+        )}
         <div className="flex-1 min-w-0">
-          <p className="font-medium truncate">{item.projects.name}</p>
-          <p className="text-muted-foreground text-[10px] truncate">{item.orders.customer_name}</p>
+          <p className="font-medium truncate text-[10px]">{item.projects.name}</p>
+          <p className="text-muted-foreground text-[9px] truncate">{item.orders.customer_name}</p>
         </div>
-        <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1 ${STATUS_COLORS[item.status]}`} />
+        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-0.5 ${STATUS_COLORS[item.status]}`} />
       </div>
     </div>
   );
 }
 
-export function CalendarView({ onRefresh }: CalendarViewProps) {
+export function CalendarView({ onRefresh, onViewOrder }: CalendarViewProps) {
   const { user } = useAuth();
   const [items, setItems] = useState<OrderItem[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -149,8 +191,8 @@ export function CalendarView({ onRefresh }: CalendarViewProps) {
         .from("order_items")
         .select(`
           *,
-          orders!inner(order_number, customer_name, user_id, order_date),
-          projects(name)
+          orders!inner(id, order_number, customer_name, customer_email, status, total_amount, notes, order_date, user_id),
+          projects(name, image_url)
         `)
         .eq('orders.user_id', user.id)
         .order('created_at', { ascending: false });

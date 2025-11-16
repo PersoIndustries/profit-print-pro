@@ -32,6 +32,7 @@ interface Order {
     quantity: number;
     projects: {
       name: string;
+      image_url?: string | null;
     };
   }[];
 }
@@ -99,8 +100,34 @@ const Orders = () => {
     setIsModalOpen(true);
   };
 
-  const handleViewOrder = (order: Order) => {
-    setSelectedOrder(order);
+  const handleViewOrder = async (order: Order | any) => {
+    // If order comes from Kanban/Calendar, it might not have all order_items
+    // Fetch the complete order data
+    if (order && order.id && (!order.order_items || order.order_items.length === 0)) {
+      try {
+        const { data, error } = await supabase
+          .from("orders")
+          .select(`
+            *,
+            order_items(
+              id,
+              quantity,
+              projects(name, image_url)
+            )
+          `)
+          .eq("id", order.id)
+          .single();
+
+        if (error) throw error;
+        setSelectedOrder(data as Order);
+      } catch (error) {
+        console.error("Error fetching order details:", error);
+        // Fallback to the order data we have
+        setSelectedOrder(order as Order);
+      }
+    } else {
+      setSelectedOrder(order as Order);
+    }
   };
 
   const handleModalSuccess = async () => {
@@ -302,63 +329,78 @@ const Orders = () => {
                 className="cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => handleViewOrder(order)}
               >
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base truncate">{order.order_number}</CardTitle>
-                        <div className="flex items-center gap-2 mt-1">
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(order.order_date).toLocaleDateString('es-ES', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric'
-                            })}
-                          </p>
-                          {getStatusBadge(order.status)}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-1 ml-2" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedOrder(null);
-                          handleEditOrder(order.id);
-                        }}
-                      >
-                        <Edit className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0 pb-3">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      {order.customer_name && (
-                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                          <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                          <span className="truncate font-medium">{order.customer_name}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1.5 ml-2">
-                        <Euro className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="font-semibold">{order.total_amount.toFixed(2)}€</span>
-                      </div>
-                    </div>
-                    
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-3">
+                    {/* Imágenes de proyectos */}
                     {order.order_items && order.order_items.length > 0 && (
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Package className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">
-                          {order.order_items.slice(0, 2).map(item => item.projects.name).join(', ')}
-                          {order.order_items.length > 2 && ` +${order.order_items.length - 2} más`}
-                        </span>
+                      <div className="flex -space-x-2 flex-shrink-0">
+                        {order.order_items.slice(0, 3).map((item, idx) => (
+                          <div
+                            key={item.id}
+                            className="w-10 h-10 rounded border-2 border-background overflow-hidden bg-muted flex-shrink-0"
+                            style={{ zIndex: 3 - idx }}
+                          >
+                            {item.projects.image_url ? (
+                              <img
+                                src={item.projects.image_url}
+                                alt={item.projects.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Package className="w-5 h-5 text-muted-foreground" />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        {order.order_items.length > 3 && (
+                          <div className="w-10 h-10 rounded border-2 border-background bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground flex-shrink-0">
+                            +{order.order_items.length - 3}
+                          </div>
+                        )}
                       </div>
                     )}
+                    
+                    {/* Información principal */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <CardTitle className="text-sm font-semibold truncate">{order.order_number}</CardTitle>
+                        <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedOrder(null);
+                              handleEditOrder(order.id);
+                            }}
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {order.customer_name && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <User className="h-3 w-3" />
+                            <span className="truncate max-w-[120px]">{order.customer_name}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1 text-xs">
+                          <Euro className="h-3 w-3 text-muted-foreground" />
+                          <span className="font-semibold">{order.total_amount.toFixed(2)}€</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(order.order_date).toLocaleDateString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })}
+                        </div>
+                        {getStatusBadge(order.status)}
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -407,7 +449,7 @@ const Orders = () => {
               </CardContent>
             </Card>
           ) : (
-            <KanbanBoard onRefresh={fetchOrders} />
+            <KanbanBoard onRefresh={fetchOrders} onViewOrder={handleViewOrder} />
           )}
         </TabsContent>
 
@@ -452,7 +494,7 @@ const Orders = () => {
               </CardContent>
             </Card>
           ) : (
-            <CalendarView onRefresh={fetchOrders} />
+            <CalendarView onRefresh={fetchOrders} onViewOrder={handleViewOrder} />
           )}
         </TabsContent>
       </Tabs>
@@ -551,7 +593,17 @@ const Orders = () => {
                           {selectedOrder.order_items.map((item) => (
                             <div key={item.id} className="flex items-center justify-between p-2 rounded border">
                               <div className="flex items-center gap-2">
-                                <Package className="w-4 h-4 text-muted-foreground" />
+                                {item.projects.image_url ? (
+                                  <img
+                                    src={item.projects.image_url}
+                                    alt={item.projects.name}
+                                    className="w-10 h-10 rounded object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
+                                    <Package className="w-5 h-5 text-muted-foreground" />
+                                  </div>
+                                )}
                                 <span className="font-medium">{item.projects.name}</span>
                               </div>
                               {item.quantity > 1 && (

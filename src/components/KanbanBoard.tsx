@@ -37,11 +37,18 @@ interface OrderItem {
   total_price: number;
   status: string;
   orders: {
+    id: string;
     order_number: string;
     customer_name: string;
+    customer_email: string;
+    status: string;
+    total_amount: number;
+    notes: string;
+    order_date: string;
   };
   projects: {
     name: string;
+    image_url?: string | null;
   };
 }
 
@@ -80,37 +87,74 @@ function KanbanCard({ item }: KanbanCardProps) {
     <Card 
       ref={setNodeRef} 
       style={style}
-      className="mb-3 hover:shadow-md transition-shadow"
+      className="mb-3 hover:shadow-md transition-shadow cursor-pointer"
+      onClick={(e) => {
+        // Only open modal if not dragging
+        if (!isDragging && onViewOrder) {
+          e.stopPropagation();
+          onViewOrder({
+            id: item.orders.id,
+            order_number: item.orders.order_number,
+            customer_name: item.orders.customer_name,
+            customer_email: item.orders.customer_email,
+            status: item.orders.status,
+            total_amount: item.orders.total_amount,
+            notes: item.orders.notes,
+            order_date: item.orders.order_date,
+            order_items: [{
+              id: item.id,
+              quantity: item.quantity,
+              projects: {
+                name: item.projects.name,
+                image_url: item.projects.image_url
+              }
+            }]
+          });
+        }
+      }}
     >
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2">
         <div 
           {...attributes}
           {...listeners}
           className="cursor-grab active:cursor-grabbing"
         >
-          <div className="flex justify-between items-start gap-2">
-            <CardTitle className="text-sm font-medium line-clamp-2">
-              {item.projects.name}
-            </CardTitle>
-            {item.quantity > 1 && (
-              <Badge variant="secondary" className="text-xs">
-                x{item.quantity}
-              </Badge>
+          <div className="flex items-start gap-2">
+            {item.projects.image_url ? (
+              <img
+                src={item.projects.image_url}
+                alt={item.projects.name}
+                className="w-10 h-10 rounded object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                <Package className="w-5 h-5 text-muted-foreground" />
+              </div>
             )}
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-xs font-medium line-clamp-2">
+                {item.projects.name}
+              </CardTitle>
+              {item.quantity > 1 && (
+                <Badge variant="secondary" className="text-[10px] mt-1">
+                  x{item.quantity}
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pb-3 space-y-2">
-        <div className="space-y-1 text-xs">
+      <CardContent className="pb-2 space-y-1">
+        <div className="space-y-0.5 text-[10px]">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Order:</span>
-            <span className="font-medium">{item.orders.order_number}</span>
+            <span className="font-medium truncate ml-1">{item.orders.order_number}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Customer:</span>
-            <span className="font-medium truncate ml-2">{item.orders.customer_name}</span>
+            <span className="font-medium truncate ml-1">{item.orders.customer_name}</span>
           </div>
-          <div className="flex justify-between pt-1 border-t">
+          <div className="flex justify-between pt-0.5 border-t">
             <span className="text-muted-foreground">Total:</span>
             <span className="font-bold">€{item.total_price.toFixed(2)}</span>
           </div>
@@ -140,9 +184,10 @@ function DroppableColumn({ id, status, children }: DroppableColumnProps) {
 
 interface KanbanBoardProps {
   onRefresh?: () => void;
+  onViewOrder?: (order: any) => void;
 }
 
-export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
+export function KanbanBoard({ onRefresh, onViewOrder }: KanbanBoardProps) {
   const { user } = useAuth();
   const [items, setItems] = useState<OrderItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -172,8 +217,8 @@ export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
         .from("order_items")
         .select(`
           *,
-          orders!inner(order_number, customer_name, user_id),
-          projects(name)
+          orders!inner(id, order_number, customer_name, customer_email, status, total_amount, notes, order_date, user_id),
+          projects(name, image_url)
         `)
         .eq('orders.user_id', user.id)
         .order('created_at', { ascending: false });
