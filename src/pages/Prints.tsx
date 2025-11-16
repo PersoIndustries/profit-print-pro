@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Trash2, Plus, Printer, Edit2, Package, Wrench, User, Building, Download } from "lucide-react";
+import { Loader2, Trash2, Plus, Printer, Edit2, Package, Wrench, User, Building, Download, Clock, Calendar, FileText } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -111,6 +111,8 @@ const Prints = () => {
   const [printsLoading, setPrintsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPrint, setEditingPrint] = useState<Print | null>(null);
+  const [selectedPrint, setSelectedPrint] = useState<Print | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [stockWarning, setStockWarning] = useState<{
     show: boolean;
     insufficientMaterials: Array<{ materialName: string; available: number; needed: number }>;
@@ -500,7 +502,7 @@ const Prints = () => {
       }
 
       setIsModalOpen(false);
-      fetchPrints();
+      await fetchPrints();
       fetchInventory(); // Refresh inventory after saving
     } catch (error: any) {
       toast.error("Error al guardar impresión");
@@ -513,10 +515,22 @@ const Prints = () => {
       if (error) throw error;
       toast.success("Impresión eliminada");
       fetchPrints();
+      if (selectedPrint?.id === id) {
+        setSelectedPrint(null);
+      }
     } catch (error: any) {
       toast.error("Error al eliminar impresión");
     }
   };
+
+  const handleViewPrint = (print: Print) => {
+    setSelectedPrint(print);
+  };
+
+  // Filtrar impresiones por estado
+  const filteredPrints = statusFilter === "all"
+    ? prints
+    : prints.filter(print => print.status === statusFilter);
 
   if (loading || printsLoading) {
     return (
@@ -541,107 +555,118 @@ const Prints = () => {
         </Button>
       </div>
 
-      {prints.length === 0 ? (
+      {/* Filtro de estados */}
+      {prints.length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-medium text-muted-foreground">Filtrar por estado:</span>
+              <Button
+                variant={statusFilter === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("all")}
+              >
+                Todos
+              </Button>
+              {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                <Button
+                  key={key}
+                  variant={statusFilter === key ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setStatusFilter(key)}
+                  className={statusFilter === key ? config.color : ""}
+                >
+                  {config.label}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {filteredPrints.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Printer className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground">
-              No hay impresiones registradas. Crea tu primera impresión.
+              {prints.length === 0 
+                ? "No hay impresiones registradas. Crea tu primera impresión."
+                : "No hay impresiones con el estado seleccionado."}
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6">
-          {prints.map((print) => {
+        <div className="grid gap-3">
+          {filteredPrints.map((print) => {
             const typeConfig = PRINT_TYPE_CONFIG[print.print_type];
             const statusConfig = STATUS_CONFIG[print.status];
             const TypeIcon = typeConfig.icon;
 
             return (
-              <Card key={print.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <TypeIcon className="w-5 h-5" />
-                        <CardTitle>{print.name}</CardTitle>
-                      </div>
-                      <div className="flex gap-2 flex-wrap">
-                        <Badge className={typeConfig.color}>
+              <Card 
+                key={print.id} 
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => handleViewPrint(print)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-2">
+                        <TypeIcon className="w-4 h-4 flex-shrink-0" />
+                        <h3 className="font-semibold text-base truncate">{print.name}</h3>
+                        <Badge className={`${typeConfig.color} text-xs`}>
                           {typeConfig.label}
                         </Badge>
-                        <Badge className={statusConfig.color}>
+                        <Badge className={`${statusConfig.color} text-xs`}>
                           {statusConfig.label}
                         </Badge>
                       </div>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {print.print_time_hours}h
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Package className="w-3 h-3" />
+                          {print.material_used_grams}g
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(print.print_date).toLocaleDateString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })}
+                        </span>
+                        {print.projects && (
+                          <span className="truncate max-w-[150px]">
+                            📁 {print.projects.name}
+                          </span>
+                        )}
+                        {print.orders && (
+                          <span className="truncate max-w-[150px]">
+                            📦 {print.orders.order_number}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="icon"
+                        className="h-7 w-7"
                         onClick={() => handleEditPrint(print)}
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Edit2 className="w-3.5 h-3.5" />
                       </Button>
                       <Button
-                        variant="destructive"
+                        variant="ghost"
                         size="icon"
+                        className="h-7 w-7"
                         onClick={() => handleDeletePrint(print.id)}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      {print.orders && (
-                        <p className="text-sm">
-                          <span className="text-muted-foreground">Pedido:</span>{" "}
-                          {print.orders.order_number} - {print.orders.customer_name}
-                        </p>
-                      )}
-                      {print.projects && (
-                        <p className="text-sm">
-                          <span className="text-muted-foreground">Proyecto:</span>{" "}
-                          {print.projects.name}
-                        </p>
-                      )}
-                      <p className="text-sm">
-                        <span className="text-muted-foreground">Tiempo de impresión:</span>{" "}
-                        {print.print_time_hours}h
-                      </p>
-                      <p className="text-sm">
-                        <span className="text-muted-foreground">Fecha:</span>{" "}
-                        {new Date(print.print_date).toLocaleString('es-ES')}
-                      </p>
-                      {print.notes && (
-                        <p className="text-sm">
-                          <span className="text-muted-foreground">Notas:</span> {print.notes}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold mb-2">Materiales utilizados:</p>
-                      {print.print_materials && print.print_materials.length > 0 ? (
-                        <div className="space-y-1">
-                          {print.print_materials.map((pm) => (
-                            <div key={pm.id} className="text-sm flex justify-between">
-                              <span>{pm.materials.name}</span>
-                              <span className="text-muted-foreground">{pm.weight_grams}g</span>
-                            </div>
-                          ))}
-                          <div className="pt-2 border-t text-sm font-medium">
-                            <div className="flex justify-between">
-                              <span>Total:</span>
-                              <span>{print.material_used_grams}g ({(print.material_used_grams / 1000).toFixed(2)}kg)</span>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">Sin materiales registrados</p>
-                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -930,6 +955,149 @@ const Prints = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog de detalle de la impresión */}
+      <Dialog open={!!selectedPrint} onOpenChange={(open) => !open && setSelectedPrint(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          {selectedPrint && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center justify-between">
+                  <DialogTitle className="text-2xl flex items-center gap-2">
+                    {(() => {
+                      const TypeIcon = PRINT_TYPE_CONFIG[selectedPrint.print_type].icon;
+                      return <TypeIcon className="w-6 h-6" />;
+                    })()}
+                    {selectedPrint.name}
+                  </DialogTitle>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedPrint(null);
+                      handleEditPrint(selectedPrint);
+                    }}
+                  >
+                    <Edit2 className="w-4 h-4 mr-2" />
+                    Editar
+                  </Button>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-6 mt-4">
+                {/* Información principal */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Información General</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Badge className={PRINT_TYPE_CONFIG[selectedPrint.print_type].color}>
+                          {PRINT_TYPE_CONFIG[selectedPrint.print_type].label}
+                        </Badge>
+                        <Badge className={STATUS_CONFIG[selectedPrint.status].color}>
+                          {STATUS_CONFIG[selectedPrint.status].label}
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Tiempo de impresión</p>
+                            <p className="font-semibold">{selectedPrint.print_time_hours}h</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Fecha</p>
+                            <p className="font-semibold">
+                              {new Date(selectedPrint.print_date).toLocaleString('es-ES', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        {selectedPrint.orders && (
+                          <div>
+                            <p className="text-sm text-muted-foreground">Pedido</p>
+                            <p className="font-semibold">
+                              {selectedPrint.orders.order_number} - {selectedPrint.orders.customer_name}
+                            </p>
+                          </div>
+                        )}
+                        {selectedPrint.projects && (
+                          <div>
+                            <p className="text-sm text-muted-foreground">Proyecto</p>
+                            <p className="font-semibold">{selectedPrint.projects.name}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {selectedPrint.notes && (
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-2 flex items-center gap-1">
+                            <FileText className="w-4 h-4" />
+                            Notas
+                          </p>
+                          <p className="text-sm">{selectedPrint.notes}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Materiales Utilizados</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {selectedPrint.print_materials && selectedPrint.print_materials.length > 0 ? (
+                        <div className="space-y-2">
+                          {selectedPrint.print_materials.map((pm) => (
+                            <div key={pm.id} className="flex items-center justify-between p-2 rounded border">
+                              <span className="font-medium">{pm.materials.name}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">{pm.weight_grams}g</span>
+                                {pm.material_cost > 0 && (
+                                  <span className="text-xs text-muted-foreground">
+                                    ({(pm.material_cost).toFixed(2)}€)
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                          <div className="pt-2 border-t">
+                            <div className="flex justify-between items-center">
+                              <span className="font-semibold">Total:</span>
+                              <div className="text-right">
+                                <p className="font-semibold">
+                                  {selectedPrint.material_used_grams}g ({(selectedPrint.material_used_grams / 1000).toFixed(2)}kg)
+                                </p>
+                                {selectedPrint.print_materials.reduce((sum, pm) => sum + pm.material_cost, 0) > 0 && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Coste: {selectedPrint.print_materials.reduce((sum, pm) => sum + pm.material_cost, 0).toFixed(2)}€
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Sin materiales registrados</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
