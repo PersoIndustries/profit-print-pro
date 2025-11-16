@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
+  useDroppable,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -125,6 +126,24 @@ function KanbanCard({ item }: KanbanCardProps) {
   );
 }
 
+interface DroppableColumnProps {
+  id: string;
+  status: Status;
+  children: ReactNode;
+}
+
+function DroppableColumn({ id, status, children }: DroppableColumnProps) {
+  const { setNodeRef } = useDroppable({
+    id: id,
+  });
+
+  return (
+    <div ref={setNodeRef} className="flex flex-col min-h-[500px]">
+      {children}
+    </div>
+  );
+}
+
 interface KanbanBoardProps {
   onRefresh?: () => void;
 }
@@ -188,12 +207,24 @@ export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
     if (!activeItem) return;
 
     // Check if we're dropping over a droppable container (status column)
-    const newStatus = over.id as Status;
+    // The over.id should be the status (e.g., 'design', 'to_produce', etc.)
+    let newStatus: Status | null = null;
     
-    // Validate that newStatus is a valid status
-    if (!STATUS_CONFIG[newStatus]) return;
+    // Check if over.id is a valid status
+    if (STATUS_CONFIG[over.id as Status]) {
+      newStatus = over.id as Status;
+    } else {
+      // If not, check if we're dropping over an item in another column
+      // Find which column contains the item we're dropping over
+      const overItem = items.find(item => item.id === over.id);
+      if (overItem) {
+        newStatus = overItem.status as Status;
+      } else {
+        return; // Not dropping over a valid target
+      }
+    }
     
-    if (activeItem.status === newStatus) return;
+    if (!newStatus || activeItem.status === newStatus) return;
 
     try {
       // Update order_items status
@@ -323,13 +354,10 @@ export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
           const statusItems = getItemsByStatus(status as Status);
           
           return (
-            <SortableContext
-              key={status}
-              items={statusItems.map(item => item.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div
-                className="flex flex-col min-h-[500px]"
+            <DroppableColumn key={status} id={status} status={status as Status}>
+              <SortableContext
+                items={statusItems.map(item => item.id)}
+                strategy={verticalListSortingStrategy}
               >
                 <div className="mb-4 sticky top-0 z-10 bg-background pb-2">
                   <div className="flex items-center justify-between">
@@ -343,7 +371,6 @@ export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
                 
                 <div 
                   className="flex-1 bg-muted/30 rounded-lg p-3 border-2 border-dashed border-muted-foreground/20"
-                  data-status={status}
                 >
                   {statusItems.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-8">
@@ -355,8 +382,8 @@ export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
                     ))
                   )}
                 </div>
-              </div>
-            </SortableContext>
+              </SortableContext>
+            </DroppableColumn>
           );
         })}
       </div>
