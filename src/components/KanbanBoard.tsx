@@ -45,15 +45,15 @@ interface OrderItem {
   };
 }
 
-type Status = 'pending' | 'design' | 'to_produce' | 'printing' | 'clean_and_packaging' | 'sent';
+type Status = 'pending' | 'preparation' | 'ready_to_produce' | 'on_production' | 'packaging' | 'sent';
 
 const STATUS_CONFIG: Record<Status, { label: string; color: string }> = {
   pending: { label: 'Pendiente', color: 'bg-gray-500' },
-  design: { label: 'Design', color: 'bg-purple-500' },
-  to_produce: { label: 'To Produce', color: 'bg-blue-500' },
-  printing: { label: 'Printing', color: 'bg-yellow-500' },
-  clean_and_packaging: { label: 'Clean & Packaging', color: 'bg-orange-500' },
-  sent: { label: 'Sent', color: 'bg-green-500' }
+  preparation: { label: 'Preparación', color: 'bg-purple-500' },
+  ready_to_produce: { label: 'Listo para Producir', color: 'bg-blue-500' },
+  on_production: { label: 'En Producción', color: 'bg-yellow-500' },
+  packaging: { label: 'Embalaje', color: 'bg-orange-500' },
+  sent: { label: 'Enviado', color: 'bg-green-500' }
 };
 
 interface KanbanCardProps {
@@ -200,7 +200,7 @@ export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
     if (!activeItem) return;
 
     // Check if we're dropping over a droppable container (status column)
-    // The over.id should be the status (e.g., 'design', 'to_produce', etc.)
+    // The over.id should be the status (e.g., 'pending', 'preparation', etc.)
     let newStatus: Status | null = null;
     
     // Check if over.id is a valid status

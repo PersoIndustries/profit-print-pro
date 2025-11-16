@@ -349,7 +349,7 @@ const Inventory = () => {
         .from("orders")
         .select("id, order_number, customer_name, status, order_date")
         .eq("user_id", user.id)
-        .in("status", ["design", "to_produce", "printing", "clean_and_packaging"])
+        .in("status", ["pending", "preparation", "ready_to_produce", "on_production", "packaging"])
         .order("order_date", { ascending: false });
 
       if (error) throw error;
@@ -1630,10 +1630,11 @@ const Inventory = () => {
                               </p>
                               <div className="flex gap-2 mt-2">
                                 <Badge variant="outline">
-                                  {order.status === "design" && "Diseño"}
-                                  {order.status === "to_produce" && "Por Producir"}
-                                  {order.status === "printing" && "Imprimiendo"}
-                                  {order.status === "clean_and_packaging" && "Limpieza"}
+                                  {order.status === "pending" && "Pendiente"}
+                                  {order.status === "preparation" && "Preparación"}
+                                  {order.status === "ready_to_produce" && "Listo para Producir"}
+                                  {order.status === "on_production" && "En Producción"}
+                                  {order.status === "packaging" && "Embalaje"}
                                 </Badge>
                               </div>
                             </div>

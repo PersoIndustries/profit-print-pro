@@ -165,10 +165,10 @@ const Orders = () => {
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
       pending: { label: "Pendiente", variant: "outline" },
-      design: { label: "Diseño", variant: "secondary" },
-      to_produce: { label: "Por Producir", variant: "default" },
-      printing: { label: "Imprimiendo", variant: "default" },
-      clean_and_packaging: { label: "Limpieza y Embalaje", variant: "default" },
+      preparation: { label: "Preparación", variant: "secondary" },
+      ready_to_produce: { label: "Listo para Producir", variant: "default" },
+      on_production: { label: "En Producción", variant: "default" },
+      packaging: { label: "Embalaje", variant: "default" },
       sent: { label: "Enviado", variant: "outline" },
     };
     const config = statusConfig[status] || { label: status, variant: "outline" };
@@ -266,10 +266,10 @@ const Orders = () => {
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="pending">Pendiente</SelectItem>
-                <SelectItem value="design">Diseño</SelectItem>
-                <SelectItem value="to_produce">Por Producir</SelectItem>
-                <SelectItem value="printing">Imprimiendo</SelectItem>
-                <SelectItem value="clean_and_packaging">Limpieza y Embalaje</SelectItem>
+                <SelectItem value="preparation">Preparación</SelectItem>
+                <SelectItem value="ready_to_produce">Listo para Producir</SelectItem>
+                <SelectItem value="on_production">En Producción</SelectItem>
+                <SelectItem value="packaging">Embalaje</SelectItem>
                 <SelectItem value="sent">Enviado</SelectItem>
               </SelectContent>
             </Select>

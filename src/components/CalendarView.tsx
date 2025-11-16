@@ -72,10 +72,10 @@ interface CalendarViewProps {
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-gray-500',
-  design: 'bg-purple-500',
-  to_produce: 'bg-blue-500',
-  printing: 'bg-yellow-500',
-  clean_and_packaging: 'bg-orange-500',
+  preparation: 'bg-purple-500',
+  ready_to_produce: 'bg-blue-500',
+  on_production: 'bg-yellow-500',
+  packaging: 'bg-orange-500',
   sent: 'bg-green-500'
 };
 
@@ -389,19 +389,19 @@ export function CalendarView({ onRefresh }: CalendarViewProps) {
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-purple-500" />
-                <span>Diseño</span>
+                <span>Preparación</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-blue-500" />
-                <span>Por Producir</span>
+                <span>Listo para Producir</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                <span>Imprimiendo</span>
+                <span>En Producción</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-orange-500" />
-                <span>Limpieza y Empaque</span>
+                <span>Embalaje</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-green-500" />

@@ -174,7 +174,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
       quantity: 1,
       unit_price: 0,
       total_price: 0,
-      status: 'design',
+      status: 'pending',
       linked_prints: 0
     };
     setOrderItems([...orderItems, newItem]);
@@ -374,13 +374,11 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pending">Pendiente</SelectItem>
-                  <SelectItem value="design">Diseño</SelectItem>
-                  <SelectItem value="to_produce">Por Producir</SelectItem>
-                  <SelectItem value="printing">Imprimiendo</SelectItem>
-                  <SelectItem value="clean_and_packaging">Limpieza y Empaquetado</SelectItem>
-                  <SelectItem value="ready_for_delivery">Listo para Entrega</SelectItem>
-                  <SelectItem value="delivered">Entregado</SelectItem>
-                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                  <SelectItem value="preparation">Preparación</SelectItem>
+                  <SelectItem value="ready_to_produce">Listo para Producir</SelectItem>
+                  <SelectItem value="on_production">En Producción</SelectItem>
+                  <SelectItem value="packaging">Embalaje</SelectItem>
+                  <SelectItem value="sent">Enviado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
