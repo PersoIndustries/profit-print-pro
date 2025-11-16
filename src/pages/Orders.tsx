@@ -176,26 +176,21 @@ const Orders = () => {
         </TabsList>
 
         <TabsContent value="list" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Filtrar por estado</CardTitle>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Todos los estados" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="design">Diseño</SelectItem>
-                    <SelectItem value="to_produce">Por Producir</SelectItem>
-                    <SelectItem value="printing">Imprimiendo</SelectItem>
-                    <SelectItem value="clean_and_packaging">Limpieza y Embalaje</SelectItem>
-                    <SelectItem value="sent">Enviado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-          </Card>
+          <div className="flex justify-end">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Todos los estados" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="design">Diseño</SelectItem>
+                <SelectItem value="to_produce">Por Producir</SelectItem>
+                <SelectItem value="printing">Imprimiendo</SelectItem>
+                <SelectItem value="clean_and_packaging">Limpieza y Embalaje</SelectItem>
+                <SelectItem value="sent">Enviado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           
           {filteredOrders.length === 0 ? (
             <Card>
