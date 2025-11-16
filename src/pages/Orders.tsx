@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Trash2, Plus, Package, Edit, Kanban, Calendar, TrendingUp } from "lucide-react";
+import { Trash2, Plus, Package, Edit, Kanban, Calendar, TrendingUp, User, Mail, Euro, FileText } from "lucide-react";
 import { OrderFormModal } from "@/components/OrderFormModal";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { CalendarView } from "@/components/CalendarView";
@@ -42,6 +44,9 @@ const Orders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("list");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -92,19 +97,66 @@ const Orders = () => {
     setIsModalOpen(true);
   };
 
-  const handleModalSuccess = () => {
-    fetchOrders();
+  const handleViewOrder = (order: Order) => {
+    setSelectedOrder(order);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleModalSuccess = async () => {
+    // Fetch updated orders
+    if (!user) return;
+    
     try {
-      const { error } = await supabase.from("orders").delete().eq("id", id);
+      const { data, error } = await supabase
+        .from("orders")
+        .select(`
+          *,
+          order_items(
+            id,
+            quantity,
+            projects(name)
+          )
+        `)
+        .eq("user_id", user.id)
+        .order("order_date", { ascending: false });
+
       if (error) throw error;
-      toast.success("Order deleted successfully");
+      const updatedOrders = data || [];
+      setOrders(updatedOrders);
+      
+      // Update selected order if it was edited
+      if (selectedOrderId && selectedOrder) {
+        const updatedOrder = updatedOrders.find((o: Order) => o.id === selectedOrderId);
+        if (updatedOrder) {
+          setSelectedOrder(updatedOrder);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      toast.error("Error loading orders");
+    }
+  };
+
+  const handleDeleteClick = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setOrderToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!orderToDelete) return;
+    try {
+      const { error } = await supabase.from("orders").delete().eq("id", orderToDelete);
+      if (error) throw error;
+      toast.success("Pedido eliminado correctamente");
+      setDeleteDialogOpen(false);
+      setOrderToDelete(null);
+      if (selectedOrder?.id === orderToDelete) {
+        setSelectedOrder(null);
+      }
       fetchOrders();
     } catch (error) {
       console.error("Error deleting order:", error);
-      toast.error("Error deleting order");
+      toast.error("Error al eliminar pedido");
     }
   };
 
@@ -214,68 +266,66 @@ const Orders = () => {
             </Card>
           ) : (
             filteredOrders.map((order) => (
-              <Card key={order.id}>
-                <CardHeader>
+              <Card 
+                key={order.id} 
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => handleViewOrder(order)}
+              >
+                <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <CardTitle>{order.order_number}</CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(order.order_date).toLocaleDateString()}
-                        </p>
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-base truncate">{order.order_number}</CardTitle>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(order.order_date).toLocaleDateString('es-ES', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })}
+                          </p>
+                          {getStatusBadge(order.status)}
+                        </div>
                       </div>
-                      {getStatusBadge(order.status)}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 ml-2" onClick={(e) => e.stopPropagation()}>
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="icon"
-                        onClick={() => handleEditOrder(order.id)}
+                        className="h-8 w-8"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedOrder(null);
+                          handleEditOrder(order.id);
+                        }}
                       >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="destructive" size="icon" onClick={() => handleDelete(order.id)}>
-                        <Trash2 className="h-4 w-4" />
+                        <Edit className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
+                <CardContent className="pt-0 pb-3">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
                       {order.customer_name && (
-                        <div>
-                          <p className="text-sm text-muted-foreground">{t('orders.customer')}</p>
-                          <p className="font-medium">{order.customer_name}</p>
-                          {order.customer_email && <p className="text-sm">{order.customer_email}</p>}
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                          <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                          <span className="truncate font-medium">{order.customer_name}</span>
                         </div>
                       )}
-                      <div>
-                        <p className="text-sm text-muted-foreground">{t('orders.amount')}</p>
-                        <p className="font-medium text-lg">{order.total_amount.toFixed(2)}€</p>
+                      <div className="flex items-center gap-1.5 ml-2">
+                        <Euro className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="font-semibold">{order.total_amount.toFixed(2)}€</span>
                       </div>
                     </div>
                     
                     {order.order_items && order.order_items.length > 0 && (
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-2">Proyectos:</p>
-                        <div className="space-y-1">
-                          {order.order_items.map((item) => (
-                            <div key={item.id} className="flex items-center gap-2 text-sm">
-                              <span className="font-medium">{item.projects.name}</span>
-                              {item.quantity > 1 && (
-                                <span className="text-muted-foreground">x{item.quantity}</span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {order.notes && (
-                      <div>
-                        <p className="text-sm text-muted-foreground">{t('orders.notes')}</p>
-                        <p className="text-sm">{order.notes}</p>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Package className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">
+                          {order.order_items.slice(0, 2).map(item => item.projects.name).join(', ')}
+                          {order.order_items.length > 2 && ` +${order.order_items.length - 2} más`}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -382,6 +432,155 @@ const Orders = () => {
         orderId={selectedOrderId}
         onSuccess={handleModalSuccess}
       />
+
+      {/* Dialog de detalle del pedido */}
+      <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          {selectedOrder && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center justify-between">
+                  <DialogTitle className="text-2xl">{selectedOrder.order_number}</DialogTitle>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedOrder(null);
+                        handleEditOrder(selectedOrder.id);
+                      }}
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Editar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => handleDeleteClick(selectedOrder.id)}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Eliminar
+                    </Button>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-6 mt-4">
+                {/* Información principal */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Información del Pedido</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Fecha</p>
+                            <p className="font-semibold">
+                              {new Date(selectedOrder.order_date).toLocaleDateString('es-ES', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Estado</p>
+                            <div className="mt-1">
+                              {getStatusBadge(selectedOrder.status)}
+                            </div>
+                          </div>
+                        </div>
+                        {selectedOrder.customer_name && (
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm text-muted-foreground">Cliente</p>
+                              <p className="font-semibold">{selectedOrder.customer_name}</p>
+                              {selectedOrder.customer_email && (
+                                <div className="flex items-center gap-1 mt-1">
+                                  <Mail className="w-3 h-3 text-muted-foreground" />
+                                  <p className="text-sm text-muted-foreground">{selectedOrder.customer_email}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <Euro className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Total</p>
+                            <p className="font-semibold text-lg">{selectedOrder.total_amount.toFixed(2)}€</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Proyectos</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {selectedOrder.order_items && selectedOrder.order_items.length > 0 ? (
+                        <div className="space-y-2">
+                          {selectedOrder.order_items.map((item) => (
+                            <div key={item.id} className="flex items-center justify-between p-2 rounded border">
+                              <div className="flex items-center gap-2">
+                                <Package className="w-4 h-4 text-muted-foreground" />
+                                <span className="font-medium">{item.projects.name}</span>
+                              </div>
+                              {item.quantity > 1 && (
+                                <Badge variant="secondary">x{item.quantity}</Badge>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Sin proyectos</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {selectedOrder.notes && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <FileText className="w-5 h-5" />
+                        Notas
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm whitespace-pre-wrap">{selectedOrder.notes}</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Alert Dialog para confirmar eliminación */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar pedido?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará permanentemente el pedido y todos sus datos asociados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
