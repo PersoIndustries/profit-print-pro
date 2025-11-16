@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
 export type SubscriptionTier = 'free' | 'tier_1' | 'tier_2';
+export type SubscriptionStatus = 'active' | 'trial' | 'expired' | 'canceled';
 
 interface SubscriptionLimits {
   materials: number;
@@ -13,6 +14,7 @@ interface SubscriptionLimits {
 
 interface SubscriptionInfo {
   tier: SubscriptionTier;
+  status: SubscriptionStatus;
   limits: SubscriptionLimits;
   usage: {
     materials: number;
@@ -24,6 +26,9 @@ interface SubscriptionInfo {
     projects: boolean;
     orders: boolean;
   };
+  trialEndsAt?: Date;
+  daysRemaining?: number;
+  isTrialActive: boolean;
 }
 
 const TIER_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
@@ -60,17 +65,25 @@ export const useSubscription = () => {
 
     const fetchSubscription = async () => {
       try {
-        // Fetch subscription tier
+        // Fetch subscription tier and status
         const { data: subData, error: subError } = await supabase
           .from('user_subscriptions')
-          .select('tier')
+          .select('tier, status, expires_at')
           .eq('user_id', user.id)
           .single();
 
         if (subError) throw subError;
 
         const tier = (subData?.tier || 'free') as SubscriptionTier;
+        const status = (subData?.status || 'active') as SubscriptionStatus;
+        const expiresAt = subData?.expires_at ? new Date(subData.expires_at) : undefined;
         const limits = TIER_LIMITS[tier];
+        
+        // Calculate trial info
+        const isTrialActive = status === 'trial' && expiresAt && expiresAt > new Date();
+        const daysRemaining = isTrialActive && expiresAt 
+          ? Math.ceil((expiresAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+          : undefined;
 
         // Fetch usage counts
         const [materialsRes, projectsRes, ordersRes] = await Promise.all([
@@ -91,13 +104,17 @@ export const useSubscription = () => {
 
         setSubscription({
           tier,
+          status,
           limits,
           usage,
           canAdd: {
             materials: usage.materials < limits.materials,
             projects: usage.projects < limits.projects,
             orders: usage.monthlyOrders < limits.monthlyOrders
-          }
+          },
+          trialEndsAt: expiresAt,
+          daysRemaining,
+          isTrialActive
         });
       } catch (error) {
         console.error('Error fetching subscription:', error);

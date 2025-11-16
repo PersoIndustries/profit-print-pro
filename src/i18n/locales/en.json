@@ -240,6 +240,54 @@
     "processRefund": "Process Refund",
     "viewDetails": "View Details"
   },
+  "pricing": {
+    "title": "Pricing",
+    "subtitle": "Choose the perfect plan for your business",
+    "monthly": "/month",
+    "free": {
+      "name": "Free",
+      "cta": "Start Free",
+      "features": [
+        "10 materials",
+        "15 projects",
+        "15 orders/month",
+        "Cost calculator",
+        "Basic support"
+      ]
+    },
+    "tier1": {
+      "name": "Pro",
+      "cta": "Start Free Trial",
+      "features": [
+        "50 materials",
+        "100 projects",
+        "50 orders/month",
+        "60-day history",
+        "Custom catalogs",
+        "Priority support"
+      ]
+    },
+    "tier2": {
+      "name": "Enterprise",
+      "cta": "Start Free Trial",
+      "features": [
+        "Unlimited materials",
+        "Unlimited projects",
+        "Unlimited orders",
+        "2-year history",
+        "Custom catalogs",
+        "Dedicated 24/7 support",
+        "API access"
+      ]
+    }
+  },
+  "trial": {
+    "expiringToday": "Your free trial ends today",
+    "oneDayLeft": "1 day left of your free trial",
+    "daysLeft": "{{days}} days left of your free trial",
+    "upgradeMessage": "Upgrade now to continue enjoying all premium features",
+    "upgradeNow": "View Plans"
+  },
   "common": {
     "loading": "Loading...",
     "error": "An error occurred",

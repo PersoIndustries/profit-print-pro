@@ -240,6 +240,54 @@
     "processRefund": "Procesar Reembolso",
     "viewDetails": "Ver Detalles"
   },
+  "pricing": {
+    "title": "Precios",
+    "subtitle": "Elige el plan perfecto para tu negocio",
+    "monthly": "/mes",
+    "free": {
+      "name": "Gratis",
+      "cta": "Comenzar Gratis",
+      "features": [
+        "10 materiales",
+        "15 proyectos",
+        "15 pedidos/mes",
+        "Calculadora de costes",
+        "Soporte básico"
+      ]
+    },
+    "tier1": {
+      "name": "Pro",
+      "cta": "Comenzar Prueba Gratis",
+      "features": [
+        "50 materiales",
+        "100 proyectos",
+        "50 pedidos/mes",
+        "Historial de 60 días",
+        "Catálogos personalizados",
+        "Soporte prioritario"
+      ]
+    },
+    "tier2": {
+      "name": "Enterprise",
+      "cta": "Comenzar Prueba Gratis",
+      "features": [
+        "Materiales ilimitados",
+        "Proyectos ilimitados",
+        "Pedidos ilimitados",
+        "Historial de 2 años",
+        "Catálogos personalizados",
+        "Soporte dedicado 24/7",
+        "API access"
+      ]
+    }
+  },
+  "trial": {
+    "expiringToday": "Tu prueba gratuita termina hoy",
+    "oneDayLeft": "Te queda 1 día de prueba gratuita",
+    "daysLeft": "Te quedan {{days}} días de prueba gratuita",
+    "upgradeMessage": "Actualiza ahora para seguir disfrutando de todas las funcionalidades premium",
+    "upgradeNow": "Ver Planes"
+  },
   "common": {
     "loading": "Cargando...",
     "error": "Ocurrió un error",

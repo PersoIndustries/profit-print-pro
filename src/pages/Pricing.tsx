@@ -12,6 +12,7 @@ import { Footer } from '@/components/Footer';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
+import { TrialNotification } from '@/components/TrialNotification';
 
 const Pricing = () => {
   const { t } = useTranslation();
@@ -108,11 +109,20 @@ const Pricing = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted">
       <Header variant="landing" />
+      <TrialNotification />
 
       <div className="flex-1 container mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">{t('pricing.title')}</h1>
-          <p className="text-xl text-muted-foreground mb-8">{t('pricing.subtitle')}</p>
+          <p className="text-xl text-muted-foreground mb-6">{t('pricing.subtitle')}</p>
+          
+          {/* Trial Badge */}
+          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-6 py-3 rounded-full mb-8">
+            <CheckCircle2 className="h-5 w-5" />
+            <span className="font-semibold">
+              Prueba gratis 15 días sin tarjeta de crédito
+            </span>
+          </div>
           
           <div className="flex items-center justify-center gap-4 mb-4">
             <Label htmlFor="billing-toggle" className={!isAnnual ? 'font-semibold' : ''}>

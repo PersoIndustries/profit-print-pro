@@ -1,1 +1,4 @@
 project_id = "qjacgxvzjfjxytfggqro"
+
+[functions.check-expired-trials]
+verify_jwt = false
