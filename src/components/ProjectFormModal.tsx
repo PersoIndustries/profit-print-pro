@@ -45,6 +45,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 interface Material {
   id: string;
@@ -197,6 +199,8 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
   const [uploadingImage, setUploadingImage] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
+  const [allExistingTags, setAllExistingTags] = useState<string[]>([]);
+  const [tagInputOpen, setTagInputOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -209,6 +213,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
     if (open) {
       setHasUnsavedChanges(false);
       fetchMaterials();
+      fetchAllTags();
       if (projectId) {
         loadProject(projectId);
       } else {
@@ -347,6 +352,37 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
     }
   };
 
+  const fetchAllTags = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("tags")
+        .eq("user_id", user.id)
+        .not("tags", "is", null);
+
+      if (error) throw error;
+
+      // Extraer todos los tags únicos de todos los proyectos
+      const allTags = new Set<string>();
+      data?.forEach((project: any) => {
+        if (project.tags && Array.isArray(project.tags)) {
+          project.tags.forEach((tag: string) => {
+            if (tag && tag.trim()) {
+              allTags.add(tag.trim());
+            }
+          });
+        }
+      });
+
+      setAllExistingTags(Array.from(allTags).sort());
+    } catch (error: any) {
+      console.error("Error al cargar tags:", error);
+      // No mostrar error al usuario, simplemente no habrá autocompletado
+    }
+  };
+
   const getLineTypeLabel = (type: LineType): string => {
     const labels: Record<LineType, string> = {
       material: 'Material',
@@ -430,17 +466,21 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
     setCalculatedPrice(total);
   };
 
-  const addTag = () => {
-    const trimmedTag = newTag.trim();
+  const addTag = (tagToAdd?: string) => {
+    const tag = tagToAdd || newTag.trim();
+    if (!tag) return;
+    
+    const trimmedTag = tag.trim();
     if (!trimmedTag) return;
     
     if (tags.includes(trimmedTag)) {
-      toast.error("Este tag ya existe");
+      toast.error("Este tag ya existe en este proyecto");
       return;
     }
     
     setTags([...tags, trimmedTag]);
     setNewTag("");
+    setTagInputOpen(false);
     setHasUnsavedChanges(true);
   };
 
@@ -455,6 +495,14 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
       addTag();
     }
   };
+
+  // Filtrar tags existentes basándose en lo que el usuario escribe
+  const filteredTags = newTag.trim()
+    ? allExistingTags.filter(tag => 
+        tag.toLowerCase().includes(newTag.toLowerCase()) && 
+        !tags.includes(tag)
+      )
+    : allExistingTags.filter(tag => !tags.includes(tag));
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -921,17 +969,84 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
             <Label htmlFor="tags">Tags</Label>
             <div className="space-y-2">
               <div className="flex gap-2">
-                <Input
-                  id="tags"
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  onKeyPress={handleTagKeyPress}
-                  placeholder="Escribe un tag y presiona Enter"
-                />
+                <Popover open={tagInputOpen} onOpenChange={setTagInputOpen}>
+                  <PopoverTrigger asChild>
+                    <div className="flex-1">
+                      <Input
+                        id="tags"
+                        value={newTag}
+                        onChange={(e) => {
+                          setNewTag(e.target.value);
+                          setTagInputOpen(true);
+                        }}
+                        onKeyPress={handleTagKeyPress}
+                        onFocus={() => setTagInputOpen(true)}
+                        placeholder="Escribe un tag y presiona Enter"
+                      />
+                    </div>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0" align="start" side="bottom">
+                    <Command>
+                      <CommandInput 
+                        placeholder="Buscar tags..." 
+                        value={newTag}
+                        onValueChange={setNewTag}
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          {newTag.trim() ? (
+                            <div className="py-2 text-center text-sm">
+                              <div className="mb-2">No se encontraron tags</div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => addTag()}
+                                className="w-full"
+                              >
+                                <Plus className="w-3 h-3 mr-1" />
+                                Crear "{newTag.trim()}"
+                              </Button>
+                            </div>
+                          ) : (
+                            "Escribe para buscar o crear un tag"
+                          )}
+                        </CommandEmpty>
+                        {filteredTags.length > 0 && (
+                          <CommandGroup heading="Tags existentes">
+                            {filteredTags.map((tag) => (
+                              <CommandItem
+                                key={tag}
+                                value={tag}
+                                onSelect={() => addTag(tag)}
+                                className="cursor-pointer"
+                              >
+                                <Tag className="w-3 h-3 mr-2" />
+                                {tag}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        )}
+                        {newTag.trim() && !tags.includes(newTag.trim()) && (
+                          <CommandGroup>
+                            <CommandItem
+                              value={newTag.trim()}
+                              onSelect={() => addTag()}
+                              className="cursor-pointer font-medium"
+                            >
+                              <Plus className="w-3 h-3 mr-2" />
+                              Crear nuevo tag: "{newTag.trim()}"
+                            </CommandItem>
+                          </CommandGroup>
+                        )}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={addTag}
+                  onClick={() => addTag()}
                   disabled={!newTag.trim()}
                 >
                   <Plus className="w-4 h-4" />
