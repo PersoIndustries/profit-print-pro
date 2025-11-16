@@ -164,6 +164,7 @@ const Orders = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+      pending: { label: "Pendiente", variant: "outline" },
       design: { label: "Diseño", variant: "secondary" },
       to_produce: { label: "Por Producir", variant: "default" },
       printing: { label: "Imprimiendo", variant: "default" },
@@ -264,6 +265,7 @@ const Orders = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="pending">Pendiente</SelectItem>
                 <SelectItem value="design">Diseño</SelectItem>
                 <SelectItem value="to_produce">Por Producir</SelectItem>
                 <SelectItem value="printing">Imprimiendo</SelectItem>
@@ -470,25 +472,16 @@ const Orders = () => {
               <DialogHeader>
                 <div className="flex items-center justify-between">
                   <DialogTitle className="text-2xl">{selectedOrder.order_number}</DialogTitle>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setSelectedOrder(null);
-                        handleEditOrder(selectedOrder.id);
-                      }}
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Editar
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => handleDeleteClick(selectedOrder.id)}
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Eliminar
-                    </Button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedOrder(null);
+                      handleEditOrder(selectedOrder.id);
+                    }}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar
+                  </Button>
                 </div>
               </DialogHeader>
 
@@ -587,6 +580,17 @@ const Orders = () => {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* Acciones */}
+                <div className="flex justify-end gap-2 pt-4 border-t">
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleDeleteClick(selectedOrder.id)}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Eliminar Pedido
+                  </Button>
+                </div>
               </div>
             </>
           )}

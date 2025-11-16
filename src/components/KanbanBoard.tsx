@@ -52,9 +52,10 @@ interface OrderItem {
   };
 }
 
-type Status = 'design' | 'to_produce' | 'printing' | 'clean_and_packaging' | 'sent';
+type Status = 'pending' | 'design' | 'to_produce' | 'printing' | 'clean_and_packaging' | 'sent';
 
 const STATUS_CONFIG: Record<Status, { label: string; color: string }> = {
+  pending: { label: 'Pendiente', color: 'bg-gray-500' },
   design: { label: 'Design', color: 'bg-purple-500' },
   to_produce: { label: 'To Produce', color: 'bg-blue-500' },
   printing: { label: 'Printing', color: 'bg-yellow-500' },
