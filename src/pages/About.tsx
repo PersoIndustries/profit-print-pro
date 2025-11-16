@@ -186,15 +186,23 @@ const About = () => {
                 </div>
                 <div className="flex-1 text-center md:text-left">
                   <h3 className="text-2xl font-bold mb-4">Carlos Peralta Sorolla</h3>
-                  <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
-                    Soy el creador de Print3D Manager. Desarrollador apasionado por la tecnología 
-                    y la impresión 3D, he creado esta plataforma para ayudar a emprendedores y 
-                    profesionales a gestionar sus negocios de forma más eficiente y profesional.
+                  <p className="text-lg text-muted-foreground mb-4 leading-relaxed">
+                    Con más de 10 años de experiencia en tecnologías de la información, he trabajado 
+                    como desarrollador front-end, ingeniero de software y líder de equipos técnicos 
+                    multidisciplinarios en sectores como ciberseguridad, biotecnología, comercio 
+                    electrónico y fintech, tanto en startups como en grandes empresas de América Latina.
+                  </p>
+                  <p className="text-muted-foreground mb-4 leading-relaxed">
+                    La historia de Print3D Manager comenzó de forma personal: al adquirir mi impresora 
+                    3D Bambu Lab P2S y empezar a gestionar mi propio negocio, me di cuenta de que 
+                    necesitaba una herramienta para gestionar mi stock, materiales y pedidos de forma 
+                    eficiente. Así que creé una aplicación para uso personal.
                   </p>
                   <p className="text-muted-foreground mb-6 leading-relaxed">
-                    Mi objetivo es combinar mi experiencia en desarrollo de software con las 
-                    necesidades reales del sector de impresión 3D, creando herramientas que 
-                    realmente marquen la diferencia en el día a día de los negocios.
+                    Al ver que realmente solventaba un problema real en la industria y que podía ayudar 
+                    a otros emprendedores y profesionales del sector, decidí compartirla con todo el 
+                    mundo. Print3D Manager es el resultado de combinar mi experiencia técnica con las 
+                    necesidades reales que descubrí en mi propio día a día.
                   </p>
                   <div className="flex flex-wrap gap-3 justify-center md:justify-start">
                     <Button 
