@@ -236,11 +236,11 @@ const Projects = () => {
             </CardContent>
         </Card>
       ) : viewMode === "grid" ? (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredProjects.map((project) => (
             <Card key={project.id} className="overflow-hidden">
               {canAddImages && project.image_url && (
-                <div className="h-48 overflow-hidden bg-muted">
+                <div className="h-32 overflow-hidden bg-muted">
                   <img 
                     src={project.image_url} 
                     alt={project.name} 
@@ -248,73 +248,59 @@ const Projects = () => {
                   />
                 </div>
               )}
-              <CardHeader>
-                <CardTitle className="flex justify-between items-start">
-                  <span>{project.name}</span>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => handleEditProject(project.id)}>
-                      <Edit className="w-4 h-4" />
+              <CardHeader className="pb-2">
+                <CardTitle className="flex justify-between items-center text-base">
+                  <span className="truncate">{project.name}</span>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditProject(project.id)}>
+                      <Edit className="w-3.5 h-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDeleteProject(project.id)}>
-                      <Trash2 className="w-4 h-4" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteProject(project.id)}>
+                      <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Materiales:</p>
-                  <div className="mt-1 space-y-1">
-                    {projectMaterials[project.id]?.map((pm, idx) => {
+              <CardContent className="space-y-2 pt-0">
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span>{project.weight_grams}g</span>
+                  <span>•</span>
+                  <span>{project.print_time_hours}h</span>
+                  <span>•</span>
+                  <span className="font-semibold text-foreground">{project.total_price?.toFixed(2)}€</span>
+                </div>
+                {projectMaterials[project.id] && projectMaterials[project.id].length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {projectMaterials[project.id].slice(0, 3).map((pm, idx) => {
                       const MaterialIcon = pm.materials?.display_mode === 'icon' ? getMaterialIcon(pm.materials.type) : null;
                       return (
-                        <div key={idx} className="text-sm flex items-center gap-2">
-                          <span className="font-medium">{pm.materials?.name}</span>
-                          <span className="text-muted-foreground">({pm.weight_grams}g)</span>
+                        <div key={idx} className="text-xs flex items-center gap-1">
                           {pm.materials?.display_mode === 'color' && pm.materials?.color && (
                             <span 
-                              className="inline-block w-3 h-3 rounded-full border border-border"
+                              className="inline-block w-2.5 h-2.5 rounded-full border border-border flex-shrink-0"
                               style={{ backgroundColor: pm.materials.color }}
                             />
                           )}
                           {MaterialIcon && (
-                            <MaterialIcon className="w-4 h-4" />
+                            <MaterialIcon className="w-3 h-3 flex-shrink-0" />
                           )}
+                          <span className="truncate max-w-[80px]">{pm.materials?.name}</span>
+                          <span className="text-muted-foreground">({pm.weight_grams}g)</span>
                         </div>
                       );
-                    }) || <p className="text-sm text-muted-foreground">Sin materiales</p>}
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Peso:</p>
-                    <p className="font-medium">{project.weight_grams}g</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Tiempo:</p>
-                    <p className="font-medium">{project.print_time_hours}h</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Precio:</p>
-                    <p className="font-medium">{project.total_price?.toFixed(2)}€</p>
-                  </div>
-                </div>
-                {project.tags && project.tags.length > 0 && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-2">Tags:</p>
-                    <div className="flex flex-wrap gap-1">
-                      {project.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
+                    })}
+                    {projectMaterials[project.id].length > 3 && (
+                      <span className="text-xs text-muted-foreground">+{projectMaterials[project.id].length - 3} más</span>
+                    )}
                   </div>
                 )}
-                {project.notes && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">Notas:</p>
-                    <p className="text-sm">{project.notes}</p>
+                {project.tags && project.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {project.tags.map((tag) => (
+                      <Badge key={tag} variant="secondary" className="text-xs py-0 h-5">
+                        {tag}
+                      </Badge>
+                    ))}
                   </div>
                 )}
               </CardContent>
@@ -322,13 +308,13 @@ const Projects = () => {
           ))}
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {filteredProjects.map((project) => (
             <Card key={project.id}>
-              <CardContent className="p-6">
-                <div className="flex items-start gap-6">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
                   {canAddImages && project.image_url && (
-                    <div className="w-32 h-32 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+                    <div className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
                       <img 
                         src={project.image_url} 
                         alt={project.name} 
@@ -337,71 +323,57 @@ const Projects = () => {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start mb-4">
-                      <h3 className="text-xl font-semibold">{project.name}</h3>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleEditProject(project.id)}>
-                          <Edit className="w-4 h-4" />
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="text-base font-semibold truncate">{project.name}</h3>
+                      <div className="flex gap-1 flex-shrink-0">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditProject(project.id)}>
+                          <Edit className="w-3.5 h-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteProject(project.id)}>
-                          <Trash2 className="w-4 h-4" />
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteProject(project.id)}>
+                          <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>
                     </div>
-                    <div className="grid md:grid-cols-3 gap-6">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-2">Materiales:</p>
-                        <div className="space-y-1">
-                          {projectMaterials[project.id]?.map((pm, idx) => {
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span>{project.weight_grams}g</span>
+                        <span>•</span>
+                        <span>{project.print_time_hours}h</span>
+                        <span>•</span>
+                        <span className="font-semibold text-foreground">{project.total_price?.toFixed(2)}€</span>
+                      </div>
+                      {projectMaterials[project.id] && projectMaterials[project.id].length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 items-center">
+                          {projectMaterials[project.id].slice(0, 4).map((pm, idx) => {
                             const MaterialIcon = pm.materials?.display_mode === 'icon' ? getMaterialIcon(pm.materials.type) : null;
                             return (
-                              <div key={idx} className="text-sm flex items-center gap-2">
-                                <span className="font-medium">{pm.materials?.name}</span>
-                                <span className="text-muted-foreground">({pm.weight_grams}g)</span>
+                              <div key={idx} className="text-xs flex items-center gap-1">
                                 {pm.materials?.display_mode === 'color' && pm.materials?.color && (
                                   <span 
-                                    className="inline-block w-3 h-3 rounded-full border border-border"
+                                    className="inline-block w-2.5 h-2.5 rounded-full border border-border flex-shrink-0"
                                     style={{ backgroundColor: pm.materials.color }}
                                   />
                                 )}
                                 {MaterialIcon && (
-                                  <MaterialIcon className="w-4 h-4" />
+                                  <MaterialIcon className="w-3 h-3 flex-shrink-0" />
                                 )}
+                                <span className="truncate max-w-[100px]">{pm.materials?.name}</span>
+                                <span className="text-muted-foreground">({pm.weight_grams}g)</span>
                               </div>
                             );
-                          }) || <p className="text-sm text-muted-foreground">Sin materiales</p>}
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Peso:</p>
-                          <p className="font-medium">{project.weight_grams}g</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Tiempo:</p>
-                          <p className="font-medium">{project.print_time_hours}h</p>
-                        </div>
-                        <div className="col-span-2">
-                          <p className="text-sm text-muted-foreground">Precio:</p>
-                          <p className="font-medium">{project.total_price?.toFixed(2)}€</p>
-                        </div>
-                      </div>
-                      {project.tags && project.tags.length > 0 && (
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-2">Tags:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {project.tags.map((tag) => (
-                              <Badge key={tag} variant="secondary" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
+                          })}
+                          {projectMaterials[project.id].length > 4 && (
+                            <span className="text-xs text-muted-foreground">+{projectMaterials[project.id].length - 4} más</span>
+                          )}
                         </div>
                       )}
-                      {project.notes && (
-                        <div>
-                          <p className="text-sm text-muted-foreground">Notas:</p>
-                          <p className="text-sm">{project.notes}</p>
+                      {project.tags && project.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {project.tags.map((tag) => (
+                            <Badge key={tag} variant="secondary" className="text-xs py-0 h-5">
+                              {tag}
+                            </Badge>
+                          ))}
                         </div>
                       )}
                     </div>
