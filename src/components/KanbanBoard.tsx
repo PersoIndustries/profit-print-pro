@@ -1,11 +1,11 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Plus, Search, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -293,21 +293,7 @@ export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
     >
       {/* Filtros */}
       <Card className="mb-6">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Search className="w-5 h-5" />
-              Filtros Avanzados
-            </CardTitle>
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                <X className="w-4 h-4 mr-1" />
-                Limpiar
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <Label htmlFor="filter-customer">Cliente</Label>
@@ -338,12 +324,19 @@ export function KanbanBoard({ onRefresh }: KanbanBoardProps) {
             </div>
             <div>
               <Label htmlFor="filter-date-to">Hasta</Label>
-              <Input
-                id="filter-date-to"
-                type="date"
-                value={filters.dateTo}
-                onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-              />
+              <div className="flex items-end gap-2">
+                <Input
+                  id="filter-date-to"
+                  type="date"
+                  value={filters.dateTo}
+                  onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+                />
+                {hasActiveFilters && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="mb-0">
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
