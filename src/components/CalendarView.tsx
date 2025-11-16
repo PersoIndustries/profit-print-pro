@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import {
@@ -16,6 +17,7 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
+  useDroppable,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -43,6 +45,25 @@ interface OrderItem {
   projects: {
     name: string;
   };
+}
+
+interface DroppableDayProps {
+  id: string;
+  date: Date;
+  children: React.ReactNode;
+  className?: string;
+}
+
+function DroppableDay({ id, date, children, className }: DroppableDayProps) {
+  const { setNodeRef } = useDroppable({
+    id: id,
+  });
+
+  return (
+    <div ref={setNodeRef} className={className}>
+      {children}
+    </div>
+  );
 }
 
 interface CalendarViewProps {
@@ -101,6 +122,8 @@ export function CalendarView({ onRefresh }: CalendarViewProps) {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [pendingUpdate, setPendingUpdate] = useState<{ orderId: string; newDate: string; oldDate: string } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -143,38 +166,86 @@ export function CalendarView({ onRefresh }: CalendarViewProps) {
     setActiveId(event.active.id as string);
   };
 
-  const handleDragEnd = async (event: DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
 
     if (!over) return;
 
     const activeItem = items.find(item => item.id === active.id);
-    const newDate = over.id as string; // Format: YYYY-MM-DD
-
     if (!activeItem) return;
 
+    // Check if over.id is a date string (YYYY-MM-DD format)
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+    if (!datePattern.test(over.id as string)) {
+      // If not a date, check if it's another item (same date, no change needed)
+      const overItem = items.find(item => item.id === over.id);
+      if (overItem) {
+        // Dropped on another item, use that item's order date
+        const newDate = overItem.orders.order_date.split('T')[0];
+        if (newDate !== activeItem.orders.order_date.split('T')[0]) {
+          setPendingUpdate({
+            orderId: activeItem.order_id,
+            newDate: newDate,
+            oldDate: activeItem.orders.order_date.split('T')[0]
+          });
+          setConfirmDialogOpen(true);
+        }
+      }
+      return;
+    }
+
+    const newDate = over.id as string;
+    const oldDate = activeItem.orders.order_date.split('T')[0];
+
+    // Check if date actually changed
+    if (newDate === oldDate) return;
+
+    // Show confirmation dialog
+    setPendingUpdate({
+      orderId: activeItem.order_id,
+      newDate: newDate,
+      oldDate: oldDate
+    });
+    setConfirmDialogOpen(true);
+  };
+
+  const handleConfirmDateUpdate = async () => {
+    if (!pendingUpdate) return;
+
     try {
+      // Convert date string to ISO format with time (preserve original time or use midnight)
+      const newDateTime = new Date(pendingUpdate.newDate);
+      newDateTime.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
+      const isoDate = newDateTime.toISOString();
+
       // Update order date
       const { error } = await supabase
         .from("orders")
-        .update({ order_date: newDate })
-        .eq("id", activeItem.order_id);
+        .update({ order_date: isoDate })
+        .eq("id", pendingUpdate.orderId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
 
       // Update local state
       setItems(items => items.map(item => 
-        item.order_id === activeItem.order_id 
-          ? { ...item, orders: { ...item.orders, order_date: newDate } }
+        item.order_id === pendingUpdate.orderId 
+          ? { ...item, orders: { ...item.orders, order_date: isoDate } }
           : item
       ));
 
-      toast.success("Fecha actualizada");
+      toast.success("Fecha actualizada correctamente");
+      setConfirmDialogOpen(false);
+      setPendingUpdate(null);
       onRefresh?.();
     } catch (error: any) {
-      toast.error("Error al actualizar fecha");
-      console.error(error);
+      console.error("Error updating date:", error);
+      toast.error("Error al actualizar fecha: " + (error.message || "Error desconocido"));
+      setConfirmDialogOpen(false);
+      setPendingUpdate(null);
     }
   };
 
@@ -267,35 +338,39 @@ export function CalendarView({ onRefresh }: CalendarViewProps) {
                 const isCurrentMonth = isSameMonth(day, currentMonth);
 
                 return (
-                  <SortableContext
+                  <DroppableDay
                     key={dateStr}
-                    items={dayItems.map(item => item.id)}
-                    strategy={verticalListSortingStrategy}
+                    id={dateStr}
+                    date={day}
                   >
-                    <div
-                      data-date={dateStr}
-                      className={`min-h-[120px] border rounded-lg p-2 ${
-                        isToday ? 'border-primary bg-primary/5' : 'border-border'
-                      } ${!isCurrentMonth ? 'opacity-50' : ''}`}
+                    <SortableContext
+                      items={dayItems.map(item => item.id)}
+                      strategy={verticalListSortingStrategy}
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`text-sm font-medium ${isToday ? 'text-primary' : ''}`}>
-                          {format(day, 'd')}
-                        </span>
-                        {dayItems.length > 0 && (
-                          <Badge variant="secondary" className="h-5 text-[10px] px-1">
-                            {dayItems.length}
-                          </Badge>
-                        )}
+                      <div
+                        className={`min-h-[120px] border rounded-lg p-2 ${
+                          isToday ? 'border-primary bg-primary/5' : 'border-border'
+                        } ${!isCurrentMonth ? 'opacity-50' : ''}`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`text-sm font-medium ${isToday ? 'text-primary' : ''}`}>
+                            {format(day, 'd')}
+                          </span>
+                          {dayItems.length > 0 && (
+                            <Badge variant="secondary" className="h-5 text-[10px] px-1">
+                              {dayItems.length}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-1 overflow-y-auto max-h-[80px]">
+                          {dayItems.map((item) => (
+                            <OrderCard key={item.id} item={item} />
+                          ))}
+                        </div>
                       </div>
-                      
-                      <div className="space-y-1 overflow-y-auto max-h-[80px]">
-                        {dayItems.map((item) => (
-                          <OrderCard key={item.id} item={item} />
-                        ))}
-                      </div>
-                    </div>
-                  </SortableContext>
+                    </SortableContext>
+                  </DroppableDay>
                 );
               })}
             </div>
@@ -340,6 +415,48 @@ export function CalendarView({ onRefresh }: CalendarViewProps) {
           </div>
         ) : null}
       </DragOverlay>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Cambiar fecha del pedido?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingUpdate && (
+                <>
+                  ¿Deseas cambiar la fecha del pedido de{" "}
+                  <strong>
+                    {new Date(pendingUpdate.oldDate).toLocaleDateString('es-ES', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric'
+                    })}
+                  </strong>{" "}
+                  a{" "}
+                  <strong>
+                    {new Date(pendingUpdate.newDate).toLocaleDateString('es-ES', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric'
+                    })}
+                  </strong>?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setPendingUpdate(null);
+              setConfirmDialogOpen(false);
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDateUpdate}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DndContext>
   );
 }
