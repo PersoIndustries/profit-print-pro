@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useTierFeatures } from "@/hooks/useTierFeatures";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, Edit, Loader2, Image as ImageIcon, Eye, GripVertical, ChevronDown, ChevronRight, Package } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit, Loader2, Image as ImageIcon, Eye, GripVertical, ChevronDown, ChevronRight, Package, Settings } from "lucide-react";
 import { CatalogProjectFormModal } from "@/components/CatalogProjectFormModal";
 import { CatalogPreviewModal } from "@/components/CatalogPreviewModal";
 import { CatalogSectionFormModal } from "@/components/CatalogSectionFormModal";
@@ -78,7 +81,10 @@ export default function CatalogDetail() {
   const navigate = useNavigate();
   const { catalogId } = useParams<{ catalogId: string }>();
   const { user } = useAuth();
+  const { isEnterprise } = useTierFeatures();
   const [catalogName, setCatalogName] = useState("");
+  const [showPoweredBy, setShowPoweredBy] = useState(true);
+  const [catalogBrandLogoUrl, setCatalogBrandLogoUrl] = useState<string | null>(null);
   const [sections, setSections] = useState<CatalogSection[]>([]);
   const [projects, setProjects] = useState<CatalogProject[]>([]);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
@@ -122,12 +128,14 @@ export default function CatalogDetail() {
       // Fetch catalog info
       const { data: catalogData, error: catalogError } = await supabase
         .from("catalogs")
-        .select("name")
+        .select("name, show_powered_by, brand_logo_url")
         .eq("id", catalogId)
         .single();
 
       if (catalogError) throw catalogError;
       setCatalogName(catalogData.name);
+      setShowPoweredBy(catalogData.show_powered_by ?? true);
+      setCatalogBrandLogoUrl(catalogData.brand_logo_url || null);
 
       // Fetch sections
       const { data: sectionsData, error: sectionsError } = await supabase
@@ -414,6 +422,48 @@ export default function CatalogDetail() {
         </div>
       </div>
 
+      {isEnterprise && (
+        <Card className="mb-6">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Configuración del Catálogo
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="show-powered-by" className="text-sm font-normal">
+                  Mostrar "Powered by LAYER SUITE" en el PDF
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Por defecto está activado. Puedes ocultarlo si tienes plan Business.
+                </p>
+              </div>
+              <Switch
+                id="show-powered-by"
+                checked={showPoweredBy}
+                onCheckedChange={async (checked) => {
+                  try {
+                    const { error } = await supabase
+                      .from("catalogs")
+                      .update({ show_powered_by: checked })
+                      .eq("id", catalogId);
+
+                    if (error) throw error;
+                    setShowPoweredBy(checked);
+                    toast.success("Configuración actualizada");
+                  } catch (error: any) {
+                    console.error("Error updating catalog settings:", error);
+                    toast.error("Error al actualizar la configuración");
+                  }
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -512,6 +562,8 @@ export default function CatalogDetail() {
             onOpenChange={setPreviewModalOpen}
             catalogId={catalogId}
             catalogName={catalogName}
+            showPoweredBy={showPoweredBy}
+            brandLogoUrl={catalogBrandLogoUrl}
           />
         </>
       )}

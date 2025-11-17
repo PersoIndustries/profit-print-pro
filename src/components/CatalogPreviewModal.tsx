@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -11,6 +12,8 @@ interface CatalogPreviewModalProps {
   onOpenChange: (open: boolean) => void;
   catalogId: string;
   catalogName: string;
+  showPoweredBy?: boolean;
+  brandLogoUrl?: string | null;
 }
 
 interface Product {
@@ -30,16 +33,36 @@ interface Project {
   products: Product[];
 }
 
-export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName }: CatalogPreviewModalProps) {
+export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName, showPoweredBy = true, brandLogoUrl = null }: CatalogPreviewModalProps) {
+  const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [userBrandLogoUrl, setUserBrandLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (open && catalogId) {
       fetchCatalogData();
+      fetchUserBrandLogo();
     }
-  }, [open, catalogId]);
+  }, [open, catalogId, user]);
+
+  const fetchUserBrandLogo = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("brand_logo_url")
+        .eq("id", user.id)
+        .single();
+      
+      if (!error && data) {
+        setUserBrandLogoUrl(data.brand_logo_url);
+      }
+    } catch (error) {
+      console.error("Error fetching user brand logo:", error);
+    }
+  };
 
   const fetchCatalogData = async () => {
     try {
@@ -249,6 +272,61 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
         // Add some space between projects
         if (yPosition < pageHeight - margin - 20) {
           yPosition += 5;
+        }
+      }
+
+      // Footer with logo and "Powered by" on last page
+      const finalLogoUrl = brandLogoUrl || userBrandLogoUrl;
+      if (finalLogoUrl || showPoweredBy) {
+        // Ensure we have space on the last page, otherwise add a new page
+        if (yPosition > pageHeight - margin - 30) {
+          pdf.addPage();
+          yPosition = pageHeight - margin - 30;
+        } else {
+          yPosition = pageHeight - margin - 30;
+        }
+
+        // Draw a line separator
+        pdf.setDrawColor(200, 200, 200);
+        pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += 10;
+
+        // Logo (left side) if available
+        if (finalLogoUrl) {
+          try {
+            const logoData = await fetch(finalLogoUrl)
+              .then(res => res.blob())
+              .then(blob => new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(blob);
+              }));
+            
+            // Try to determine image format
+            const logoFormat = finalLogoUrl.toLowerCase().includes('.png') ? 'PNG' : 
+                             finalLogoUrl.toLowerCase().includes('.svg') ? 'SVG' : 'JPEG';
+            
+            // Add logo with max height of 15mm
+            const logoHeight = 15;
+            const logoWidth = logoHeight; // Square logo, adjust if needed
+            pdf.addImage(logoData, logoFormat, margin, yPosition, logoWidth, logoHeight);
+          } catch (error) {
+            console.error("Error loading brand logo:", error);
+          }
+        }
+
+        // "Powered by LAYER SUITE" (right side or center if no logo)
+        if (showPoweredBy) {
+          pdf.setFontSize(8);
+          pdf.setTextColor(120, 120, 120);
+          const poweredByText = "Powered by LAYER SUITE";
+          if (finalLogoUrl) {
+            // Right aligned if logo exists
+            pdf.text(poweredByText, pageWidth - margin, yPosition + 10, { align: "right" });
+          } else {
+            // Center aligned if no logo
+            pdf.text(poweredByText, pageWidth / 2, yPosition + 10, { align: "center" });
+          }
         }
       }
 

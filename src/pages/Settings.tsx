@@ -23,6 +23,7 @@ interface Profile {
   billing_city: string;
   billing_postal_code: string;
   billing_country: string;
+  brand_logo_url: string | null;
 }
 
 interface Invoice {
@@ -64,8 +65,10 @@ const Settings = () => {
     billing_address: '',
     billing_city: '',
     billing_postal_code: '',
-    billing_country: ''
+    billing_country: '',
+    brand_logo_url: null
   });
+  const [brandLogoUploading, setBrandLogoUploading] = useState(false);
   const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [newPassword, setNewPassword] = useState("");
@@ -113,7 +116,8 @@ const Settings = () => {
           billing_address: profileRes.data.billing_address || '',
           billing_city: profileRes.data.billing_city || '',
           billing_postal_code: profileRes.data.billing_postal_code || '',
-          billing_country: profileRes.data.billing_country || ''
+          billing_country: profileRes.data.billing_country || '',
+          brand_logo_url: profileRes.data.brand_logo_url || null
         });
       }
 
@@ -171,6 +175,106 @@ const Settings = () => {
     } catch (error: any) {
       console.error("Error updating profile:", error);
       toast.error(error.message || "Error updating profile");
+    }
+  };
+
+  const handleBrandLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!user) {
+      toast.error("Debes estar autenticado para subir imágenes");
+      return;
+    }
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml'];
+    const fileExtension = file.name.toLowerCase().split('.').pop();
+    const isValidType = validTypes.includes(file.type) || 
+      ['jpg', 'jpeg', 'png', 'webp', 'svg'].includes(fileExtension || '');
+    
+    if (!isValidType) {
+      toast.error("Solo se permiten imágenes (JPG, PNG, WEBP, SVG)");
+      return;
+    }
+
+    // Validate file size (2MB max)
+    if (file.size > 2097152) {
+      toast.error("La imagen no puede ser mayor a 2MB");
+      return;
+    }
+
+    try {
+      setBrandLogoUploading(true);
+      
+      const fileExt = file.name.split(".").pop()?.toLowerCase() || 'png';
+      const fileName = `brand-logo-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      // Delete old logo if exists
+      if (profile.brand_logo_url) {
+        const oldPath = profile.brand_logo_url.split('/').slice(-2).join('/');
+        await supabase.storage
+          .from("brand-logos")
+          .remove([oldPath]);
+      }
+
+      const { error: uploadError } = await supabase.storage
+        .from("brand-logos")
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error("Upload error details:", uploadError);
+        toast.error(`Error al subir el logo: ${uploadError.message || 'Error desconocido'}`);
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("brand-logos")
+        .getPublicUrl(filePath);
+
+      // Update profile with new logo URL
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ brand_logo_url: publicUrl })
+        .eq("id", user.id);
+
+      if (updateError) throw updateError;
+
+      setProfile({ ...profile, brand_logo_url: publicUrl });
+      toast.success("Logo de marca actualizado correctamente");
+    } catch (error: any) {
+      console.error("Error uploading brand logo:", error);
+      toast.error(error.message || "Error al subir el logo");
+    } finally {
+      setBrandLogoUploading(false);
+    }
+  };
+
+  const handleRemoveBrandLogo = async () => {
+    if (!user || !profile.brand_logo_url) return;
+
+    try {
+      const oldPath = profile.brand_logo_url.split('/').slice(-2).join('/');
+      await supabase.storage
+        .from("brand-logos")
+        .remove([oldPath]);
+
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ brand_logo_url: null })
+        .eq("id", user.id);
+
+      if (updateError) throw updateError;
+
+      setProfile({ ...profile, brand_logo_url: null });
+      toast.success("Logo de marca eliminado");
+    } catch (error: any) {
+      console.error("Error removing brand logo:", error);
+      toast.error(error.message || "Error al eliminar el logo");
     }
   };
 
@@ -418,6 +522,44 @@ const Settings = () => {
                           onChange={(e) => setProfile({ ...profile, billing_country: e.target.value })}
                           className="h-9 text-sm"
                         />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-4 mt-4">
+                    <h3 className="text-base font-semibold mb-3">Logo de Marca</h3>
+                    <div className="space-y-3">
+                      {profile.brand_logo_url && (
+                        <div className="flex items-center gap-4">
+                          <img 
+                            src={profile.brand_logo_url} 
+                            alt="Logo de marca" 
+                            className="w-24 h-24 object-contain border rounded p-2 bg-background"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleRemoveBrandLogo}
+                            disabled={brandLogoUploading}
+                          >
+                            Eliminar Logo
+                          </Button>
+                        </div>
+                      )}
+                      <div>
+                        <Label htmlFor="brand_logo" className="text-sm">Subir Logo de Marca</Label>
+                        <Input
+                          id="brand_logo"
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png,image/webp,image/svg+xml"
+                          onChange={handleBrandLogoUpload}
+                          disabled={brandLogoUploading}
+                          className="h-9 text-sm"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Formatos: JPG, PNG, WEBP, SVG. Máximo 2MB.
+                        </p>
                       </div>
                     </div>
                   </div>
