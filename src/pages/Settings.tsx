@@ -41,6 +41,15 @@ interface SubscriptionInfo {
   status: string;
   next_billing_date: string;
   price_paid: number;
+  expires_at: string | null;
+}
+
+interface AppliedPromoCode {
+  code: string;
+  applied_at: string;
+  tier_granted: string;
+  description: string | null;
+  is_permanent: boolean;
 }
 
 const Settings = () => {
@@ -63,6 +72,7 @@ const Settings = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [promoCode, setPromoCode] = useState("");
   const [applyingCode, setApplyingCode] = useState(false);
+  const [appliedPromoCode, setAppliedPromoCode] = useState<AppliedPromoCode | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -78,10 +88,22 @@ const Settings = () => {
     try {
       if (!user) return;
       
-      const [profileRes, subRes, invoicesRes] = await Promise.all([
+      const [profileRes, subRes, invoicesRes, promoCodeRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
         supabase.from("user_subscriptions").select("*").eq("user_id", user.id).maybeSingle(),
-        supabase.from("invoices").select("*").eq("user_id", user.id).order("issued_date", { ascending: false })
+        supabase.from("invoices").select("*").eq("user_id", user.id).order("issued_date", { ascending: false }),
+        supabase
+          .from("user_promo_codes")
+          .select(`
+            promo_code_id,
+            applied_at,
+            tier_granted,
+            promo_codes!inner(code, description)
+          `)
+          .eq("user_id", user.id)
+          .order("applied_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
       ]);
 
       if (profileRes.data) {
@@ -96,7 +118,27 @@ const Settings = () => {
       }
 
       if (subRes.data) {
-        setSubscriptionInfo(subRes.data);
+        setSubscriptionInfo({
+          ...subRes.data,
+          expires_at: subRes.data.expires_at
+        });
+        
+        // Check if subscription is permanent (expires_at is NULL)
+        const isPermanent = subRes.data.expires_at === null;
+        
+        // If we have a promo code, set it
+        if (promoCodeRes.data && promoCodeRes.data.promo_codes) {
+          const promoCodeData = promoCodeRes.data.promo_codes as any;
+          setAppliedPromoCode({
+            code: promoCodeData.code,
+            applied_at: promoCodeRes.data.applied_at,
+            tier_granted: promoCodeRes.data.tier_granted,
+            description: promoCodeData.description,
+            is_permanent: isPermanent
+          });
+        } else {
+          setAppliedPromoCode(null);
+        }
       }
 
       if (invoicesRes.data) {
@@ -204,7 +246,7 @@ const Settings = () => {
         toast.success(result.message);
         setPromoCode("");
         // Refresh subscription data
-        fetchData();
+        await fetchData();
       } else {
         toast.error(result.message);
       }
@@ -564,6 +606,49 @@ const Settings = () => {
                             </div>
                           )}
                         </div>
+                      </div>
+                    )}
+
+                    {/* Applied Promo Code Section */}
+                    {appliedPromoCode && (
+                      <div className="border-t pt-4 max-w-2xl">
+                        <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-background">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs bg-primary/10">CÓDIGO APLICADO</Badge>
+                              <span>Código Promocional Activo</span>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-lg font-bold">{appliedPromoCode.code}</p>
+                                {appliedPromoCode.description && (
+                                  <p className="text-sm text-muted-foreground mt-1">{appliedPromoCode.description}</p>
+                                )}
+                              </div>
+                              <Badge className={getTierBadgeColor(appliedPromoCode.tier_granted)}>
+                                {appliedPromoCode.tier_granted === 'tier_1' ? 'PRO' : appliedPromoCode.tier_granted === 'tier_2' ? 'BUSINESS' : 'FREE'}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2 border-t">
+                              <div className="flex items-center gap-1.5">
+                                <Calendar className="w-4 h-4" />
+                                <span>Aplicado: {new Date(appliedPromoCode.applied_at).toLocaleDateString()}</span>
+                              </div>
+                              {appliedPromoCode.is_permanent ? (
+                                <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/20">
+                                  ✓ Suscripción Permanente
+                                </Badge>
+                              ) : subscriptionInfo?.expires_at ? (
+                                <div className="flex items-center gap-1.5">
+                                  <AlertCircle className="w-4 h-4" />
+                                  <span>Expira: {new Date(subscriptionInfo.expires_at).toLocaleDateString()}</span>
+                                </div>
+                              ) : null}
+                            </div>
+                          </CardContent>
+                        </Card>
                       </div>
                     )}
 
