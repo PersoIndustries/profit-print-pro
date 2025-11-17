@@ -101,13 +101,7 @@ export const OrdersStats = ({ userId, tier, metricsHistory }: OrdersStatsProps) 
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">Estadísticas de Pedidos</h2>
-          <p className="text-muted-foreground">
-            Rendimiento de tu negocio en el período seleccionado
-          </p>
-        </div>
+      <div className="flex items-center gap-4">
         <Tabs value={timeFilter} onValueChange={(v) => setTimeFilter(v as TimeFilter)}>
           <TabsList>
             {availableFilters.map(filter => (
