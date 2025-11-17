@@ -97,17 +97,31 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
       pdf.text("Catálogo de Productos", pageWidth / 2, 80, { align: "center" });
 
       // Projects and products
+      let isFirstProject = true;
       for (const project of projects) {
-        pdf.addPage();
-        yPosition = margin;
+        // Check if we need a new page (only if not first project and not enough space)
+        const estimatedProjectHeight = 80 + (project.products.length * 6);
+        if (!isFirstProject && yPosition + estimatedProjectHeight > pageHeight - margin) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        isFirstProject = false;
 
         // Project header
         pdf.setFontSize(18);
         pdf.setTextColor(0, 0, 0);
         pdf.text(project.name, margin, yPosition);
-        yPosition += 10;
+        yPosition += 12;
 
-        // Project image
+        // Layout: Image and description on left, table on right
+        const imageSize = 60;
+        const leftColumnWidth = imageSize + 10;
+        const rightColumnStartX = margin + leftColumnWidth;
+        const rightColumnWidth = pageWidth - rightColumnStartX - margin;
+        let leftColumnY = yPosition;
+        let rightColumnY = yPosition;
+
+        // Project image (left side)
         if (project.image_url) {
           try {
             const imgData = await fetch(project.image_url)
@@ -118,94 +132,123 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
                 reader.readAsDataURL(blob);
               }));
             
-            pdf.addImage(imgData, 'JPEG', margin, yPosition, 50, 50);
+            pdf.addImage(imgData, 'JPEG', margin, leftColumnY, imageSize, imageSize);
+            leftColumnY += imageSize + 5;
           } catch (error) {
             console.error("Error loading image:", error);
           }
         }
 
-        // Content to the right of image
-        const contentStartX = margin + 55;
-        const contentWidth = pageWidth - contentStartX - margin;
-
-
-        // Project description
+        // Project description (below image, left side)
         if (project.description) {
-          pdf.setFontSize(10);
+          pdf.setFontSize(9);
           pdf.setTextColor(80, 80, 80);
-          const lines = pdf.splitTextToSize(project.description, contentWidth);
-          pdf.text(lines, contentStartX, yPosition);
-          yPosition += lines.length * 5 + 5;
+          const lines = pdf.splitTextToSize(project.description, leftColumnWidth - 5);
+          pdf.text(lines, margin, leftColumnY);
+          leftColumnY += lines.length * 4 + 5;
         }
 
-        // Colors
+        // Colors (below description, left side)
         if (project.colors && project.colors.length > 0) {
-          pdf.setFontSize(10);
+          pdf.setFontSize(9);
           pdf.setTextColor(0, 0, 0);
-          pdf.text("Colores disponibles:", contentStartX, yPosition);
-          yPosition += 7;
+          pdf.text("Colores:", margin, leftColumnY);
+          leftColumnY += 6;
 
-          let xPos = contentStartX;
+          let xPos = margin;
           project.colors.forEach((color) => {
             const rgb = hexToRgb(color);
             if (rgb) {
               pdf.setFillColor(rgb.r, rgb.g, rgb.b);
-              pdf.rect(xPos, yPosition - 3, 8, 8, 'F');
+              pdf.rect(xPos, leftColumnY - 2, 6, 6, 'F');
               pdf.setDrawColor(200, 200, 200);
-              pdf.rect(xPos, yPosition - 3, 8, 8);
-              xPos += 12;
+              pdf.rect(xPos, leftColumnY - 2, 6, 6);
+              xPos += 9;
             }
           });
-          yPosition += 12;
+          leftColumnY += 10;
         }
 
-        // Products list - start below image if needed
-        const imageBottomY = margin + 55;
-        if (yPosition < imageBottomY) {
-          yPosition = imageBottomY;
-        }
-
-        // Products list
+        // Products table (right side, aligned with top)
         if (project.products.length > 0) {
-          yPosition += 5;
-          pdf.setFontSize(12);
-          pdf.setTextColor(0, 0, 0);
-          pdf.text("Productos", margin, yPosition);
-          yPosition += 8;
-
           // Table header
           pdf.setFontSize(9);
           pdf.setFillColor(240, 240, 240);
-          pdf.rect(margin, yPosition - 5, pageWidth - 2 * margin, 8, 'F');
+          pdf.rect(rightColumnStartX, rightColumnY - 5, rightColumnWidth, 7, 'F');
           pdf.setTextColor(0, 0, 0);
-          pdf.text("Ref.", margin + 2, yPosition);
-          pdf.text("Nombre", margin + 30, yPosition);
-          pdf.text("Dimensiones", margin + 100, yPosition);
-          pdf.text("Precio", pageWidth - margin - 25, yPosition);
-          yPosition += 8;
+          pdf.text("Ref.", rightColumnStartX + 2, rightColumnY);
+          pdf.text("Nombre", rightColumnStartX + 20, rightColumnY);
+          pdf.text("Dim.", rightColumnStartX + 70, rightColumnY);
+          pdf.text("Precio", rightColumnStartX + rightColumnWidth - 25, rightColumnY, { align: "right" });
+          rightColumnY += 7;
 
-          // Products
+          // Products rows
           project.products.forEach((product) => {
-            if (yPosition > pageHeight - 20) {
+            // Check if we need a new page for this product
+            if (rightColumnY > pageHeight - margin - 10) {
               pdf.addPage();
               yPosition = margin;
+              leftColumnY = margin + 12;
+              rightColumnY = margin + 12;
+              
+              // Redraw header on new page
+              pdf.setFontSize(18);
+              pdf.setTextColor(0, 0, 0);
+              pdf.text(project.name, margin, yPosition);
+              
+              // Redraw image if exists
+              if (project.image_url) {
+                try {
+                  const imgData = await fetch(project.image_url)
+                    .then(res => res.blob())
+                    .then(blob => new Promise<string>((resolve) => {
+                      const reader = new FileReader();
+                      reader.onloadend = () => resolve(reader.result as string);
+                      reader.readAsDataURL(blob);
+                    }));
+                  
+                  pdf.addImage(imgData, 'JPEG', margin, leftColumnY, imageSize, imageSize);
+                } catch (error) {
+                  console.error("Error loading image:", error);
+                }
+              }
+
+              // Redraw table header
+              pdf.setFontSize(9);
+              pdf.setFillColor(240, 240, 240);
+              pdf.rect(rightColumnStartX, rightColumnY - 5, rightColumnWidth, 7, 'F');
+              pdf.setTextColor(0, 0, 0);
+              pdf.text("Ref.", rightColumnStartX + 2, rightColumnY);
+              pdf.text("Nombre", rightColumnStartX + 20, rightColumnY);
+              pdf.text("Dim.", rightColumnStartX + 70, rightColumnY);
+              pdf.text("Precio", rightColumnStartX + rightColumnWidth - 25, rightColumnY, { align: "right" });
+              rightColumnY += 7;
             }
 
             pdf.setFontSize(8);
             pdf.setTextColor(60, 60, 60);
-            pdf.text(product.reference_code, margin + 2, yPosition);
+            pdf.text(product.reference_code, rightColumnStartX + 2, rightColumnY);
             
-            const nameLines = pdf.splitTextToSize(product.name, 65);
-            pdf.text(nameLines, margin + 30, yPosition);
+            const nameLines = pdf.splitTextToSize(product.name, 45);
+            pdf.text(nameLines, rightColumnStartX + 20, rightColumnY);
             
             if (product.dimensions) {
-              pdf.text(product.dimensions, margin + 100, yPosition);
+              const dimLines = pdf.splitTextToSize(product.dimensions, 20);
+              pdf.text(dimLines, rightColumnStartX + 70, rightColumnY);
             }
             
-            pdf.text(`${product.price.toFixed(2)} €`, pageWidth - margin - 25, yPosition);
+            pdf.text(`${product.price.toFixed(2)} €`, rightColumnStartX + rightColumnWidth - 25, rightColumnY, { align: "right" });
             
-            yPosition += Math.max(6, nameLines.length * 4 + 2);
+            rightColumnY += Math.max(5, nameLines.length * 3.5 + 1);
           });
+        }
+
+        // Update yPosition to the bottom of the tallest column
+        yPosition = Math.max(leftColumnY, rightColumnY) + 10;
+        
+        // Add some space between projects
+        if (yPosition < pageHeight - margin - 20) {
+          yPosition += 5;
         }
       }
 

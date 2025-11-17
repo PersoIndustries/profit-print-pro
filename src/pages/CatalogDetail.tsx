@@ -664,17 +664,26 @@ function ProjectCard({
             )}
             <div className="flex-1 min-w-0">
               <CardTitle className="text-base truncate">{project.name}</CardTitle>
-              {project.description && (
-                <p className="text-sm text-muted-foreground line-clamp-1 mt-1">
-                  {project.description}
-                </p>
-              )}
+              <div className="flex items-center gap-3 mt-1.5">
+                {project.colors && project.colors.length > 0 && (
+                  <div className="flex gap-1 items-center">
+                    {project.colors.map((color, idx) => (
+                      <div
+                        key={idx}
+                        className="w-4 h-4 rounded border border-border flex-shrink-0"
+                        style={{ backgroundColor: color }}
+                        title={color}
+                      />
+                    ))}
+                  </div>
+                )}
+                {hasProducts && (
+                  <span className="text-xs text-muted-foreground">
+                    {project.products!.length} producto(s)
+                  </span>
+                )}
+              </div>
             </div>
-            {hasProducts && (
-              <span className="text-sm text-muted-foreground flex-shrink-0">
-                {project.products!.length} producto(s)
-              </span>
-            )}
           </div>
           <div className="flex gap-2 flex-shrink-0">
             <Button variant="outline" size="sm" onClick={() => onNewProduct(project.id)}>
@@ -700,10 +709,12 @@ function ProjectCard({
                     <div className="flex items-center gap-2">
                       <Package className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{product.name}</p>
-                        <p className="text-xs text-muted-foreground">{product.reference_code}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium truncate">{product.name}</p>
+                          <span className="text-xs text-muted-foreground">#{product.reference_code}</span>
+                        </div>
                         {product.dimensions && (
-                          <p className="text-xs text-muted-foreground">Dimensiones: {product.dimensions}</p>
+                          <p className="text-xs text-muted-foreground">[{product.dimensions}]</p>
                         )}
                       </div>
                     </div>
