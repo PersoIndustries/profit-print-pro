@@ -86,9 +86,24 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
         if (error) throw error;
         toast.success("Producto actualizado");
       } else {
+        // Obtener el máximo position actual para poner el nuevo producto al final
+        const { data: maxPositionData } = await supabase
+          .from("catalog_products")
+          .select("position")
+          .eq("catalog_project_id", catalogProjectId)
+          .is("catalog_product_section_id", null)
+          .order("position", { ascending: false })
+          .limit(1)
+          .single();
+
+        const maxPosition = maxPositionData?.position ?? -1;
+
         const { error } = await supabase
           .from("catalog_products")
-          .insert(productData);
+          .insert({
+            ...productData,
+            position: maxPosition + 1,
+          });
 
         if (error) throw error;
         toast.success("Producto creado");

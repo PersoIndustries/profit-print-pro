@@ -182,9 +182,24 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
         if (error) throw error;
         toast.success("Proyecto actualizado");
       } else {
+        // Obtener el máximo position actual para poner el nuevo proyecto al final
+        const { data: maxPositionData } = await supabase
+          .from("catalog_projects")
+          .select("position")
+          .eq("catalog_id", catalogId)
+          .is("catalog_section_id", null)
+          .order("position", { ascending: false })
+          .limit(1)
+          .single();
+
+        const maxPosition = maxPositionData?.position ?? -1;
+
         const { error } = await supabase
           .from("catalog_projects")
-          .insert(projectData);
+          .insert({
+            ...projectData,
+            position: maxPosition + 1,
+          });
 
         if (error) throw error;
         toast.success("Proyecto creado");
