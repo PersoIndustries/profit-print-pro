@@ -61,6 +61,8 @@ const Settings = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [promoCode, setPromoCode] = useState("");
+  const [applyingCode, setApplyingCode] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -176,6 +178,41 @@ const Settings = () => {
     } catch (error: any) {
       console.error("Error changing password:", error);
       toast.error(error.message || "Error al cambiar la contraseña");
+    }
+  };
+
+  const handleApplyPromoCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!promoCode.trim()) {
+      toast.error(t('settings.promoCode.emptyCode'));
+      return;
+    }
+
+    setApplyingCode(true);
+    try {
+      const { data, error } = await supabase.rpc('apply_promo_code', {
+        _code: promoCode.trim().toUpperCase(),
+        _user_id: user?.id
+      });
+
+      if (error) throw error;
+
+      const result = data as { success: boolean; message: string; tier?: string };
+      
+      if (result.success) {
+        toast.success(result.message);
+        setPromoCode("");
+        // Refresh subscription data
+        fetchData();
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error: any) {
+      console.error("Error applying promo code:", error);
+      toast.error(error.message || t('settings.promoCode.error'));
+    } finally {
+      setApplyingCode(false);
     }
   };
 
@@ -529,6 +566,35 @@ const Settings = () => {
                         </div>
                       </div>
                     )}
+
+                    {/* Promo Code Section */}
+                    <div className="border-t pt-4 max-w-2xl">
+                      <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-background">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">PROMO</Badge>
+                            {t('settings.promoCode.title')}
+                          </CardTitle>
+                          <CardDescription className="text-sm">
+                            {t('settings.promoCode.description')}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <form onSubmit={handleApplyPromoCode} className="flex gap-2">
+                            <Input
+                              value={promoCode}
+                              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                              placeholder={t('settings.promoCode.placeholder')}
+                              className="uppercase"
+                              disabled={applyingCode}
+                            />
+                            <Button type="submit" disabled={applyingCode || !promoCode.trim()}>
+                              {applyingCode ? t('common.loading') : t('settings.promoCode.apply')}
+                            </Button>
+                          </form>
+                        </CardContent>
+                      </Card>
+                    </div>
 
                     {/* Actions */}
                     <div className="flex gap-3 pt-3">

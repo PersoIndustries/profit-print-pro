@@ -219,7 +219,15 @@
     "invoiceNumber": "Factura #",
     "date": "Fecha",
     "download": "Descargar",
-    "noInvoices": "No hay facturas aún"
+    "noInvoices": "No hay facturas aún",
+    "promoCode": {
+      "title": "Código Promocional",
+      "description": "¿Tienes un código? Canjéalo aquí para desbloquear suscripciones gratuitas",
+      "placeholder": "INGRESA-TU-CODIGO",
+      "apply": "Aplicar",
+      "emptyCode": "Por favor ingresa un código",
+      "error": "Error al aplicar el código promocional"
+    }
   },
   "admin": {
     "title": "Panel de Administración",
