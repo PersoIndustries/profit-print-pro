@@ -219,7 +219,15 @@
     "invoiceNumber": "Invoice #",
     "date": "Date",
     "download": "Download",
-    "noInvoices": "No invoices yet"
+    "noInvoices": "No invoices yet",
+    "promoCode": {
+      "title": "Promo Code",
+      "description": "Have a code? Redeem it here to unlock free subscriptions",
+      "placeholder": "ENTER-YOUR-CODE",
+      "apply": "Apply",
+      "emptyCode": "Please enter a code",
+      "error": "Error applying promo code"
+    }
   },
   "admin": {
     "title": "Admin Dashboard",
