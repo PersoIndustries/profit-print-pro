@@ -17,6 +17,7 @@ interface CatalogProjectFormModalProps {
   onOpenChange: (open: boolean) => void;
   catalogId: string;
   projectId?: string;
+  sectionId?: string;
   onSuccess: () => void;
 }
 
@@ -26,7 +27,7 @@ interface ExistingProject {
   image_url: string | null;
 }
 
-export function CatalogProjectFormModal({ open, onOpenChange, catalogId, projectId, onSuccess }: CatalogProjectFormModalProps) {
+export function CatalogProjectFormModal({ open, onOpenChange, catalogId, projectId, sectionId, onSuccess }: CatalogProjectFormModalProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -210,11 +211,19 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
         toast.success("Proyecto actualizado");
       } else {
         // Obtener el máximo position actual para poner el nuevo proyecto al final
-        const { data: maxPositionData } = await supabase
+        // Si hay sectionId, buscar dentro de esa sección, sino buscar proyectos sin sección
+        let query = supabase
           .from("catalog_projects")
           .select("position")
-          .eq("catalog_id", catalogId)
-          .is("catalog_section_id", null)
+          .eq("catalog_id", catalogId);
+        
+        if (sectionId) {
+          query = query.eq("catalog_section_id", sectionId);
+        } else {
+          query = query.is("catalog_section_id", null);
+        }
+        
+        const { data: maxPositionData } = await query
           .order("position", { ascending: false })
           .limit(1)
           .single();
@@ -225,6 +234,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
           .from("catalog_projects")
           .insert({
             ...projectData,
+            catalog_section_id: sectionId || null,
             position: maxPosition + 1,
           });
 
