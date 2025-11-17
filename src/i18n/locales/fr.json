@@ -208,7 +208,15 @@
     "invoiceNumber": "Facture #",
     "date": "Date",
     "download": "Télécharger",
-    "noInvoices": "Aucune facture pour le moment"
+    "noInvoices": "Aucune facture pour le moment",
+    "promoCode": {
+      "title": "Code Promo",
+      "description": "Vous avez un code? Utilisez-le ici pour débloquer des abonnements gratuits",
+      "placeholder": "ENTREZ-VOTRE-CODE",
+      "apply": "Appliquer",
+      "emptyCode": "Veuillez entrer un code",
+      "error": "Erreur lors de l'application du code promo"
+    }
   },
   "admin": {
     "title": "Tableau de Bord Admin",

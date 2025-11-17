@@ -902,6 +902,48 @@ export type Database = {
           },
         ]
       }
+      promo_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          current_uses: number
+          description: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          current_uses?: number
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          current_uses?: number
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscription_changes: {
         Row: {
           admin_id: string | null
@@ -978,6 +1020,38 @@ export type Database = {
         }
         Relationships: []
       }
+      user_promo_codes: {
+        Row: {
+          applied_at: string
+          id: string
+          promo_code_id: string
+          tier_granted: Database["public"]["Enums"]["subscription_tier"]
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string
+          id?: string
+          promo_code_id: string
+          tier_granted: Database["public"]["Enums"]["subscription_tier"]
+          user_id: string
+        }
+        Update: {
+          applied_at?: string
+          id?: string
+          promo_code_id?: string
+          tier_granted?: Database["public"]["Enums"]["subscription_tier"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_promo_codes_promo_code_id_fkey"
+            columns: ["promo_code_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -1049,6 +1123,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_promo_code: {
+        Args: { _code: string; _user_id: string }
+        Returns: Json
+      }
       bytea_to_text: { Args: { data: string }; Returns: string }
       check_subscription_limit: {
         Args: { _resource_type: string; _user_id: string }
