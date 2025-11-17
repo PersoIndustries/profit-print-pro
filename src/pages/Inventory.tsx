@@ -103,6 +103,7 @@ const getMaterialIcon = (type: string | null) => {
 
 const Inventory = () => {
   const { user, loading } = useAuth();
+  const [tooltipOpen, setTooltipOpen] = useState<{ [key: string]: boolean }>({});
   const navigate = useNavigate();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -924,9 +925,18 @@ const Inventory = () => {
                         <TableHead>
                           <div className="flex items-center gap-2">
                             Stock Disponible
-                            <Tooltip>
+                            <Tooltip open={tooltipOpen['stock-disponible']} onOpenChange={(open) => setTooltipOpen(prev => ({ ...prev, 'stock-disponible': open }))}>
                               <TooltipTrigger asChild>
-                                <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center p-0 border-0 bg-transparent cursor-help"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setTooltipOpen(prev => ({ ...prev, 'stock-disponible': !prev['stock-disponible'] }));
+                                  }}
+                                >
+                                  <Info className="w-4 h-4 text-muted-foreground" />
+                                </button>
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p>Cantidad total de material disponible en inventario</p>
@@ -937,9 +947,18 @@ const Inventory = () => {
                         <TableHead>
                           <div className="flex items-center gap-2">
                             Pendiente
-                            <Tooltip>
+                            <Tooltip open={tooltipOpen['pendiente']} onOpenChange={(open) => setTooltipOpen(prev => ({ ...prev, 'pendiente': open }))}>
                               <TooltipTrigger asChild>
-                                <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center p-0 border-0 bg-transparent cursor-help"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setTooltipOpen(prev => ({ ...prev, 'pendiente': !prev['pendiente'] }));
+                                  }}
+                                >
+                                  <Info className="w-4 h-4 text-muted-foreground" />
+                                </button>
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p>Material reservado para impresiones pendientes</p>
@@ -950,9 +969,18 @@ const Inventory = () => {
                         <TableHead>
                           <div className="flex items-center gap-2">
                             Stock Real
-                            <Tooltip>
+                            <Tooltip open={tooltipOpen['stock-real']} onOpenChange={(open) => setTooltipOpen(prev => ({ ...prev, 'stock-real': open }))}>
                               <TooltipTrigger asChild>
-                                <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center p-0 border-0 bg-transparent cursor-help"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setTooltipOpen(prev => ({ ...prev, 'stock-real': !prev['stock-real'] }));
+                                  }}
+                                >
+                                  <Info className="w-4 h-4 text-muted-foreground" />
+                                </button>
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p>Stock disponible menos pendiente de impresión</p>
