@@ -62,38 +62,86 @@ export type Database = {
         }
         Relationships: []
       }
-      catalog_products: {
+      catalog_product_sections: {
         Row: {
           catalog_project_id: string
           created_at: string | null
-          dimensions: string | null
           id: string
-          name: string
-          price: number
-          reference_code: string
+          position: number
+          title: string
           updated_at: string | null
         }
         Insert: {
           catalog_project_id: string
           created_at?: string | null
-          dimensions?: string | null
           id?: string
-          name: string
-          price: number
-          reference_code: string
+          position?: number
+          title: string
           updated_at?: string | null
         }
         Update: {
           catalog_project_id?: string
           created_at?: string | null
+          id?: string
+          position?: number
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_product_sections_catalog_project_id_fkey"
+            columns: ["catalog_project_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_products: {
+        Row: {
+          catalog_product_section_id: string | null
+          catalog_project_id: string
+          created_at: string | null
+          dimensions: string | null
+          id: string
+          name: string
+          position: number
+          price: number
+          reference_code: string
+          updated_at: string | null
+        }
+        Insert: {
+          catalog_product_section_id?: string | null
+          catalog_project_id: string
+          created_at?: string | null
+          dimensions?: string | null
+          id?: string
+          name: string
+          position?: number
+          price: number
+          reference_code: string
+          updated_at?: string | null
+        }
+        Update: {
+          catalog_product_section_id?: string | null
+          catalog_project_id?: string
+          created_at?: string | null
           dimensions?: string | null
           id?: string
           name?: string
+          position?: number
           price?: number
           reference_code?: string
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "catalog_products_catalog_product_section_id_fkey"
+            columns: ["catalog_product_section_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_product_sections"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "catalog_products_catalog_project_id_fkey"
             columns: ["catalog_project_id"]
@@ -106,34 +154,40 @@ export type Database = {
       catalog_projects: {
         Row: {
           catalog_id: string
+          catalog_section_id: string | null
           colors: Json | null
           created_at: string | null
           description: string | null
           id: string
           image_url: string | null
           name: string
+          position: number
           project_id: string | null
           updated_at: string | null
         }
         Insert: {
           catalog_id: string
+          catalog_section_id?: string | null
           colors?: Json | null
           created_at?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
           name: string
+          position?: number
           project_id?: string | null
           updated_at?: string | null
         }
         Update: {
           catalog_id?: string
+          catalog_section_id?: string | null
           colors?: Json | null
           created_at?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
           name?: string
+          position?: number
           project_id?: string | null
           updated_at?: string | null
         }
@@ -146,10 +200,52 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "catalog_projects_catalog_section_id_fkey"
+            columns: ["catalog_section_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_sections"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "catalog_projects_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_sections: {
+        Row: {
+          catalog_id: string
+          created_at: string | null
+          id: string
+          position: number
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          catalog_id: string
+          created_at?: string | null
+          id?: string
+          position?: number
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          catalog_id?: string
+          created_at?: string | null
+          id?: string
+          position?: number
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_sections_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "catalogs"
             referencedColumns: ["id"]
           },
         ]
@@ -953,6 +1049,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bytea_to_text: { Args: { data: string }; Returns: string }
       check_subscription_limit: {
         Args: { _resource_type: string; _user_id: string }
         Returns: boolean
@@ -969,13 +1066,169 @@ export type Database = {
         }
         Returns: boolean
       }
+      http: {
+        Args: { request: Database["public"]["CompositeTypes"]["http_request"] }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "http_request"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      http_delete:
+        | {
+            Args: { uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { content: string; content_type: string; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+      http_get:
+        | {
+            Args: { uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { data: Json; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+      http_head: {
+        Args: { uri: string }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      http_header: {
+        Args: { field: string; value: string }
+        Returns: Database["public"]["CompositeTypes"]["http_header"]
+        SetofOptions: {
+          from: "*"
+          to: "http_header"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      http_list_curlopt: {
+        Args: never
+        Returns: {
+          curlopt: string
+          value: string
+        }[]
+      }
+      http_patch: {
+        Args: { content: string; content_type: string; uri: string }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      http_post:
+        | {
+            Args: { content: string; content_type: string; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { data: Json; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+      http_put: {
+        Args: { content: string; content_type: string; uri: string }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      http_reset_curlopt: { Args: never; Returns: boolean }
+      http_set_curlopt: {
+        Args: { curlopt: string; value: string }
+        Returns: boolean
+      }
+      text_to_bytea: { Args: { data: string }; Returns: string }
+      urlencode:
+        | { Args: { data: Json }; Returns: string }
+        | {
+            Args: { string: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+        | {
+            Args: { string: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
     }
     Enums: {
       app_role: "admin" | "user"
       subscription_tier: "free" | "tier_1" | "tier_2"
     }
     CompositeTypes: {
-      [_ in never]: never
+      http_header: {
+        field: string | null
+        value: string | null
+      }
+      http_request: {
+        method: unknown
+        uri: string | null
+        headers: Database["public"]["CompositeTypes"]["http_header"][] | null
+        content_type: string | null
+        content: string | null
+      }
+      http_response: {
+        status: number | null
+        content_type: string | null
+        headers: Database["public"]["CompositeTypes"]["http_header"][] | null
+        content: string | null
+      }
     }
   }
 }
