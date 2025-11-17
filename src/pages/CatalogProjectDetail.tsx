@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, Edit, Loader2, Package, Grid3x3, List, GripVertical } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit, Loader2, Package, GripVertical } from "lucide-react";
 import { CatalogProductFormModal } from "@/components/CatalogProductFormModal";
 import { CatalogProductSectionFormModal } from "@/components/CatalogProductSectionFormModal";
 import {
@@ -66,7 +66,6 @@ export default function CatalogProjectDetail() {
   const [sectionModalOpen, setSectionModalOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | undefined>();
   const [editingSectionId, setEditingSectionId] = useState<string | undefined>();
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -349,24 +348,6 @@ export default function CatalogProjectDetail() {
           )}
         </div>
         <div className="flex gap-2">
-          <div className="flex items-center gap-1 border rounded-md p-1">
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'ghost'}
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setViewMode('grid')}
-            >
-              <Grid3x3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setViewMode('list')}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
           <Button variant="outline" onClick={handleNewSection}>
             <Plus className="w-4 h-4 mr-2" />
             Nueva Sección
@@ -397,43 +378,22 @@ export default function CatalogProjectDetail() {
           onDragEnd={handleDragEnd}
         >
           <SortableContext items={allItemIds} strategy={verticalListSortingStrategy}>
-            {viewMode === 'grid' ? (
-              <div className="space-y-6">
-                {items.map((item) => {
-                  if (item.type === 'section') {
-                    return <ProductSectionHeader key={item.id} section={item.data} onEdit={handleEditSection} onDelete={handleDeleteSection} />;
-                  } else {
-                    return (
-                      <SortableProductCard
-                        key={item.id}
-                        product={item.data}
-                        onEdit={handleEditProduct}
-                        onDelete={handleDeleteProduct}
-                        viewMode="grid"
-                      />
-                    );
-                  }
-                })}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {items.map((item) => {
-                  if (item.type === 'section') {
-                    return <ProductSectionHeader key={item.id} section={item.data} onEdit={handleEditSection} onDelete={handleDeleteSection} />;
-                  } else {
-                    return (
-                      <SortableProductCard
-                        key={item.id}
-                        product={item.data}
-                        onEdit={handleEditProduct}
-                        onDelete={handleDeleteProduct}
-                        viewMode="list"
-                      />
-                    );
-                  }
-                })}
-              </div>
-            )}
+            <div className="space-y-3">
+              {items.map((item) => (
+                <div key={item.id}>
+                  {item.type === 'section' ? (
+                    <ProductSectionHeader section={item.data} onEdit={handleEditSection} onDelete={handleDeleteSection} />
+                  ) : (
+                    <SortableProductCard
+                      product={item.data}
+                      onEdit={handleEditProduct}
+                      onDelete={handleDeleteProduct}
+                      viewMode="list"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
           </SortableContext>
           <DragOverlay>
             {activeId ? (
@@ -449,7 +409,7 @@ export default function CatalogProjectDetail() {
                     product={products.find(p => p.id === activeId)!}
                     onEdit={() => {}}
                     onDelete={() => {}}
-                    viewMode={viewMode}
+                    viewMode="list"
                   />
                 )}
               </div>

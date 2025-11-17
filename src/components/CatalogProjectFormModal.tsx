@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ interface ExistingProject {
 }
 
 export function CatalogProjectFormModal({ open, onOpenChange, catalogId, projectId, onSuccess }: CatalogProjectFormModalProps) {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [name, setName] = useState("");
@@ -106,8 +108,17 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') {
+    if (!user) {
+      toast.error("Debes estar autenticado para subir imágenes");
+      return;
+    }
+
+    // Validate file type - más flexible para diferentes navegadores
+    const validTypes = ['image/jpeg', 'image/jpg'];
+    const fileExtension = file.name.toLowerCase().split('.').pop();
+    const isValidType = validTypes.includes(file.type) || fileExtension === 'jpg' || fileExtension === 'jpeg';
+    
+    if (!isValidType) {
       toast.error("Solo se permiten imágenes JPG/JPEG");
       return;
     }
@@ -126,15 +137,31 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
 
       try {
         setUploading(true);
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `${fileName}`;
+        
+        // El path debe incluir el user_id como primer elemento para cumplir con las políticas RLS
+        const fileExt = file.name.split(".").pop()?.toLowerCase() || 'jpg';
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `${user.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from("catalog-images")
-          .upload(filePath, file);
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error("Upload error details:", uploadError);
+          // Mensajes de error más específicos
+          if (uploadError.message?.includes('already exists')) {
+            toast.error("Ya existe un archivo con ese nombre. Intenta con otro nombre.");
+          } else if (uploadError.message?.includes('policy')) {
+            toast.error("Error de permisos. Verifica que estés autenticado correctamente.");
+          } else {
+            toast.error(`Error al subir la imagen: ${uploadError.message || 'Error desconocido'}`);
+          }
+          return;
+        }
 
         const { data: { publicUrl } } = supabase.storage
           .from("catalog-images")
@@ -142,10 +169,10 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
 
         setImageUrl(publicUrl);
         setHasUnsavedChanges(true);
-        toast.success("Imagen subida");
-      } catch (error) {
+        toast.success("Imagen subida correctamente");
+      } catch (error: any) {
         console.error("Error uploading image:", error);
-        toast.error("Error al subir la imagen");
+        toast.error(`Error al subir la imagen: ${error?.message || 'Error desconocido'}`);
       } finally {
         setUploading(false);
       }
@@ -153,7 +180,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
 
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      toast.error("Error al cargar la imagen");
+      toast.error("Error al cargar la imagen. Verifica que sea un archivo de imagen válido.");
     };
 
     img.src = objectUrl;

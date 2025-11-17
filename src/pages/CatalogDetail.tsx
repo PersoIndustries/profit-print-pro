@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, Edit, Loader2, Image as ImageIcon, Eye, Grid3x3, List, GripVertical } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit, Loader2, Image as ImageIcon, Eye, GripVertical } from "lucide-react";
 import { CatalogProjectFormModal } from "@/components/CatalogProjectFormModal";
 import { CatalogPreviewModal } from "@/components/CatalogPreviewModal";
 import { CatalogSectionFormModal } from "@/components/CatalogSectionFormModal";
@@ -19,7 +19,6 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
-  useDroppable,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -65,8 +64,8 @@ export default function CatalogDetail() {
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<string | undefined>();
   const [editingSectionId, setEditingSectionId] = useState<string | undefined>();
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeItem, setActiveItem] = useState<CatalogItem | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const sensors = useSensors(
@@ -232,22 +231,40 @@ export default function CatalogDetail() {
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
+    const draggedItem = items.find(item => item.id === event.active.id) || null;
+    setActiveItem(draggedItem);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
+    setActiveItem(null);
 
     if (!over || active.id === over.id) return;
 
     const activeIndex = items.findIndex(item => item.id === active.id);
     const overIndex = items.findIndex(item => item.id === over.id);
+    const overItem = items.find(item => item.id === over.id);
 
     if (activeIndex === -1 || overIndex === -1) return;
 
+    let destinationIndex = overIndex;
+
+    if (activeItem?.type === 'project' && overItem?.type === 'section') {
+      destinationIndex = overIndex + 1;
+    }
+
     const newItems = [...items];
     const [removed] = newItems.splice(activeIndex, 1);
-    newItems.splice(overIndex, 0, removed);
+
+    if (activeIndex < destinationIndex) {
+      destinationIndex -= 1;
+    }
+
+    if (destinationIndex < 0) destinationIndex = 0;
+    if (destinationIndex > newItems.length) destinationIndex = newItems.length;
+
+    newItems.splice(destinationIndex, 0, removed);
 
     setItems(newItems);
     await saveOrder(newItems);
@@ -345,24 +362,6 @@ export default function CatalogDetail() {
           <p className="text-muted-foreground">Proyectos del catálogo</p>
         </div>
         <div className="flex gap-2">
-          <div className="flex items-center gap-1 border rounded-md p-1">
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'ghost'}
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setViewMode('grid')}
-            >
-              <Grid3x3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setViewMode('list')}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
           <Button variant="outline" onClick={() => setPreviewModalOpen(true)}>
             <Eye className="w-4 h-4 mr-2" />
             Vista Previa
@@ -397,62 +396,40 @@ export default function CatalogDetail() {
           onDragEnd={handleDragEnd}
         >
           <SortableContext items={allItemIds} strategy={verticalListSortingStrategy}>
-            {viewMode === 'grid' ? (
-              <div className="space-y-6">
-                {items.map((item) => {
-                  if (item.type === 'section') {
-                    return <SectionHeader key={item.id} section={item.data} onEdit={handleEditSection} onDelete={handleDeleteSection} />;
-                  } else {
-                    return (
-                      <SortableProjectCard
-                        key={item.id}
-                        project={item.data}
-                        onEdit={handleEditProject}
-                        onDelete={handleDeleteProject}
-                        onViewProducts={handleViewProducts}
-                        viewMode="grid"
-                      />
-                    );
-                  }
-                })}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {items.map((item) => {
-                  if (item.type === 'section') {
-                    return <SectionHeader key={item.id} section={item.data} onEdit={handleEditSection} onDelete={handleDeleteSection} />;
-                  } else {
-                    return (
-                      <SortableProjectCard
-                        key={item.id}
-                        project={item.data}
-                        onEdit={handleEditProject}
-                        onDelete={handleDeleteProject}
-                        onViewProducts={handleViewProducts}
-                        viewMode="list"
-                      />
-                    );
-                  }
-                })}
-              </div>
-            )}
+            <div className="space-y-3">
+              {items.map((item) => (
+                <div key={item.id}>
+                  {item.type === 'section' ? (
+                    <SectionHeader section={item.data} onEdit={handleEditSection} onDelete={handleDeleteSection} />
+                  ) : (
+                    <SortableProjectCard
+                      project={item.data}
+                      onEdit={handleEditProject}
+                      onDelete={handleDeleteProject}
+                      onViewProducts={handleViewProducts}
+                      viewMode="list"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
           </SortableContext>
           <DragOverlay>
-            {activeId ? (
+            {activeItem ? (
               <div className="opacity-50">
-                {items.find(item => item.id === activeId)?.type === 'section' ? (
+                {activeItem.type === 'section' ? (
                   <SectionHeader
-                    section={sections.find(s => s.id === activeId)!}
+                    section={activeItem.data as CatalogSection}
                     onEdit={() => {}}
                     onDelete={() => {}}
                   />
                 ) : (
                   <ProjectCard
-                    project={projects.find(p => p.id === activeId)!}
+                    project={activeItem.data as CatalogProject}
                     onEdit={() => {}}
                     onDelete={() => {}}
                     onViewProducts={() => {}}
-                    viewMode={viewMode}
+                    viewMode="list"
                   />
                 )}
               </div>
@@ -598,7 +575,7 @@ function ProjectCard({ project, onEdit, onDelete, onViewProducts, viewMode, styl
   const cardContent = viewMode === 'grid' ? (
     <>
       {project.image_url && (
-        <div className="aspect-video w-full overflow-hidden rounded-t-lg">
+        <div className="w-full h-40 overflow-hidden rounded-t-lg bg-muted">
           <img
             src={project.image_url}
             alt={project.name}
