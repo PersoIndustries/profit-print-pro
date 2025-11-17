@@ -175,19 +175,60 @@ const Settings = () => {
   };
 
   const handleCancelSubscription = async () => {
-    if (!confirm("Are you sure you want to cancel your subscription? You will lose access to premium features.")) {
+    // Si tiene un código promocional aplicado con suscripción permanente, prevenir cancelación
+    if (appliedPromoCode && appliedPromoCode.is_permanent) {
+      toast.error(
+        "No puedes cancelar una suscripción obtenida mediante código promocional permanente. " +
+        "Si necesitas ayuda, contacta con soporte."
+      );
       return;
     }
 
+    // Si tiene código promocional pero no es permanente, advertir
+    if (appliedPromoCode && !appliedPromoCode.is_permanent) {
+      const confirmMessage = 
+        `Tienes un código promocional aplicado (${appliedPromoCode.code}). ` +
+        "Si cancelas, perderás el acceso premium. ¿Estás seguro?";
+      if (!confirm(confirmMessage)) {
+        return;
+      }
+    } else {
+      if (!confirm("Are you sure you want to cancel your subscription? You will lose access to premium features.")) {
+        return;
+      }
+    }
+
     try {
+      // Si tiene código promocional, cambiar a free tier
+      // Si no tiene código promocional, solo cambiar status
+      const updateData = appliedPromoCode 
+        ? { status: 'cancelled', tier: 'free' }
+        : { status: 'cancelled' };
+
       const { error } = await supabase
         .from("user_subscriptions")
-        .update({ status: 'cancelled' })
+        .update(updateData)
         .eq("user_id", user?.id);
 
       if (error) throw error;
+
+      // Log the change
+      if (subscriptionInfo) {
+        await supabase
+          .from("subscription_changes")
+          .insert({
+            user_id: user?.id,
+            previous_tier: subscriptionInfo.tier,
+            new_tier: appliedPromoCode ? 'free' : subscriptionInfo.tier,
+            change_type: 'cancel',
+            reason: appliedPromoCode 
+              ? `Suscripción cancelada. Código promocional ${appliedPromoCode.code} revocado.`
+              : 'Suscripción cancelada por el usuario'
+          });
+      }
+
       toast.success("Subscription cancelled");
-      fetchData();
+      await fetchData();
     } catch (error: any) {
       console.error("Error cancelling subscription:", error);
       toast.error(error.message || "Error cancelling subscription");
