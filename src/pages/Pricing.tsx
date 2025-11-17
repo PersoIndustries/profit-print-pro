@@ -174,15 +174,8 @@ const Pricing = () => {
     },
     {
       category: 'Herramientas',
-      feature: 'Calculadora de costes',
+      feature: 'Calculadora',
       free: true,
-      tier1: true,
-      tier2: true
-    },
-    {
-      category: 'Herramientas',
-      feature: 'Calculadora avanzada',
-      free: false,
       tier1: true,
       tier2: true
     },
@@ -209,6 +202,20 @@ const Pricing = () => {
     },
     {
       category: 'Catálogos',
+      feature: 'Plantillas',
+      free: '2026?',
+      tier1: '2026?',
+      tier2: '2026?'
+    },
+    {
+      category: 'Catálogos',
+      feature: 'Plantillas premium',
+      free: false,
+      tier1: false,
+      tier2: '2026?'
+    },
+    {
+      category: 'Catálogos',
       feature: 'Secciones y organización',
       free: false,
       tier1: true,
@@ -230,7 +237,7 @@ const Pricing = () => {
     },
     {
       category: 'Soporte',
-      feature: 'Soporte dedicado 24/7',
+      feature: 'Soporte dedicado',
       free: false,
       tier1: false,
       tier2: true
@@ -238,16 +245,16 @@ const Pricing = () => {
     {
       category: 'Empresa',
       feature: 'Marca personalizada',
-      free: false,
-      tier1: false,
-      tier2: true
+      free: 'Coming soon',
+      tier1: 'Coming soon',
+      tier2: 'Coming soon'
     },
     {
       category: 'Empresa',
       feature: 'Colaboración en equipo',
-      free: false,
-      tier1: false,
-      tier2: true
+      free: '2026?',
+      tier1: '2026?',
+      tier2: '2026?'
     },
     {
       category: 'Empresa',
@@ -255,6 +262,27 @@ const Pricing = () => {
       free: false,
       tier1: false,
       tier2: '2026?'
+    },
+    {
+      category: 'Inventario',
+      feature: 'Histórico de inventario',
+      free: false,
+      tier1: true,
+      tier2: true
+    },
+    {
+      category: 'Inventario',
+      feature: 'Cálculo automático de stock y consumos',
+      free: false,
+      tier1: true,
+      tier2: true
+    },
+    {
+      category: 'Inventario',
+      feature: 'Stock de máquinas y alertas de mantenimiento',
+      free: false,
+      tier1: 'Coming soon',
+      tier2: 'Coming soon'
     },
     {
       category: 'Seguridad',
@@ -280,9 +308,9 @@ const Pricing = () => {
     {
       category: 'Seguridad',
       feature: 'Autenticación de dos factores',
-      free: true,
-      tier1: true,
-      tier2: true
+      free: '2026?',
+      tier1: '2026?',
+      tier2: '2026?'
     }
   ];
 
