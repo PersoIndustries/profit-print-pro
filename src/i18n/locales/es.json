@@ -934,7 +934,7 @@
       "errorDeletingPrinter": "Error al eliminar impresora"
     },
     "tabs": {
-      "materials": "Materiales",
+      "materials": "Stock",
       "acquisitions": "Adquisiciones",
       "movements": "Movimientos",
       "printers": "Impresoras",

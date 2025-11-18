@@ -934,7 +934,7 @@
       "errorDeletingPrinter": "Error deleting printer"
     },
     "tabs": {
-      "materials": "Materials",
+      "materials": "Stock",
       "acquisitions": "Acquisitions",
       "movements": "Movements",
       "printers": "Printers",

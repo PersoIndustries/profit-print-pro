@@ -923,7 +923,7 @@
       "errorDeletingPrinter": "Erreur lors de la suppression de l'imprimante"
     },
     "tabs": {
-      "materials": "Matériaux",
+      "materials": "Stock",
       "acquisitions": "Acquisitions",
       "movements": "Mouvements",
       "printers": "Imprimantes",
