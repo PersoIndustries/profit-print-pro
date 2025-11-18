@@ -853,6 +853,14 @@
     "upgradeMessage": "Upgrade now to continue enjoying all premium features",
     "upgradeNow": "View Plans"
   },
+  "gracePeriod": {
+    "lastDay": "Last day: Your images will be deleted tomorrow",
+    "finalWeek": "⚠️ {{days}} days left before your images are deleted",
+    "warning": "Your images will be deleted in {{days}} days",
+    "readOnlyMode": "You are in read-only mode. You cannot create new projects or orders.",
+    "preventDeletion": "Reactivate your {{tier}} subscription or higher to prevent image deletion and restore full access.",
+    "reactivate": "Reactivate Subscription"
+  },
   "inventory": {
     "title": "Inventory",
     "addMaterial": "Add Material",

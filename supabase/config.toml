@@ -2,3 +2,6 @@ project_id = "qjacgxvzjfjxytfggqro"
 
 [functions.check-expired-trials]
 verify_jwt = false
+
+[functions.cleanup-grace-period-images]
+verify_jwt = false
