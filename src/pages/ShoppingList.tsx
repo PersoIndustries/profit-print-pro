@@ -106,7 +106,7 @@ export default function ShoppingListPage() {
       }
     } catch (error) {
       console.error("Error fetching lists:", error);
-      toast.error("Error al cargar las listas");
+      toast.error(t('shoppingList.messages.errorLoadingLists'));
     } finally {
       setLoading(false);
     }
@@ -126,13 +126,13 @@ export default function ShoppingListPage() {
       setItems(data || []);
     } catch (error) {
       console.error("Error fetching shopping list:", error);
-      toast.error("Error al cargar los items");
+      toast.error(t('shoppingList.messages.errorLoadingItems'));
     }
   };
 
   const handleSaveList = async () => {
     if (!formListName.trim()) {
-      toast.error("El nombre de la lista es obligatorio");
+      toast.error(t('shoppingList.messages.listNameRequired'));
       return;
     }
 
@@ -149,7 +149,7 @@ export default function ShoppingListPage() {
           .eq("id", editingList.id);
 
         if (error) throw error;
-        toast.success("Lista actualizada correctamente");
+        toast.success(t('shoppingList.messages.listUpdated'));
       } else {
         const { error } = await supabase
           .from("shopping_lists")
@@ -159,7 +159,7 @@ export default function ShoppingListPage() {
           });
 
         if (error) throw error;
-        toast.success("Lista creada correctamente");
+        toast.success(t('shoppingList.messages.listCreated'));
       }
 
       setIsListFormOpen(false);
@@ -168,12 +168,12 @@ export default function ShoppingListPage() {
       fetchLists();
     } catch (error: any) {
       console.error("Error saving list:", error);
-      toast.error(error.message || "Error al guardar la lista");
+      toast.error(error.message || t('shoppingList.messages.errorSavingList'));
     }
   };
 
   const handleDeleteList = async (listId: string) => {
-    if (!confirm("¿Estás seguro de que quieres eliminar esta lista? Se eliminarán todos sus items.")) {
+    if (!confirm(t('shoppingList.confirmDeleteList'))) {
       return;
     }
 
@@ -184,7 +184,7 @@ export default function ShoppingListPage() {
         .eq("id", listId);
 
       if (error) throw error;
-      toast.success("Lista eliminada");
+      toast.success(t('shoppingList.messages.listDeleted'));
       
       // Si se eliminó la lista seleccionada, seleccionar otra o ninguna
       if (selectedListId === listId) {
@@ -195,18 +195,18 @@ export default function ShoppingListPage() {
       fetchLists();
     } catch (error) {
       console.error("Error deleting list:", error);
-      toast.error("Error al eliminar la lista");
+      toast.error(t('shoppingList.messages.errorDeletingList'));
     }
   };
 
   const handleSave = async () => {
     if (!formName.trim()) {
-      toast.error("El nombre es obligatorio");
+      toast.error(t('shoppingList.messages.nameRequired'));
       return;
     }
 
     if (!selectedListId) {
-      toast.error("Debes seleccionar una lista primero");
+      toast.error(t('shoppingList.messages.selectListFirst'));
       return;
     }
 
@@ -227,7 +227,7 @@ export default function ShoppingListPage() {
           .eq("id", editingItem.id);
 
         if (error) throw error;
-        toast.success("Item actualizado correctamente");
+        toast.success(t('shoppingList.messages.itemUpdated'));
       } else {
         const { error } = await supabase
           .from("shopping_list")
@@ -241,7 +241,7 @@ export default function ShoppingListPage() {
           });
 
         if (error) throw error;
-        toast.success("Item agregado a la lista");
+        toast.success(t('shoppingList.messages.itemAdded'));
       }
 
       setIsFormOpen(false);
@@ -249,7 +249,7 @@ export default function ShoppingListPage() {
       fetchItems();
     } catch (error) {
       console.error("Error saving item:", error);
-      toast.error("Error al guardar el item");
+      toast.error(t('shoppingList.messages.errorSavingItem'));
     }
   };
 
@@ -261,11 +261,11 @@ export default function ShoppingListPage() {
         .eq("id", id);
 
       if (error) throw error;
-      toast.success("Item eliminado");
+      toast.success(t('shoppingList.messages.itemDeleted'));
       fetchItems();
     } catch (error) {
       console.error("Error deleting item:", error);
-      toast.error("Error al eliminar el item");
+      toast.error(t('shoppingList.messages.errorDeletingItem'));
     }
   };
 
@@ -280,7 +280,7 @@ export default function ShoppingListPage() {
       fetchItems();
     } catch (error) {
       console.error("Error updating item:", error);
-      toast.error("Error al actualizar el item");
+      toast.error(t('shoppingList.messages.errorUpdatingItem'));
     }
   };
 
@@ -291,7 +291,7 @@ export default function ShoppingListPage() {
 
   const handleNewItem = () => {
     if (!selectedListId) {
-      toast.error("Debes seleccionar una lista primero");
+      toast.error(t('shoppingList.messages.selectListFirst'));
       return;
     }
     setEditingItem(null);
@@ -318,7 +318,7 @@ export default function ShoppingListPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Cargando listas...</p>
+          <p className="text-muted-foreground">{t('shoppingList.loading')}</p>
         </div>
       </div>
     );
@@ -330,20 +330,20 @@ export default function ShoppingListPage() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <ShoppingCart className="w-8 h-8" />
-            Lista de la Compra
+            {t('shoppingList.title')}
           </h1>
           <p className="text-muted-foreground mt-2">
-            Organiza tus compras en múltiples listas
+            {t('shoppingList.subtitle')}
           </p>
         </div>
         <div className="flex gap-2">
           <Button onClick={handleNewList} variant="outline">
             <List className="w-4 h-4 mr-2" />
-            Nueva Lista
+            {t('shoppingList.newList')}
           </Button>
           <Button onClick={handleNewItem} disabled={!selectedListId}>
             <Plus className="w-4 h-4 mr-2" />
-            Agregar Item
+            {t('shoppingList.addItem')}
           </Button>
         </div>
       </div>
@@ -352,10 +352,10 @@ export default function ShoppingListPage() {
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
-            <label className="text-sm font-medium whitespace-nowrap">Lista:</label>
+            <label className="text-sm font-medium whitespace-nowrap">{t('shoppingList.listLabel')}</label>
             <Select value={selectedListId || ""} onValueChange={setSelectedListId}>
               <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Selecciona una lista" />
+                <SelectValue placeholder={t('shoppingList.selectList')} />
               </SelectTrigger>
               <SelectContent>
                 {lists.map((list) => (
@@ -375,14 +375,14 @@ export default function ShoppingListPage() {
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => handleEditList(selectedList)}>
                     <Edit className="w-4 h-4 mr-2" />
-                    Editar Lista
+                    {t('shoppingList.editList')}
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => handleDeleteList(selectedList.id)}
                     className="text-destructive"
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Eliminar Lista
+                    {t('shoppingList.deleteList')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -395,11 +395,11 @@ export default function ShoppingListPage() {
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <List className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg mb-2">No tienes listas creadas</p>
-            <p className="text-sm mb-4">Crea tu primera lista para comenzar</p>
+            <p className="text-lg mb-2">{t('shoppingList.noLists')}</p>
+            <p className="text-sm mb-4">{t('shoppingList.createFirstList')}</p>
             <Button onClick={handleNewList} variant="outline">
               <Plus className="w-4 h-4 mr-2" />
-              Crear primera lista
+              {t('shoppingList.createFirstListButton')}
             </Button>
           </CardContent>
         </Card>
@@ -407,19 +407,19 @@ export default function ShoppingListPage() {
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <ShoppingCart className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg mb-2">Selecciona una lista</p>
-            <p className="text-sm mb-4">Elige una lista de la compra para ver sus items</p>
+            <p className="text-lg mb-2">{t('shoppingList.selectListMessage')}</p>
+            <p className="text-sm mb-4">{t('shoppingList.selectListDescription')}</p>
           </CardContent>
         </Card>
       ) : items.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <ShoppingCart className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg mb-2">La lista "{selectedList?.name}" está vacía</p>
-            <p className="text-sm mb-4">Agrega items a esta lista</p>
+            <p className="text-lg mb-2">{t('shoppingList.emptyList', { name: selectedList?.name })}</p>
+            <p className="text-sm mb-4">{t('shoppingList.addItemsToList')}</p>
             <Button onClick={handleNewItem} variant="outline">
               <Plus className="w-4 h-4 mr-2" />
-              Agregar primer item
+              {t('shoppingList.addFirstItem')}
             </Button>
           </CardContent>
         </Card>
@@ -430,7 +430,7 @@ export default function ShoppingListPage() {
             <Card className="bg-primary/5 border-primary/20">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Precio total estimado:</span>
+                  <span className="text-sm font-medium">{t('shoppingList.totalEstimatedPrice')}</span>
                   <span className="text-lg font-bold text-primary flex items-center gap-1">
                     <Euro className="w-4 h-4" />
                     {totalEstimatedPrice.toFixed(2)} €
@@ -443,7 +443,7 @@ export default function ShoppingListPage() {
           {/* Items pendientes */}
           {pendingItems.length > 0 && (
             <div>
-              <h2 className="text-xl font-semibold mb-4">Pendientes ({pendingItems.length})</h2>
+              <h2 className="text-xl font-semibold mb-4">{t('shoppingList.pending')} ({pendingItems.length})</h2>
               <div className="grid gap-4">
                 {pendingItems.map((item) => (
                   <Card key={item.id} className="hover:shadow-md transition-shadow">
@@ -464,13 +464,13 @@ export default function ShoppingListPage() {
                             <h3 className="font-semibold text-lg">{item.name}</h3>
                             {item.quantity && (
                               <p className="text-sm text-muted-foreground mt-1">
-                                Cantidad: {item.quantity}
+                                {t('shoppingList.quantity')}: {item.quantity}
                               </p>
                             )}
                             {item.estimated_price && (
                               <p className="text-sm font-medium text-primary mt-1 flex items-center gap-1">
                                 <Euro className="w-3 h-3" />
-                                Precio estimado: {item.estimated_price.toFixed(2)} €
+                                {t('shoppingList.estimatedPrice')}: {item.estimated_price.toFixed(2)} €
                               </p>
                             )}
                             {item.notes && (
@@ -506,7 +506,7 @@ export default function ShoppingListPage() {
           {completedItems.length > 0 && (
             <div>
               <h2 className="text-xl font-semibold mb-4 text-muted-foreground">
-                Completados ({completedItems.length})
+                {t('shoppingList.completed')} ({completedItems.length})
               </h2>
               <div className="grid gap-4">
                 {completedItems.map((item) => (
@@ -528,13 +528,13 @@ export default function ShoppingListPage() {
                             <h3 className="font-semibold text-lg line-through">{item.name}</h3>
                             {item.quantity && (
                               <p className="text-sm text-muted-foreground mt-1">
-                                Cantidad: {item.quantity}
+                                {t('shoppingList.quantity')}: {item.quantity}
                               </p>
                             )}
                             {item.estimated_price && (
                               <p className="text-sm font-medium text-primary mt-1 flex items-center gap-1 line-through">
                                 <Euro className="w-3 h-3" />
-                                Precio estimado: {item.estimated_price.toFixed(2)} €
+                                {t('shoppingList.estimatedPrice')}: {item.estimated_price.toFixed(2)} €
                               </p>
                             )}
                             {item.notes && (
@@ -573,52 +573,52 @@ export default function ShoppingListPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingItem ? "Editar Item" : "Agregar Item"}
+              {editingItem ? t('shoppingList.editItem') : t('shoppingList.addItem')}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Nombre *</label>
+              <label className="text-sm font-medium">{t('shoppingList.nameLabel')}</label>
               <Input
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                placeholder="Ej: Filamento PLA rojo"
+                placeholder={t('shoppingList.itemNamePlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Cantidad</label>
+              <label className="text-sm font-medium">{t('shoppingList.quantity')}</label>
               <Input
                 value={formQuantity}
                 onChange={(e) => setFormQuantity(e.target.value)}
-                placeholder="Ej: 1 kg, 2 unidades"
+                placeholder={t('shoppingList.quantityPlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Precio Estimado (€)</label>
+              <label className="text-sm font-medium">{t('shoppingList.estimatedPriceLabel')}</label>
               <Input
                 type="number"
                 step="0.01"
                 min="0"
                 value={formEstimatedPrice}
                 onChange={(e) => setFormEstimatedPrice(e.target.value)}
-                placeholder="Ej: 25.50"
+                placeholder={t('shoppingList.pricePlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Notas</label>
+              <label className="text-sm font-medium">{t('shoppingList.notes')}</label>
               <Input
                 value={formNotes}
                 onChange={(e) => setFormNotes(e.target.value)}
-                placeholder="Notas adicionales..."
+                placeholder={t('shoppingList.notesPlaceholder')}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsFormOpen(false)}>
-              Cancelar
+              {t('shoppingList.cancel')}
             </Button>
             <Button onClick={handleSave}>
-              {editingItem ? "Guardar" : "Agregar"}
+              {editingItem ? t('shoppingList.save') : t('shoppingList.add')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -629,25 +629,25 @@ export default function ShoppingListPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingList ? "Editar Lista" : "Nueva Lista"}
+              {editingList ? t('shoppingList.editList') : t('shoppingList.newList')}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Nombre de la Lista *</label>
+              <label className="text-sm font-medium">{t('shoppingList.listNameLabel')}</label>
               <Input
                 value={formListName}
                 onChange={(e) => setFormListName(e.target.value)}
-                placeholder="Ej: Compra del mes, Materiales 3D, etc."
+                placeholder={t('shoppingList.listNamePlaceholder')}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsListFormOpen(false)}>
-              Cancelar
+              {t('shoppingList.cancel')}
             </Button>
             <Button onClick={handleSaveList}>
-              {editingList ? "Guardar" : "Crear"}
+              {editingList ? t('shoppingList.save') : t('shoppingList.create')}
             </Button>
           </DialogFooter>
         </DialogContent>

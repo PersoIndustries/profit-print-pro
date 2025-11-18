@@ -534,20 +534,20 @@ const Inventory = () => {
     }
 
     // Validar que haya un nombre para el item
-    if (!shoppingListItemName.trim()) {
-      toast.error("El nombre del material es requerido");
-      return;
-    }
+        if (!shoppingListItemName.trim()) {
+          toast.error(t('shoppingList.addToShoppingList.errors.materialNameRequired'));
+          return;
+        }
 
     try {
       let listId = selectedShoppingListId;
 
       // Si no hay lista seleccionada, crear una nueva
       if (!listId) {
-        if (!newShoppingListName.trim()) {
-          toast.error("Debes crear una lista o seleccionar una existente");
-          return;
-        }
+            if (!newShoppingListName.trim()) {
+              toast.error(t('shoppingList.addToShoppingList.errors.mustCreateOrSelect'));
+              return;
+            }
 
         // Crear nueva lista
         if (!user) {
@@ -588,7 +588,7 @@ const Inventory = () => {
         });
 
       if (error) throw error;
-      toast.success("Material agregado a la lista de compra");
+          toast.success(t('shoppingList.addToShoppingList.success'));
       setIsAddToShoppingListDialogOpen(false);
       setSelectedMaterialForShoppingList(null);
       setSelectedShoppingListId("");
@@ -2002,16 +2002,16 @@ const Inventory = () => {
       <Dialog open={isAddToShoppingListDialogOpen} onOpenChange={setIsAddToShoppingListDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Agregar a Lista de Compra</DialogTitle>
+            <DialogTitle>{t('shoppingList.addToShoppingList.title')}</DialogTitle>
             <DialogDescription>
-              Agrega el material a una lista de compra. Puedes editar los detalles antes de agregarlo.
+              {t('shoppingList.addToShoppingList.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {/* Selección de lista o creación de nueva */}
             {shoppingLists.length > 0 ? (
               <div className="space-y-2">
-                <Label>Selecciona una lista</Label>
+                <Label>{t('shoppingList.addToShoppingList.selectList')}</Label>
                 <Select
                   value={selectedShoppingListId}
                   onValueChange={(value) => {
@@ -2020,7 +2020,7 @@ const Inventory = () => {
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una lista" />
+                    <SelectValue placeholder={t('shoppingList.addToShoppingList.selectList')} />
                   </SelectTrigger>
                   <SelectContent>
                     {shoppingLists.map((list) => (
@@ -2030,11 +2030,11 @@ const Inventory = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                <div className="text-center text-sm text-muted-foreground">o</div>
+                <div className="text-center text-sm text-muted-foreground">{t('shoppingList.addToShoppingList.or')}</div>
                 <div className="space-y-2">
-                  <Label>Crear nueva lista</Label>
+                  <Label>{t('shoppingList.addToShoppingList.createNewList')}</Label>
                   <Input
-                    placeholder="Nombre de la nueva lista"
+                    placeholder={t('shoppingList.addToShoppingList.newListNamePlaceholder')}
                     value={newShoppingListName}
                     onChange={(e) => {
                       setNewShoppingListName(e.target.value);
@@ -2045,14 +2045,14 @@ const Inventory = () => {
               </div>
             ) : (
               <div className="space-y-2">
-                <Label>Crear nueva lista *</Label>
+                <Label>{t('shoppingList.addToShoppingList.createNewListRequired')}</Label>
                 <Input
-                  placeholder="Nombre de la nueva lista"
+                  placeholder={t('shoppingList.addToShoppingList.newListNamePlaceholder')}
                   value={newShoppingListName}
                   onChange={(e) => setNewShoppingListName(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  No tienes listas de compra. Crea una nueva para agregar este material.
+                  {t('shoppingList.addToShoppingList.noListsMessage')}
                 </p>
               </div>
             )}
@@ -2060,16 +2060,16 @@ const Inventory = () => {
             {/* Campos editables del material */}
             <div className="space-y-4 pt-2 border-t">
               <div className="space-y-2">
-                <Label>Nombre del material *</Label>
+                <Label>{t('shoppingList.addToShoppingList.materialName')}</Label>
                 <Input
                   value={shoppingListItemName}
                   onChange={(e) => setShoppingListItemName(e.target.value)}
-                  placeholder="Nombre del material"
+                  placeholder={t('shoppingList.addToShoppingList.materialNamePlaceholder')}
                 />
               </div>
               
               <div className="space-y-2">
-                <Label>Cantidad</Label>
+                <Label>{t('shoppingList.addToShoppingList.quantity')}</Label>
                 <Input
                   value={shoppingListItemQuantity}
                   onChange={(e) => {
@@ -2086,12 +2086,12 @@ const Inventory = () => {
                       }
                     }
                   }}
-                  placeholder="Ej: 1 kg, 500 g, etc."
+                  placeholder={t('shoppingList.addToShoppingList.quantityPlaceholder')}
                 />
               </div>
               
               <div className="space-y-2">
-                <Label>Precio estimado (€)</Label>
+                <Label>{t('shoppingList.addToShoppingList.estimatedPrice')}</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -2101,7 +2101,7 @@ const Inventory = () => {
                 />
                 {selectedMaterialForShoppingList && (
                   <p className="text-xs text-muted-foreground">
-                    Precio por kg: {selectedMaterialForShoppingList.price_per_kg.toFixed(2)} €
+                    {t('shoppingList.addToShoppingList.pricePerKg')}: {selectedMaterialForShoppingList.price_per_kg.toFixed(2)} €
                   </p>
                 )}
               </div>
@@ -2120,14 +2120,14 @@ const Inventory = () => {
                 setShoppingListItemEstimatedPrice("");
               }}
             >
-              Cancelar
+              {t('shoppingList.addToShoppingList.cancel')}
             </Button>
             <Button
               onClick={handleSaveToShoppingList}
               disabled={!shoppingListItemName.trim() || (!selectedShoppingListId && !newShoppingListName.trim())}
             >
               <ListPlus className="w-4 h-4 mr-2" />
-              Agregar a Lista
+              {t('shoppingList.addToShoppingList.addToList')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -62,7 +62,7 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
               {t('nav.home')}
             </Button>
             <Button variant="ghost" onClick={() => navigate('/about')}>
-              Acerca de
+              {t('nav.about')}
             </Button>
             <Button variant="ghost" onClick={() => navigate('/pricing')}>
               {t('nav.pricing')}
@@ -88,7 +88,7 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
               {t('nav.home')}
             </Button>
             <Button variant="ghost" onClick={() => navigate('/about')}>
-              Acerca de
+              {t('nav.about')}
             </Button>
             <Button variant="ghost" onClick={() => navigate('/pricing')}>
               {t('nav.pricing')}
@@ -146,18 +146,18 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
                 variant={isActiveInGroup(['/inventory', '/shopping-list']) ? 'default' : 'ghost'}
               >
                 <Package className="w-4 h-4 mr-2" />
-                Materiales
+                {t('nav.materials')}
                 <ChevronDown className="w-4 h-4 ml-2" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuItem onClick={() => navigate('/inventory')}>
                 <Package className="w-4 h-4 mr-2" />
-                Inventario
+                {t('nav.inventory')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate('/shopping-list')}>
                 <ShoppingCart className="w-4 h-4 mr-2" />
-                Lista de la Compra
+                {t('nav.shoppingList')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -169,7 +169,7 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
                 variant={isActiveInGroup(['/projects', '/calculator', '/catalogs']) ? 'default' : 'ghost'}
               >
                 <FolderKanban className="w-4 h-4 mr-2" />
-                Proyectos
+                {t('nav.projects')}
                 <ChevronDown className="w-4 h-4 ml-2" />
               </Button>
             </DropdownMenuTrigger>
@@ -185,7 +185,7 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
               {(isPro || isEnterprise) && (
                 <DropdownMenuItem onClick={() => navigate('/catalogs')}>
                   <BookOpen className="w-4 h-4 mr-2" />
-                  Catálogos
+                  {t('nav.catalogs')}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -198,7 +198,7 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
                 variant={isActiveInGroup(['/orders', '/prints']) ? 'default' : 'ghost'}
               >
                 <FileText className="w-4 h-4 mr-2" />
-                Operaciones
+                {t('nav.operations')}
                 <ChevronDown className="w-4 h-4 ml-2" />
               </Button>
             </DropdownMenuTrigger>
@@ -209,7 +209,7 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate('/prints')}>
                 <Printer className="w-4 h-4 mr-2" />
-                Impresiones
+                {t('nav.prints')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
