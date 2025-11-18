@@ -300,8 +300,8 @@ const Settings = () => {
     try {
       // Si tiene código promocional, cambiar a free tier
       // Si no tiene código promocional, solo cambiar status
-      const updateData = appliedPromoCode 
-        ? { status: 'cancelled', tier: 'free' }
+      const updateData: any = appliedPromoCode 
+        ? { status: 'cancelled', tier: 'free' as const }
         : { status: 'cancelled' };
 
       const { error } = await supabase
@@ -313,17 +313,19 @@ const Settings = () => {
 
       // Log the change
       if (subscriptionInfo) {
+        const changeData: any = {
+          user_id: user?.id,
+          previous_tier: subscriptionInfo.tier,
+          new_tier: appliedPromoCode ? ('free' as const) : subscriptionInfo.tier,
+          change_type: 'cancel',
+          reason: appliedPromoCode 
+            ? `Suscripción cancelada. Código promocional ${appliedPromoCode.code} revocado.`
+            : 'Suscripción cancelada por el usuario'
+        };
+        
         await supabase
           .from("subscription_changes")
-          .insert({
-            user_id: user?.id,
-            previous_tier: subscriptionInfo.tier,
-            new_tier: appliedPromoCode ? 'free' : subscriptionInfo.tier,
-            change_type: 'cancel',
-            reason: appliedPromoCode 
-              ? `Suscripción cancelada. Código promocional ${appliedPromoCode.code} revocado.`
-              : 'Suscripción cancelada por el usuario'
-          });
+          .insert(changeData);
       }
 
       toast.success(t('settings.messages.subscriptionCancelled'));

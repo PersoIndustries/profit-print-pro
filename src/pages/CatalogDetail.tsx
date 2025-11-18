@@ -605,6 +605,7 @@ function SectionCard({
   expandedProjects: Set<string>;
   onToggleProject: (projectId: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Card className="bg-muted/30">
       <CardHeader className="pb-3">
@@ -685,6 +686,7 @@ function ProjectCard({
   onDeleteProduct: (productId: string) => void;
   onNewProductSection: (projectId: string) => void;
 }) {
+  const { t } = useTranslation();
   const hasProducts = project.products && project.products.length > 0;
 
   return (

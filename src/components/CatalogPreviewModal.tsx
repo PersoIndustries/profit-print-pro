@@ -206,7 +206,7 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
           rightColumnY += 7;
 
           // Products rows
-          project.products.forEach((product) => {
+          for (const product of project.products) {
             // Check if we need a new page for this product
             if (rightColumnY > pageHeight - margin - 10) {
               pdf.addPage();
@@ -263,7 +263,7 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
             pdf.text(`${product.price.toFixed(2)} €`, rightColumnStartX + rightColumnWidth - 25, rightColumnY, { align: "right" });
             
             rightColumnY += Math.max(5, nameLines.length * 3.5 + 1);
-          });
+          }
         }
 
         // Update yPosition to the bottom of the tallest column
