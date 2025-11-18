@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, ShoppingCart, History, Trash, Edit, Star, Info, Disc, Droplet, KeyRound, Wrench, Paintbrush, FileBox, Package, PackagePlus, Printer, ListPlus } from "lucide-react";
+import { Loader2, Plus, ShoppingCart, History, Trash, Edit, Star, Info, Disc, Droplet, KeyRound, Wrench, Paintbrush, FileBox, Package, PackagePlus, Printer, ListPlus, ArrowUpDown, ArrowUp, ArrowDown, Search, Filter, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -130,6 +130,18 @@ const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [showLowStock, setShowLowStock] = useState(false);
+  
+  // Ordenamiento para Materials
+  const [materialSortField, setMaterialSortField] = useState<string>("name");
+  const [materialSortDirection, setMaterialSortDirection] = useState<"asc" | "desc">("asc");
+  
+  // Ordenamiento para Assignments
+  const [assignmentSortField, setAssignmentSortField] = useState<string>("print_date");
+  const [assignmentSortDirection, setAssignmentSortDirection] = useState<"asc" | "desc">("desc");
+  
+  // Ordenamiento para Printers
+  const [printerSortField, setPrinterSortField] = useState<string>("brand");
+  const [printerSortDirection, setPrinterSortDirection] = useState<"asc" | "desc">("asc");
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [selectedPrint, setSelectedPrint] = useState<typeof stockPrints[0] | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -908,8 +920,164 @@ const Inventory = () => {
     }
   };
 
+  // Función helper para ordenar
+  const handleSort = (field: string, currentField: string, currentDirection: "asc" | "desc", setField: (f: string) => void, setDirection: (d: "asc" | "desc") => void) => {
+    if (field === currentField) {
+      setDirection(currentDirection === "asc" ? "desc" : "asc");
+    } else {
+      setField(field);
+      setDirection("asc");
+    }
+  };
+
+  // Función para ordenar materiales
+  const sortMaterials = (materials: Material[]) => {
+    const sorted = [...materials];
+    sorted.sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+      
+      switch (materialSortField) {
+        case "name":
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case "type":
+          aValue = a.type || "";
+          bValue = b.type || "";
+          break;
+        case "price_per_kg":
+          aValue = a.price_per_kg;
+          bValue = b.price_per_kg;
+          break;
+        case "stock":
+          const invA = inventory.find(inv => inv.material_id === a.id);
+          const invB = inventory.find(inv => inv.material_id === b.id);
+          const pendingA = pendingMaterials[a.id] || 0;
+          const pendingB = pendingMaterials[b.id] || 0;
+          aValue = invA ? invA.quantity_grams - pendingA : 0;
+          bValue = invB ? invB.quantity_grams - pendingB : 0;
+          break;
+        case "favorite":
+          aValue = a.is_favorite ? 1 : 0;
+          bValue = b.is_favorite ? 1 : 0;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (aValue < bValue) return materialSortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return materialSortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  };
+
+  // Función para ordenar assignments
+  const sortAssignments = (assignments: any[]) => {
+    const sorted = [...assignments];
+    sorted.sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+      
+      switch (assignmentSortField) {
+        case "name":
+          aValue = a.name?.toLowerCase() || "";
+          bValue = b.name?.toLowerCase() || "";
+          break;
+        case "print_date":
+          aValue = new Date(a.print_date).getTime();
+          bValue = new Date(b.print_date).getTime();
+          break;
+        case "project":
+          aValue = a.projects?.name?.toLowerCase() || "";
+          bValue = b.projects?.name?.toLowerCase() || "";
+          break;
+        case "material_used":
+          aValue = a.material_used_grams || 0;
+          bValue = b.material_used_grams || 0;
+          break;
+        case "print_time":
+          aValue = a.print_time_hours || 0;
+          bValue = b.print_time_hours || 0;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (aValue < bValue) return assignmentSortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return assignmentSortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  };
+
+  // Función para ordenar printers
+  const sortPrinters = (printers: Printer[]) => {
+    const sorted = [...printers];
+    sorted.sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+      
+      switch (printerSortField) {
+        case "brand":
+          aValue = a.brand?.toLowerCase() || "";
+          bValue = b.brand?.toLowerCase() || "";
+          break;
+        case "model":
+          aValue = a.model?.toLowerCase() || "";
+          bValue = b.model?.toLowerCase() || "";
+          break;
+        case "usage_hours":
+          aValue = a.usage_hours || 0;
+          bValue = b.usage_hours || 0;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (aValue < bValue) return printerSortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return printerSortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  };
+
+  // Componente para header ordenable
+  const SortableHeader = ({ 
+    field, 
+    currentField, 
+    currentDirection, 
+    onSort, 
+    children 
+  }: { 
+    field: string; 
+    currentField: string; 
+    currentDirection: "asc" | "desc"; 
+    onSort: (field: string) => void; 
+    children: React.ReactNode;
+  }) => {
+    const isActive = field === currentField;
+    return (
+      <TableHead className="cursor-pointer select-none hover:bg-muted/50 transition-colors" onClick={() => onSort(field)}>
+        <div className="flex items-center gap-2">
+          {children}
+          {isActive ? (
+            currentDirection === "asc" ? (
+              <ArrowUp className="w-4 h-4 text-primary" />
+            ) : (
+              <ArrowDown className="w-4 h-4 text-primary" />
+            )
+          ) : (
+            <ArrowUpDown className="w-4 h-4 text-muted-foreground opacity-50" />
+          )}
+        </div>
+      </TableHead>
+    );
+  };
+
   // Filtrar materiales
-  const filteredMaterials = materials.filter(material => {
+  const filteredMaterialsRaw = materials.filter(material => {
     const matchesSearch = material.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === "all" || material.type === filterType;
     
@@ -924,6 +1092,13 @@ const Inventory = () => {
     
     return matchesSearch && matchesType;
   });
+  
+  // Ordenar materiales filtrados
+  const filteredMaterials = sortMaterials(filteredMaterialsRaw);
+  
+  // Ordenar assignments y printers
+  const sortedAssignments = sortAssignments(stockPrints);
+  const sortedPrinters = sortPrinters(printers);
 
   // Filtrar inventario para alertas de stock (solo Pro y Business)
   const filteredInventory = inventory.filter(item => {
@@ -970,32 +1145,35 @@ const Inventory = () => {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <CardTitle>{t('inventory.title')}</CardTitle>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     {(isPro || isEnterprise) && (
-                      <>
+                      <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-md border">
                         <input
                           type="checkbox"
                           id="low-stock-toggle-main"
                           checked={showLowStock}
                           onChange={(e) => setShowLowStock(e.target.checked)}
-                          className="w-4 h-4 rounded border-input"
+                          className="w-4 h-4 rounded border-input cursor-pointer"
                         />
-                        <Label htmlFor="low-stock-toggle-main" className="cursor-pointer text-sm">
+                        <Label htmlFor="low-stock-toggle-main" className="cursor-pointer text-sm font-medium">
                           {t('inventory.lowStockWarning')}
                         </Label>
-                      </>
+                      </div>
                     )}
-                    <Button onClick={() => {
-                      setEditingMaterial(null);
-                      setMaterialForm({
-                        name: "",
-                        price_per_kg: "",
-                        color: "",
-                        type: "",
-                        display_mode: "color",
-                      });
-                      setIsMaterialDialogOpen(true);
-                    }}>
+                    <Button 
+                      onClick={() => {
+                        setEditingMaterial(null);
+                        setMaterialForm({
+                          name: "",
+                          price_per_kg: "",
+                          color: "",
+                          type: "",
+                          display_mode: "color",
+                        });
+                        setIsMaterialDialogOpen(true);
+                      }}
+                      className="shadow-sm"
+                    >
                       <Plus className="w-4 h-4 mr-2" />
                       {t('inventory.addMaterial')}
                     </Button>
@@ -1016,41 +1194,63 @@ const Inventory = () => {
                 )}
               </div>
               
-              {/* Filtros */}
-              <div className="grid md:grid-cols-3 gap-4">
-                <div>
-                  <Input
-                    id="search"
-                    placeholder={t('inventory.searchMaterial')}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+              {/* Filtros Mejorados */}
+              <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <Filter className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Filtros</span>
                 </div>
-                <div>
-                  <Select value={filterType} onValueChange={setFilterType}>
-                    <SelectTrigger id="filter-type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t('inventory.allTypes')}</SelectItem>
-                      {MATERIAL_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-end">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSearchTerm("");
-                      setFilterType("all");
-                    }}
-                  >
-                    {t('inventory.clearFilters')}
-                  </Button>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="search" className="text-xs text-muted-foreground">Buscar material</Label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="search"
+                        placeholder={t('inventory.searchMaterial')}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9"
+                      />
+                      {searchTerm && (
+                        <button
+                          onClick={() => setSearchTerm("")}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="filter-type" className="text-xs text-muted-foreground">Tipo de material</Label>
+                    <Select value={filterType} onValueChange={setFilterType}>
+                      <SelectTrigger id="filter-type" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">{t('inventory.allTypes')}</SelectItem>
+                        {MATERIAL_TYPES.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSearchTerm("");
+                        setFilterType("all");
+                      }}
+                      className="w-full"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      {t('inventory.clearFilters')}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -1064,10 +1264,36 @@ const Inventory = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>{t('inventory.favorite')}</TableHead>
-                        <TableHead>{t('inventory.material')}</TableHead>
-                        <TableHead>{t('inventory.type')}</TableHead>
-                        <TableHead>
+                        <SortableHeader
+                          field="favorite"
+                          currentField={materialSortField}
+                          currentDirection={materialSortDirection}
+                          onSort={(field) => handleSort(field, materialSortField, materialSortDirection, setMaterialSortField, setMaterialSortDirection)}
+                        >
+                          {t('inventory.favorite')}
+                        </SortableHeader>
+                        <SortableHeader
+                          field="name"
+                          currentField={materialSortField}
+                          currentDirection={materialSortDirection}
+                          onSort={(field) => handleSort(field, materialSortField, materialSortDirection, setMaterialSortField, setMaterialSortDirection)}
+                        >
+                          {t('inventory.material')}
+                        </SortableHeader>
+                        <SortableHeader
+                          field="type"
+                          currentField={materialSortField}
+                          currentDirection={materialSortDirection}
+                          onSort={(field) => handleSort(field, materialSortField, materialSortDirection, setMaterialSortField, setMaterialSortDirection)}
+                        >
+                          {t('inventory.type')}
+                        </SortableHeader>
+                        <SortableHeader
+                          field="price_per_kg"
+                          currentField={materialSortField}
+                          currentDirection={materialSortDirection}
+                          onSort={(field) => handleSort(field, materialSortField, materialSortDirection, setMaterialSortField, setMaterialSortDirection)}
+                        >
                           <div className="flex items-center gap-2">
                             {t('inventory.pricePerKg')}
                             <Tooltip open={tooltipOpen['precio-kg']} onOpenChange={(open) => setTooltipOpen(prev => ({ ...prev, 'precio-kg': open }))}>
@@ -1088,7 +1314,7 @@ const Inventory = () => {
                               </TooltipContent>
                             </Tooltip>
                           </div>
-                        </TableHead>
+                        </SortableHeader>
                         <TableHead>
                           <div className="flex items-center gap-2">
                             Avg Price/kg
@@ -1113,7 +1339,12 @@ const Inventory = () => {
                         </TableHead>
                         {(isPro || isEnterprise) && (
                           <>
-                            <TableHead>
+                            <SortableHeader
+                              field="stock"
+                              currentField={materialSortField}
+                              currentDirection={materialSortDirection}
+                              onSort={(field) => handleSort(field, materialSortField, materialSortDirection, setMaterialSortField, setMaterialSortDirection)}
+                            >
                               <div className="flex items-center gap-2">
                                 {t('inventory.stockAvailable')}
                                 <Tooltip open={tooltipOpen['stock-disponible']} onOpenChange={(open) => setTooltipOpen(prev => ({ ...prev, 'stock-disponible': open }))}>
@@ -1134,7 +1365,7 @@ const Inventory = () => {
                                   </TooltipContent>
                                 </Tooltip>
                               </div>
-                            </TableHead>
+                            </SortableHeader>
                             <TableHead>
                               <div className="flex items-center gap-2">
                                 {t('inventory.pending')}
@@ -1342,6 +1573,7 @@ const Inventory = () => {
                   <Button
                     variant="outline"
                     onClick={() => window.print()}
+                    className="shadow-sm"
                   >
                     <Printer className="w-4 h-4 mr-2" />
                     Imprimir
@@ -1355,8 +1587,42 @@ const Inventory = () => {
                   No hay objetos en stock
                 </div>
               ) : (
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {stockPrints.map((print: any) => (
+                <div className="space-y-4">
+                  {/* Filtros para Assignments */}
+                  <div className="p-4 bg-muted/30 rounded-lg border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Filter className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium text-muted-foreground">Ordenar por</span>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        variant={assignmentSortField === "name" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleSort("name", assignmentSortField, assignmentSortDirection, setAssignmentSortField, setAssignmentSortDirection)}
+                      >
+                        Nombre
+                        {assignmentSortField === "name" && (assignmentSortDirection === "asc" ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />)}
+                      </Button>
+                      <Button
+                        variant={assignmentSortField === "print_date" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleSort("print_date", assignmentSortField, assignmentSortDirection, setAssignmentSortField, setAssignmentSortDirection)}
+                      >
+                        Fecha
+                        {assignmentSortField === "print_date" && (assignmentSortDirection === "asc" ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />)}
+                      </Button>
+                      <Button
+                        variant={assignmentSortField === "project" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleSort("project", assignmentSortField, assignmentSortDirection, setAssignmentSortField, setAssignmentSortDirection)}
+                      >
+                        Proyecto
+                        {assignmentSortField === "project" && (assignmentSortDirection === "asc" ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />)}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {sortedAssignments.map((print: any) => (
                     <Card key={print.id}>
                       <CardHeader>
                         <CardTitle className="text-base">{print.name}</CardTitle>
@@ -1420,6 +1686,7 @@ const Inventory = () => {
                     });
                     setIsPrinterDialogOpen(true);
                   }}
+                  className="shadow-sm"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Añadir Impresora
@@ -1432,18 +1699,73 @@ const Inventory = () => {
                   No hay impresoras registradas
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Marca</TableHead>
-                      <TableHead>Modelo</TableHead>
-                      <TableHead>Horas de Uso</TableHead>
-                      <TableHead>Notas</TableHead>
-                      <TableHead>Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {printers.map((printer) => (
+                <div className="space-y-4">
+                  {/* Filtros para Printers */}
+                  <div className="p-4 bg-muted/30 rounded-lg border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Filter className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium text-muted-foreground">Ordenar por</span>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        variant={printerSortField === "brand" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleSort("brand", printerSortField, printerSortDirection, setPrinterSortField, setPrinterSortDirection)}
+                      >
+                        Marca
+                        {printerSortField === "brand" && (printerSortDirection === "asc" ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />)}
+                      </Button>
+                      <Button
+                        variant={printerSortField === "model" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleSort("model", printerSortField, printerSortDirection, setPrinterSortField, setPrinterSortDirection)}
+                      >
+                        Modelo
+                        {printerSortField === "model" && (printerSortDirection === "asc" ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />)}
+                      </Button>
+                      <Button
+                        variant={printerSortField === "usage_hours" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleSort("usage_hours", printerSortField, printerSortDirection, setPrinterSortField, setPrinterSortDirection)}
+                      >
+                        Horas de Uso
+                        {printerSortField === "usage_hours" && (printerSortDirection === "asc" ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />)}
+                      </Button>
+                    </div>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <SortableHeader
+                          field="brand"
+                          currentField={printerSortField}
+                          currentDirection={printerSortDirection}
+                          onSort={(field) => handleSort(field, printerSortField, printerSortDirection, setPrinterSortField, setPrinterSortDirection)}
+                        >
+                          Marca
+                        </SortableHeader>
+                        <SortableHeader
+                          field="model"
+                          currentField={printerSortField}
+                          currentDirection={printerSortDirection}
+                          onSort={(field) => handleSort(field, printerSortField, printerSortDirection, setPrinterSortField, setPrinterSortDirection)}
+                        >
+                          Modelo
+                        </SortableHeader>
+                        <SortableHeader
+                          field="usage_hours"
+                          currentField={printerSortField}
+                          currentDirection={printerSortDirection}
+                          onSort={(field) => handleSort(field, printerSortField, printerSortDirection, setPrinterSortField, setPrinterSortDirection)}
+                        >
+                          Horas de Uso
+                        </SortableHeader>
+                        <TableHead>Notas</TableHead>
+                        <TableHead>Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sortedPrinters.map((printer) => (
                       <TableRow key={printer.id}>
                         <TableCell className="font-medium">{printer.brand}</TableCell>
                         <TableCell>{printer.model}</TableCell>
