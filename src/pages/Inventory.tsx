@@ -550,9 +550,15 @@ const Inventory = () => {
         }
 
         // Crear nueva lista
+        if (!user) {
+          toast.error("Error: usuario no autenticado");
+          return;
+        }
+
         const { data: newList, error: createListError } = await supabase
           .from("shopping_lists")
           .insert({
+            user_id: user.id,
             name: newShoppingListName.trim(),
           })
           .select()
