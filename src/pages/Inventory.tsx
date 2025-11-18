@@ -1515,6 +1515,7 @@ const Inventory = () => {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
