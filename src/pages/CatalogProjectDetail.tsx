@@ -546,6 +546,7 @@ function ProductCard({ product, onEdit, onDelete, viewMode, style, dragHandlePro
   dragHandleProps?: any;
   ref?: React.Ref<HTMLDivElement>;
 }) {
+  const { t } = useTranslation();
   const cardContent = viewMode === 'grid' ? (
     <CardContent className="p-6">
       <div className="space-y-2">
