@@ -103,211 +103,211 @@ const Pricing = () => {
   // Tabla comparativa de features
   const comparisonFeatures: ComparisonFeature[] = [
     {
-      category: 'Gestión de Materiales',
-      feature: 'Materiales',
+      category: t('pricing.comparison.categories.materials'),
+      feature: t('pricing.comparison.features.materials'),
       free: '10',
       tier1: '50',
-      tier2: 'Ilimitados'
+      tier2: t('pricing.comparison.unlimited')
     },
     {
-      category: 'Gestión de Materiales',
-      feature: 'Proyectos',
+      category: t('pricing.comparison.categories.materials'),
+      feature: t('pricing.comparison.features.projects'),
       free: '15',
       tier1: '100',
-      tier2: 'Ilimitados'
+      tier2: t('pricing.comparison.unlimited')
     },
     {
-      category: 'Pedidos',
-      feature: 'Pedidos por mes',
+      category: t('pricing.comparison.categories.orders'),
+      feature: t('pricing.comparison.features.ordersPerMonth'),
       free: '15',
       tier1: '50',
-      tier2: 'Ilimitados'
+      tier2: t('pricing.comparison.unlimited')
     },
     {
-      category: 'Pedidos',
-      feature: 'Vista de lista',
+      category: t('pricing.comparison.categories.orders'),
+      feature: t('pricing.comparison.features.listView'),
       free: true,
       tier1: true,
       tier2: true
     },
     {
-      category: 'Pedidos',
-      feature: 'Vista Kanban',
+      category: t('pricing.comparison.categories.orders'),
+      feature: t('pricing.comparison.features.kanbanView'),
       free: false,
       tier1: true,
       tier2: true
     },
     {
-      category: 'Pedidos',
-      feature: 'Vista de calendario',
+      category: t('pricing.comparison.categories.orders'),
+      feature: t('pricing.comparison.features.calendarView'),
       free: false,
       tier1: true,
       tier2: true
     },
     {
-      category: 'Análisis',
-      feature: 'Dashboard básico',
+      category: t('pricing.comparison.categories.analysis'),
+      feature: t('pricing.comparison.features.basicDashboard'),
       free: true,
       tier1: true,
       tier2: true
     },
     {
-      category: 'Análisis',
-      feature: 'Dashboard avanzado',
+      category: t('pricing.comparison.categories.analysis'),
+      feature: t('pricing.comparison.features.advancedDashboard'),
       free: false,
       tier1: true,
       tier2: true
     },
     {
-      category: 'Análisis',
-      feature: 'Historial de métricas',
-      free: 'No',
-      tier1: '60 días',
-      tier2: '2 años'
+      category: t('pricing.comparison.categories.analysis'),
+      feature: t('pricing.comparison.features.metricsHistory'),
+      free: t('pricing.comparison.no'),
+      tier1: t('pricing.comparison.days60'),
+      tier2: t('pricing.comparison.years2')
     },
     {
-      category: 'Análisis',
-      feature: 'Análisis financiero detallado',
+      category: t('pricing.comparison.categories.analysis'),
+      feature: t('pricing.comparison.features.detailedFinancial'),
       free: false,
       tier1: false,
       tier2: true
     },
     {
-      category: 'Herramientas',
-      feature: 'Calculadora',
+      category: t('pricing.comparison.categories.tools'),
+      feature: t('pricing.comparison.features.calculator'),
       free: true,
       tier1: true,
       tier2: true
     },
     {
-      category: 'Herramientas',
-      feature: 'Filtros avanzados',
+      category: t('pricing.comparison.categories.tools'),
+      feature: t('pricing.comparison.features.advancedFilters'),
       free: false,
       tier1: true,
       tier2: true
     },
     {
-      category: 'Herramientas',
-      feature: 'Exportar datos',
+      category: t('pricing.comparison.categories.tools'),
+      feature: t('pricing.comparison.features.exportData'),
       free: false,
       tier1: true,
       tier2: true
     },
     {
-      category: 'Catálogos',
-      feature: 'Catálogos personalizados',
+      category: t('pricing.comparison.categories.catalogs'),
+      feature: t('pricing.comparison.features.customCatalogs'),
       free: false,
       tier1: true,
       tier2: true
     },
     {
-      category: 'Catálogos',
-      feature: 'Plantillas',
+      category: t('pricing.comparison.categories.catalogs'),
+      feature: t('pricing.comparison.features.templates'),
       free: '2026?',
       tier1: '2026?',
       tier2: '2026?'
     },
     {
-      category: 'Catálogos',
-      feature: 'Plantillas premium',
+      category: t('pricing.comparison.categories.catalogs'),
+      feature: t('pricing.comparison.features.premiumTemplates'),
       free: false,
       tier1: false,
       tier2: '2026?'
     },
     {
-      category: 'Catálogos',
-      feature: 'Secciones y organización',
+      category: t('pricing.comparison.categories.catalogs'),
+      feature: t('pricing.comparison.features.sectionsOrganization'),
       free: false,
       tier1: true,
       tier2: true
     },
     {
-      category: 'Soporte',
-      feature: 'Soporte básico',
+      category: t('pricing.comparison.categories.support'),
+      feature: t('pricing.comparison.features.basicSupport'),
       free: true,
       tier1: true,
       tier2: true
     },
     {
-      category: 'Soporte',
-      feature: 'Soporte prioritario',
+      category: t('pricing.comparison.categories.support'),
+      feature: t('pricing.comparison.features.prioritySupport'),
       free: false,
       tier1: true,
       tier2: true
     },
     {
-      category: 'Soporte',
-      feature: 'Soporte dedicado',
+      category: t('pricing.comparison.categories.support'),
+      feature: t('pricing.comparison.features.dedicatedSupport'),
       free: false,
       tier1: false,
       tier2: true
     },
     {
-      category: 'Empresa',
-      feature: 'Marca personalizada',
-      free: 'Coming soon',
-      tier1: 'Coming soon',
-      tier2: 'Coming soon'
+      category: t('pricing.comparison.categories.enterprise'),
+      feature: t('pricing.comparison.features.customBranding'),
+      free: t('pricing.comparison.comingSoon'),
+      tier1: t('pricing.comparison.comingSoon'),
+      tier2: t('pricing.comparison.comingSoon')
     },
     {
-      category: 'Empresa',
-      feature: 'Colaboración en equipo',
+      category: t('pricing.comparison.categories.enterprise'),
+      feature: t('pricing.comparison.features.teamCollaboration'),
       free: '2026?',
       tier1: '2026?',
       tier2: '2026?'
     },
     {
-      category: 'Empresa',
-      feature: 'Acceso API',
+      category: t('pricing.comparison.categories.enterprise'),
+      feature: t('pricing.comparison.features.apiAccess'),
       free: false,
       tier1: false,
       tier2: '2026?'
     },
     {
-      category: 'Inventario',
-      feature: 'Histórico de inventario',
+      category: t('pricing.comparison.categories.inventory'),
+      feature: t('pricing.comparison.features.inventoryHistory'),
       free: false,
       tier1: true,
       tier2: true
     },
     {
-      category: 'Inventario',
-      feature: 'Cálculo automático de stock y consumos',
+      category: t('pricing.comparison.categories.inventory'),
+      feature: t('pricing.comparison.features.autoStockCalculation'),
       free: false,
       tier1: true,
       tier2: true
     },
     {
-      category: 'Inventario',
-      feature: 'Stock de máquinas y alertas de mantenimiento',
+      category: t('pricing.comparison.categories.inventory'),
+      feature: t('pricing.comparison.features.machineStockMaintenance'),
       free: false,
-      tier1: 'Coming soon',
-      tier2: 'Coming soon'
+      tier1: t('pricing.comparison.comingSoon'),
+      tier2: t('pricing.comparison.comingSoon')
     },
     {
-      category: 'Seguridad',
-      feature: 'Encriptación de datos',
+      category: t('pricing.comparison.categories.security'),
+      feature: t('pricing.comparison.features.dataEncryption'),
       free: true,
       tier1: true,
       tier2: true
     },
     {
-      category: 'Seguridad',
-      feature: 'Cumplimiento GDPR',
+      category: t('pricing.comparison.categories.security'),
+      feature: t('pricing.comparison.features.gdprCompliance'),
       free: true,
       tier1: true,
       tier2: true
     },
     {
-      category: 'Seguridad',
-      feature: 'Backup automático',
+      category: t('pricing.comparison.categories.security'),
+      feature: t('pricing.comparison.features.autoBackup'),
       free: true,
       tier1: true,
       tier2: true
     },
     {
-      category: 'Seguridad',
-      feature: 'Autenticación de dos factores',
+      category: t('pricing.comparison.categories.security'),
+      feature: t('pricing.comparison.features.twoFactorAuth'),
       free: '2026?',
       tier1: '2026?',
       tier2: '2026?'
@@ -399,14 +399,14 @@ const Pricing = () => {
           <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-6 py-3 rounded-full mb-8">
             <CheckCircle2 className="h-5 w-5" />
             <span className="font-semibold">
-              Prueba gratis 15 días
+              {t('pricing.freeTrial')}
             </span>
           </div>
           
           <div className="flex items-center justify-center gap-4 mb-4 flex-wrap">
             {/* Currency Selector */}
             <div className="flex items-center gap-2">
-              <Label>Moneda:</Label>
+              <Label>{t('pricing.currency')}:</Label>
               <Select value={currency} onValueChange={(value) => setCurrency(value as Currency)}>
                 <SelectTrigger className="w-24">
                   <SelectValue />
@@ -421,7 +421,7 @@ const Pricing = () => {
             {/* Billing Toggle */}
             <div className="flex items-center gap-4">
               <Label htmlFor="billing-toggle" className={!isAnnual ? 'font-semibold' : ''}>
-                Mensual
+                {t('pricing.monthly')}
               </Label>
               <Switch
                 id="billing-toggle"
@@ -429,10 +429,10 @@ const Pricing = () => {
                 onCheckedChange={setIsAnnual}
               />
               <Label htmlFor="billing-toggle" className={isAnnual ? 'font-semibold' : ''}>
-                Anual
+                {t('pricing.annual')}
               </Label>
               <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-semibold">
-                Ahorra 20%
+                {t('pricing.save20')}
               </span>
             </div>
           </div>
@@ -451,7 +451,7 @@ const Pricing = () => {
                 {tier.popular && !isCurrentPlan && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                     <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-semibold">
-                      Popular
+                      {t('pricing.popular')}
                     </span>
                   </div>
                 )}
@@ -459,7 +459,7 @@ const Pricing = () => {
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                     <Badge className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
                       <CheckCircle2 className="h-3.5 w-3.5" />
-                      Tu plan actual
+                      {t('pricing.currentPlan')}
                     </Badge>
                   </div>
                 )}
@@ -485,17 +485,17 @@ const Pricing = () => {
                       </div>
                       {isAnnual && tier.tier !== 'free' && (
                         <div className="text-sm text-muted-foreground">
-                          {getAnnualPrice(tier)} facturado anualmente
+                          {getAnnualPrice(tier)} {t('pricing.billedAnnually')}
                         </div>
                       )}
                       {isAnnual && savings && (
                         <div className="text-sm text-green-600 font-semibold">
-                          Ahorra {savings}{getCurrencySymbol()}/año
+                          {t('pricing.save')} {savings}{getCurrencySymbol()}/{t('pricing.perYear')}
                         </div>
                       )}
                       {!isAnnual && tier.tier !== 'free' && (
                         <div className="text-xs text-muted-foreground">
-                          o {getAnnualPrice(tier)}/año
+                          {t('pricing.or')} {getAnnualPrice(tier)}/{t('pricing.perYear')}
                         </div>
                       )}
                     </div>
@@ -519,7 +519,7 @@ const Pricing = () => {
                       disabled
                     >
                       <CheckCircle2 className="h-4 w-4 mr-2" />
-                      Ya estás suscrito a este plan
+                      {t('pricing.alreadySubscribed')}
                     </Button>
                   ) : (
                     <Button 
@@ -538,16 +538,16 @@ const Pricing = () => {
 
         {/* Tabla Comparativa */}
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-8">Comparación de Planes</h2>
+          <h2 className="text-3xl font-bold text-center mb-8">{t('pricing.comparison.title')}</h2>
           <div className="border rounded-lg overflow-hidden bg-card">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[300px]">Característica</TableHead>
-                    <TableHead className="text-center">Gratis</TableHead>
-                    <TableHead className="text-center">Pro</TableHead>
-                    <TableHead className="text-center">Enterprise</TableHead>
+                    <TableHead className="w-[300px]">{t('pricing.comparison.feature')}</TableHead>
+                    <TableHead className="text-center">{t('pricing.comparison.free')}</TableHead>
+                    <TableHead className="text-center">{t('pricing.comparison.pro')}</TableHead>
+                    <TableHead className="text-center">{t('pricing.comparison.enterprise')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -592,11 +592,9 @@ const Pricing = () => {
         <div className="max-w-4xl mx-auto mt-12">
           <Card className="bg-primary/5">
             <CardContent className="py-8 px-6 text-center space-y-4">
-              <h3 className="text-2xl font-bold">Roadmap vivo para todos los planes</h3>
+              <h3 className="text-2xl font-bold">{t('pricing.roadmap.title')}</h3>
               <p className="text-muted-foreground text-lg">
-                Seguiremos construyendo nuevas funcionalidades (como el acceso API previsto para 2026)
-                en función del éxito de Layer Suite y el feedback de la comunidad. Todas las mejoras
-                clave se desplegarán de forma progresiva en cada plan para que crezcas con nosotros.
+                {t('pricing.roadmap.description')}
               </p>
             </CardContent>
           </Card>

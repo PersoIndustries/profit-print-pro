@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -98,12 +99,12 @@ function SortableRow({ line, materials, updateInvoiceLine, removeInvoiceLine, ge
             onValueChange={(value) => updateInvoiceLine(line.id, 'materialId', value)}
           >
             <SelectTrigger className="h-8">
-              <SelectValue placeholder="Selecciona material" />
+              <SelectValue placeholder={t('calculator.selectMaterial')} />
             </SelectTrigger>
             <SelectContent>
               {materials.length === 0 ? (
                 <div className="p-2 text-xs text-muted-foreground text-center">
-                  No hay materiales
+                  {t('calculator.noMaterials')}
                 </div>
               ) : (
                 materials.map((material) => (
@@ -119,7 +120,7 @@ function SortableRow({ line, materials, updateInvoiceLine, removeInvoiceLine, ge
             className="h-8"
             value={line.description}
             onChange={(e) => updateInvoiceLine(line.id, 'description', e.target.value)}
-            placeholder="Descripción"
+            placeholder={t('calculator.table.description')}
           />
         )}
       </TableCell>
@@ -161,6 +162,7 @@ function SortableRow({ line, materials, updateInvoiceLine, removeInvoiceLine, ge
 }
 
 const CalculatorPage = () => {
+  const { t } = useTranslation();
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { projectId } = useParams();
@@ -249,7 +251,7 @@ const CalculatorPage = () => {
         lines.push({
           id: `line-${lineCounter++}`,
           type: 'labor',
-          description: 'Mano de obra',
+          description: t('calculator.lineTypes.labor'),
           quantity: project.print_time_hours?.toString() || '1',
           unitPrice: (project.labor_cost / (project.print_time_hours || 1)).toFixed(2),
           total: project.labor_cost
@@ -261,7 +263,7 @@ const CalculatorPage = () => {
         lines.push({
           id: `line-${lineCounter++}`,
           type: 'amortization',
-          description: 'Amortización / Electricidad',
+          description: t('calculator.lineTypes.amortization'),
           quantity: '1',
           unitPrice: project.electricity_cost.toFixed(2),
           total: project.electricity_cost
@@ -272,7 +274,7 @@ const CalculatorPage = () => {
       setNextLineId(lineCounter);
 
     } catch (error: any) {
-      toast.error("Error al cargar proyecto");
+      toast.error(t('calculator.messages.errorLoadingProject'));
       console.error(error);
     }
   };
@@ -291,20 +293,12 @@ const CalculatorPage = () => {
       if (error) throw error;
       setMaterials(data || []);
     } catch (error: any) {
-      toast.error("Error al cargar materiales");
+      toast.error(t('calculator.messages.errorLoadingMaterials'));
     }
   };
 
   const getLineTypeLabel = (type: LineType): string => {
-    const labels: Record<LineType, string> = {
-      material: 'Material',
-      labor: 'Mano de Obra',
-      packaging: 'Embalaje',
-      amortization: 'Amortización',
-      print_time: 'Horas de Impresión',
-      other: 'Otros'
-    };
-    return labels[type];
+    return t(`calculator.lineTypes.${type}`);
   };
 
   const addInvoiceLine = (type: LineType) => {
@@ -377,7 +371,7 @@ const CalculatorPage = () => {
 
   const calculateAndDisplay = () => {
     if (invoiceLines.length === 0) {
-      toast.error("Añade al menos una línea de concepto");
+      toast.error(t('calculator.messages.addAtLeastOneLine'));
       return;
     }
     
@@ -387,7 +381,7 @@ const CalculatorPage = () => {
 
   const handleSaveProject = async () => {
     if (!user || calculatedPrice === null || !projectName) {
-      toast.error("Calcula el precio primero y añade un nombre");
+      toast.error(t('calculator.messages.calculateFirst'));
       return;
     }
 
@@ -461,7 +455,7 @@ const CalculatorPage = () => {
           }
         }
 
-        toast.success("Proyecto actualizado");
+        toast.success(t('calculator.messages.projectUpdated'));
       } else {
         // Insertar nuevo proyecto
         const { data: project, error: projectError } = await supabase
@@ -505,12 +499,12 @@ const CalculatorPage = () => {
           }
         }
 
-        toast.success("Proyecto guardado");
+        toast.success(t('calculator.messages.projectSaved'));
       }
       
       navigate("/projects");
     } catch (error: any) {
-      toast.error("Error al guardar proyecto: " + error.message);
+      toast.error(t('calculator.messages.errorSaving') + ' ' + error.message);
     }
   };
 
@@ -530,8 +524,8 @@ const CalculatorPage = () => {
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle>{isEditMode ? 'Editar Proyecto' : 'Calculadora de Precios'}</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">Añade líneas de concepto tipo factura</p>
+              <CardTitle>{isEditMode ? t('calculator.editProject') : t('calculator.title')}</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">{t('calculator.description')}</p>
             </div>
           </div>
         </CardHeader>
@@ -539,31 +533,31 @@ const CalculatorPage = () => {
           {/* Sección de líneas tipo factura */}
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <Label className="text-lg font-semibold">Conceptos / Líneas</Label>
+              <Label className="text-lg font-semibold">{t('calculator.concepts')}</Label>
               <div className="flex gap-2 flex-wrap">
                 <Button type="button" variant="outline" size="sm" onClick={() => addInvoiceLine('material')}>
                   <Plus className="w-3 h-3 mr-1" />
-                  Material
+                  {t('calculator.addMaterial')}
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={() => addInvoiceLine('labor')}>
                   <Plus className="w-3 h-3 mr-1" />
-                  Mano de Obra
+                  {t('calculator.addLabor')}
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={() => addInvoiceLine('packaging')}>
                   <Plus className="w-3 h-3 mr-1" />
-                  Embalaje
+                  {t('calculator.addPackaging')}
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={() => addInvoiceLine('amortization')}>
                   <Plus className="w-3 h-3 mr-1" />
-                  Amortización
+                  {t('calculator.addAmortization')}
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={() => addInvoiceLine('print_time')}>
                   <Plus className="w-3 h-3 mr-1" />
-                  Horas Impresión
+                  {t('calculator.addPrintTime')}
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={() => addInvoiceLine('other')}>
                   <Plus className="w-3 h-3 mr-1" />
-                  Otros
+                  {t('calculator.addOther')}
                 </Button>
               </div>
             </div>
@@ -571,8 +565,8 @@ const CalculatorPage = () => {
             {invoiceLines.length === 0 ? (
               <Card className="border-dashed">
                 <CardContent className="py-12 text-center text-muted-foreground">
-                  <p>No hay líneas añadidas.</p>
-                  <p className="text-sm">Usa los botones de arriba para añadir conceptos</p>
+                  <p>{t('calculator.noLines')}</p>
+                  <p className="text-sm">{t('calculator.addConcepts')}</p>
                 </CardContent>
               </Card>
             ) : (
@@ -586,11 +580,11 @@ const CalculatorPage = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[40px]"></TableHead>
-                        <TableHead className="w-[120px]">Tipo</TableHead>
-                        <TableHead>Descripción</TableHead>
-                        <TableHead className="w-[100px]">Cantidad</TableHead>
-                        <TableHead className="w-[120px]">Precio Unit.</TableHead>
-                        <TableHead className="w-[120px] text-right">Total</TableHead>
+                        <TableHead className="w-[120px]">{t('calculator.table.type')}</TableHead>
+                        <TableHead>{t('calculator.table.description')}</TableHead>
+                        <TableHead className="w-[100px]">{t('calculator.table.quantity')}</TableHead>
+                        <TableHead className="w-[120px]">{t('calculator.table.unitPrice')}</TableHead>
+                        <TableHead className="w-[120px] text-right">{t('calculator.table.total')}</TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -617,13 +611,13 @@ const CalculatorPage = () => {
                 {/* Totales */}
                 <div className="border-t bg-muted/30 p-4 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Subtotal:</span>
+                    <span className="text-muted-foreground">{t('calculator.subtotal')}</span>
                     <span className="font-medium">€{subtotal.toFixed(2)}</span>
                   </div>
                   
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="profitMargin" className="text-sm text-muted-foreground">Margen de Beneficio:</Label>
+                      <Label htmlFor="profitMargin" className="text-sm text-muted-foreground">{t('calculator.profitMargin')}</Label>
                       <div className="flex items-center gap-1">
                         <Input
                           id="profitMargin"
@@ -642,7 +636,7 @@ const CalculatorPage = () => {
                   </div>
 
                   <div className="flex justify-between text-lg font-bold pt-2 border-t">
-                    <span>TOTAL:</span>
+                    <span>{t('calculator.total')}</span>
                     <span className="text-primary">€{total.toFixed(2)}</span>
                   </div>
                 </div>
@@ -654,7 +648,7 @@ const CalculatorPage = () => {
             <div className="flex gap-2">
               <Button onClick={handleSaveProject} variant="default" className="w-full">
                 <Save className="w-4 h-4 mr-2" />
-                Actualizar Proyecto
+                {t('calculator.updateProject')}
               </Button>
             </div>
           )}

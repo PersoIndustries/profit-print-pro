@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -17,6 +18,7 @@ interface CatalogProductFormModalProps {
 }
 
 export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, productId, onSuccess }: CatalogProductFormModalProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [referenceCode, setReferenceCode] = useState("");
   const [name, setName] = useState("");
@@ -52,7 +54,7 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
       setPrice(data.price.toString());
     } catch (error) {
       console.error("Error fetching product:", error);
-      toast.error("Error al cargar el producto");
+      toast.error(t('catalog.productForm.messages.errorLoading'));
     }
   };
 
@@ -84,7 +86,7 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
           .eq("id", productId);
 
         if (error) throw error;
-        toast.success("Producto actualizado");
+        toast.success(t('catalog.productForm.messages.productUpdated'));
       } else {
         // Obtener el máximo position actual para poner el nuevo producto al final
         const { data: maxPositionData } = await supabase
@@ -106,7 +108,7 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
           });
 
         if (error) throw error;
-        toast.success("Producto creado");
+        toast.success(t('catalog.productForm.messages.productCreated'));
       }
 
       setHasUnsavedChanges(false);
@@ -114,7 +116,7 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving product:", error);
-      toast.error("Error al guardar el producto");
+      toast.error(t('catalog.productForm.messages.errorSaving'));
     } finally {
       setLoading(false);
     }
@@ -139,12 +141,12 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
       <Dialog open={open} onOpenChange={handleCloseAttempt}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{productId ? "Editar Producto" : "Nuevo Producto"}</DialogTitle>
+            <DialogTitle>{productId ? t('catalog.productForm.edit') : t('catalog.productForm.new')}</DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="reference-code">Código de Referencia *</Label>
+              <Label htmlFor="reference-code">{t('catalog.productForm.referenceCode')}</Label>
               <Input
                 id="reference-code"
                 value={referenceCode}
@@ -152,13 +154,13 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
                   setReferenceCode(e.target.value);
                   setHasUnsavedChanges(true);
                 }}
-                placeholder="Ej: REF-001"
+                placeholder={t('catalog.productForm.referenceCodePlaceholder')}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="name">Nombre *</Label>
+              <Label htmlFor="name">{t('catalog.productForm.name')}</Label>
               <Input
                 id="name"
                 value={name}
@@ -166,13 +168,13 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
                   setName(e.target.value);
                   setHasUnsavedChanges(true);
                 }}
-                placeholder="Nombre del producto"
+                placeholder={t('catalog.productForm.namePlaceholder')}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="dimensions">Dimensiones</Label>
+              <Label htmlFor="dimensions">{t('catalog.productForm.dimensions')}</Label>
               <Input
                 id="dimensions"
                 value={dimensions}
@@ -180,12 +182,12 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
                   setDimensions(e.target.value);
                   setHasUnsavedChanges(true);
                 }}
-                placeholder="Ej: 10x15x20 cm"
+                placeholder={t('catalog.productForm.dimensionsPlaceholder')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price">Precio (€) *</Label>
+              <Label htmlFor="price">{t('catalog.productForm.price')}</Label>
               <Input
                 id="price"
                 type="number"
@@ -196,18 +198,18 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
                   setPrice(e.target.value);
                   setHasUnsavedChanges(true);
                 }}
-                placeholder="0.00"
+                placeholder={t('catalog.productForm.pricePlaceholder')}
                 required
               />
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={handleCloseAttempt} disabled={loading}>
-                Cancelar
+                {t('catalog.productForm.cancel')}
               </Button>
               <Button type="submit" disabled={loading || !referenceCode || !name || !price}>
                 {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {productId ? "Actualizar" : "Crear"}
+                {productId ? t('catalog.productForm.update') : t('catalog.productForm.create')}
               </Button>
             </div>
           </form>
@@ -217,15 +219,15 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
       <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Descartar cambios?</AlertDialogTitle>
+            <AlertDialogTitle>{t('catalog.productForm.unsaved.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tienes cambios sin guardar. ¿Estás seguro de que quieres salir sin guardar?
+              {t('catalog.productForm.unsaved.description')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Continuar editando</AlertDialogCancel>
+            <AlertDialogCancel>{t('catalog.productForm.unsaved.continueEditing')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmClose}>
-              Descartar cambios
+              {t('catalog.productForm.unsaved.discard')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

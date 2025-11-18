@@ -1,7 +1,9 @@
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTranslation } from "react-i18next";
 
 const Terms = () => {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
       <Header variant="landing" />
@@ -9,112 +11,97 @@ const Terms = () => {
       <div className="container mx-auto px-4 py-16 max-w-4xl">
         <Card>
           <CardHeader>
-            <CardTitle className="text-3xl">Términos y Condiciones</CardTitle>
-            <p className="text-muted-foreground">Última actualización: {new Date().toLocaleDateString('es-ES')}</p>
+            <CardTitle className="text-3xl">{t('terms.title')}</CardTitle>
+            <p className="text-muted-foreground">{t('terms.lastUpdated')}: {new Date().toLocaleDateString(undefined)}</p>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none space-y-6">
             <section>
-              <h2 className="text-xl font-semibold mb-3">1. Aceptación de los Términos</h2>
+              <h2 className="text-xl font-semibold mb-3">1. {t('terms.section1.title')}</h2>
               <p className="text-muted-foreground">
-                Al acceder y utilizar Layer Suite, usted acepta estar sujeto a estos términos y condiciones de uso. 
-                Si no está de acuerdo con alguno de estos términos, no debe utilizar este servicio.
+                {t('terms.section1.content')}
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">2. Descripción del Servicio</h2>
+              <h2 className="text-xl font-semibold mb-3">2. {t('terms.section2.title')}</h2>
               <p className="text-muted-foreground">
-                Layer Suite es una plataforma de gestión empresarial diseñada para ayudar a los emprendedores 
-                de impresión 3D a administrar sus materiales, proyectos, calculadora de precios y pedidos.
+                {t('terms.section2.content')}
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">3. Registro y Cuenta de Usuario</h2>
+              <h2 className="text-xl font-semibold mb-3">3. {t('terms.section3.title')}</h2>
               <p className="text-muted-foreground mb-2">
-                Para utilizar ciertas funciones del servicio, debe registrarse y crear una cuenta. Usted se compromete a:
+                {t('terms.section3.intro')}
               </p>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
-                <li>Proporcionar información precisa, actual y completa durante el proceso de registro</li>
-                <li>Mantener y actualizar su información para que siga siendo precisa y completa</li>
-                <li>Mantener la seguridad de su contraseña y aceptar toda la responsabilidad por las actividades bajo su cuenta</li>
-                <li>Notificarnos inmediatamente sobre cualquier uso no autorizado de su cuenta</li>
+                <li>{t('terms.section3.item1')}</li>
+                <li>{t('terms.section3.item2')}</li>
+                <li>{t('terms.section3.item3')}</li>
+                <li>{t('terms.section3.item4')}</li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">4. Uso Aceptable</h2>
+              <h2 className="text-xl font-semibold mb-3">4. {t('terms.section4.title')}</h2>
               <p className="text-muted-foreground mb-2">
-                Usted acepta NO utilizar el servicio para:
+                {t('terms.section4.intro')}
               </p>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
-                <li>Violar cualquier ley o regulación aplicable</li>
-                <li>Infringir los derechos de propiedad intelectual de terceros</li>
-                <li>Transmitir contenido ofensivo, difamatorio o ilegal</li>
-                <li>Intentar acceder de manera no autorizada a otros sistemas o redes</li>
-                <li>Interferir con el funcionamiento normal del servicio</li>
+                <li>{t('terms.section4.item1')}</li>
+                <li>{t('terms.section4.item2')}</li>
+                <li>{t('terms.section4.item3')}</li>
+                <li>{t('terms.section4.item4')}</li>
+                <li>{t('terms.section4.item5')}</li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">5. Planes y Pagos</h2>
+              <h2 className="text-xl font-semibold mb-3">5. {t('terms.section5.title')}</h2>
               <p className="text-muted-foreground">
-                Layer Suite ofrece diferentes planes de suscripción. Los precios y características de cada plan 
-                están detallados en nuestra página de precios. Los pagos se procesan de manera segura a través de 
-                nuestros proveedores de pago autorizados.
+                {t('terms.section5.content')}
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">6. Propiedad Intelectual</h2>
+              <h2 className="text-xl font-semibold mb-3">6. {t('terms.section6.title')}</h2>
               <p className="text-muted-foreground">
-                Todo el contenido, características y funcionalidad del servicio (incluyendo pero no limitado a 
-                información, software, texto, gráficos, logos) son propiedad exclusiva de Layer Suite y están 
-                protegidos por leyes de derechos de autor, marcas registradas y otras leyes de propiedad intelectual.
+                {t('terms.section6.content')}
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">7. Privacidad y Protección de Datos</h2>
+              <h2 className="text-xl font-semibold mb-3">7. {t('terms.section7.title')}</h2>
               <p className="text-muted-foreground">
-                Su privacidad es importante para nosotros. Recopilamos, utilizamos y protegemos su información personal 
-                de acuerdo con nuestra Política de Privacidad. Al utilizar nuestro servicio, usted acepta la recopilación 
-                y uso de información según lo descrito en dicha política.
+                {t('terms.section7.content')}
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">8. Limitación de Responsabilidad</h2>
+              <h2 className="text-xl font-semibold mb-3">8. {t('terms.section8.title')}</h2>
               <p className="text-muted-foreground">
-                Layer Suite se proporciona "tal cual" sin garantías de ningún tipo. No garantizamos que el servicio 
-                será ininterrumpido, seguro o libre de errores. En ningún caso seremos responsables por daños indirectos, 
-                incidentales, especiales o consecuentes que resulten del uso o la imposibilidad de usar el servicio.
+                {t('terms.section8.content')}
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">9. Cancelación y Terminación</h2>
+              <h2 className="text-xl font-semibold mb-3">9. {t('terms.section9.title')}</h2>
               <p className="text-muted-foreground">
-                Puede cancelar su suscripción en cualquier momento desde la configuración de su cuenta. Nos reservamos 
-                el derecho de suspender o terminar su acceso al servicio si viola estos términos o por cualquier otra 
-                razón que consideremos apropiada.
+                {t('terms.section9.content')}
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">10. Modificaciones de los Términos</h2>
+              <h2 className="text-xl font-semibold mb-3">10. {t('terms.section10.title')}</h2>
               <p className="text-muted-foreground">
-                Nos reservamos el derecho de modificar estos términos en cualquier momento. Le notificaremos sobre 
-                cambios importantes por correo electrónico o mediante un aviso en nuestro servicio. El uso continuado 
-                del servicio después de dichos cambios constituye su aceptación de los nuevos términos.
+                {t('terms.section10.content')}
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">11. Contacto</h2>
+              <h2 className="text-xl font-semibold mb-3">11. {t('terms.section11.title')}</h2>
               <p className="text-muted-foreground">
-                Si tiene preguntas sobre estos Términos y Condiciones, puede contactarnos a través de nuestro 
-                formulario de contacto en el sitio web.
+                {t('terms.section11.content')}
               </p>
             </section>
           </CardContent>

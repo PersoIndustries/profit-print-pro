@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ interface ExistingProject {
 }
 
 export function CatalogProjectFormModal({ open, onOpenChange, catalogId, projectId, sectionId, onSuccess }: CatalogProjectFormModalProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -76,7 +78,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
       setCanEditNameAndImage(true);
     } catch (error) {
       console.error("Error fetching project:", error);
-      toast.error("Error al cargar el proyecto");
+      toast.error(t('catalog.projectForm.messages.errorLoading'));
     }
   };
 
@@ -110,7 +112,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
     if (!file) return;
 
     if (!user) {
-      toast.error("Debes estar autenticado para subir imágenes");
+      toast.error(t('catalog.projectForm.messages.mustBeAuthenticated'));
       return;
     }
 
@@ -120,7 +122,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
     const isValidType = validTypes.includes(file.type) || fileExtension === 'jpg' || fileExtension === 'jpeg';
     
     if (!isValidType) {
-      toast.error("Solo se permiten imágenes JPG/JPEG");
+      toast.error(t('catalog.projectForm.messages.onlyJpgJpeg'));
       return;
     }
 
@@ -132,7 +134,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
       URL.revokeObjectURL(objectUrl);
       
       if (img.width !== 500 || img.height !== 500) {
-        toast.error("La imagen debe ser de 500x500 píxeles");
+        toast.error(t('catalog.projectForm.messages.imageDimensions'));
         return;
       }
 
@@ -155,11 +157,11 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
           console.error("Upload error details:", uploadError);
           // Mensajes de error más específicos
           if (uploadError.message?.includes('already exists')) {
-            toast.error("Ya existe un archivo con ese nombre. Intenta con otro nombre.");
+            toast.error(t('catalog.projectForm.messages.fileExists'));
           } else if (uploadError.message?.includes('policy')) {
-            toast.error("Error de permisos. Verifica que estés autenticado correctamente.");
+            toast.error(t('catalog.projectForm.messages.permissionError'));
           } else {
-            toast.error(`Error al subir la imagen: ${uploadError.message || 'Error desconocido'}`);
+            toast.error(t('catalog.projectForm.messages.uploadError'));
           }
           return;
         }
@@ -170,10 +172,10 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
 
         setImageUrl(publicUrl);
         setHasUnsavedChanges(true);
-        toast.success("Imagen subida correctamente");
+        toast.success(t('catalog.projectForm.messages.imageUploaded'));
       } catch (error: any) {
         console.error("Error uploading image:", error);
-        toast.error(`Error al subir la imagen: ${error?.message || 'Error desconocido'}`);
+        toast.error(t('catalog.projectForm.messages.uploadError'));
       } finally {
         setUploading(false);
       }
@@ -181,7 +183,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
 
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      toast.error("Error al cargar la imagen. Verifica que sea un archivo de imagen válido.");
+      toast.error(t('catalog.projectForm.messages.imageLoadError'));
     };
 
     img.src = objectUrl;
@@ -208,7 +210,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
           .eq("id", projectId);
 
         if (error) throw error;
-        toast.success("Proyecto actualizado");
+        toast.success(t('catalog.projectForm.messages.projectUpdated'));
       } else {
         // Obtener el máximo position actual para poner el nuevo proyecto al final
         // Si hay sectionId, buscar dentro de esa sección, sino buscar proyectos sin sección
@@ -239,7 +241,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
           });
 
         if (error) throw error;
-        toast.success("Proyecto creado");
+        toast.success(t('catalog.projectForm.messages.projectCreated'));
       }
 
       setHasUnsavedChanges(false);
@@ -247,7 +249,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving project:", error);
-      toast.error("Error al guardar el proyecto");
+      toast.error(t('catalog.projectForm.messages.errorSaving'));
     } finally {
       setLoading(false);
     }
@@ -296,7 +298,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
       <Dialog open={open} onOpenChange={handleCloseAttempt}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{projectId ? "Editar Proyecto" : "Nuevo Proyecto"}</DialogTitle>
+            <DialogTitle>{projectId ? t('catalog.projectForm.edit') : t('catalog.projectForm.new')}</DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -316,16 +318,16 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
                   }}
                   className="mr-2"
                 />
-                Usar proyecto existente
+                {t('catalog.projectForm.useExisting')}
               </Label>
             </div>
 
             {useExistingProject && (
               <div className="space-y-2">
-                <Label htmlFor="existing-project">Seleccionar Proyecto</Label>
+                <Label htmlFor="existing-project">{t('catalog.projectForm.selectProjectLabel')}</Label>
                 <Select value={selectedProjectId} onValueChange={handleExistingProjectChange}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un proyecto" />
+                    <SelectValue placeholder={t('catalog.projectForm.selectProject')} />
                   </SelectTrigger>
                   <SelectContent>
                     {existingProjects.map((project) => (
@@ -339,7 +341,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="name">Nombre *</Label>
+              <Label htmlFor="name">{t('catalog.projectForm.name')} *</Label>
               <Input
                 id="name"
                 value={name}
@@ -347,13 +349,13 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
                   setName(e.target.value);
                   setHasUnsavedChanges(true);
                 }}
-                placeholder="Nombre del proyecto"
+                placeholder={t('catalog.projectForm.namePlaceholder')}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Descripción</Label>
+              <Label htmlFor="description">{t('catalog.projectForm.description')}</Label>
               <Textarea
                 id="description"
                 value={description}
@@ -361,13 +363,13 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
                   setDescription(e.target.value);
                   setHasUnsavedChanges(true);
                 }}
-                placeholder="Descripción del proyecto (opcional)"
+                placeholder={t('catalog.projectForm.descriptionPlaceholder')}
                 rows={3}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="image">Imagen (500x500 JPG)</Label>
+              <Label htmlFor="image">{t('catalog.projectForm.image')}</Label>
               {imageUrl && (
                 <div className="relative w-32 h-32 mb-2">
                   <img src={imageUrl} alt="Preview" className="w-full h-full object-cover rounded-md" />
@@ -396,12 +398,12 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
                 {uploading && <Loader2 className="w-4 h-4 animate-spin" />}
               </div>
               <p className="text-xs text-muted-foreground">
-                La imagen debe ser JPG y exactamente 500x500 píxeles
+                {t('catalog.projectForm.imageHelpText')}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label>Colores disponibles</Label>
+              <Label>{t('catalog.projectForm.colors')}</Label>
               <div className="flex flex-wrap gap-2 mb-2">
                 {colors.map((color, index) => (
                   <div
@@ -442,7 +444,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
                       className="flex-1"
                     />
                     <Button type="button" onClick={handleAddColor}>
-                      Añadir
+                      {t('catalog.projectForm.addButton')}
                     </Button>
                   </div>
                 </div>
@@ -451,11 +453,11 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={handleCloseAttempt} disabled={loading}>
-                Cancelar
+                {t('catalog.projectForm.cancel')}
               </Button>
               <Button type="submit" disabled={loading || !name}>
                 {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {projectId ? "Actualizar" : "Crear"}
+                {projectId ? t('catalog.projectForm.update') : t('catalog.projectForm.create')}
               </Button>
             </div>
           </form>
@@ -465,15 +467,15 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
       <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Descartar cambios?</AlertDialogTitle>
+            <AlertDialogTitle>{t('catalog.projectForm.unsaved.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tienes cambios sin guardar. ¿Estás seguro de que quieres salir sin guardar?
+              {t('catalog.projectForm.unsaved.description')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Continuar editando</AlertDialogCancel>
+            <AlertDialogCancel>{t('catalog.projectForm.unsaved.continueEditing')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmClose}>
-              Descartar cambios
+              {t('catalog.projectForm.unsaved.discard')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

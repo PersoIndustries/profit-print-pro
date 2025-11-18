@@ -31,44 +31,44 @@ const Landing = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-20">
           <div className="text-center p-6 rounded-lg bg-card border">
             <Calculator className="w-12 h-12 mx-auto mb-4 text-primary" />
-            <h3 className="text-xl font-semibold mb-2">Cálculo Preciso</h3>
+            <h3 className="text-xl font-semibold mb-2">{t('landing.features.calculation.title')}</h3>
             <p className="text-muted-foreground">
-              Calcula costes de material, electricidad y tiempo de forma automática
+              {t('landing.features.calculation.description')}
             </p>
           </div>
 
           <div className="text-center p-6 rounded-lg bg-card border">
             <Package className="w-12 h-12 mx-auto mb-4 text-primary" />
-            <h3 className="text-xl font-semibold mb-2">Gestión de Materiales</h3>
+            <h3 className="text-xl font-semibold mb-2">{t('landing.features.materials.title')}</h3>
             <p className="text-muted-foreground">
-              Mantén un inventario actualizado con precios personalizados
+              {t('landing.features.materials.description')}
             </p>
           </div>
 
           <div className="text-center p-6 rounded-lg bg-card border">
             <Printer className="w-12 h-12 mx-auto mb-4 text-primary" />
-            <h3 className="text-xl font-semibold mb-2">Proyectos</h3>
+            <h3 className="text-xl font-semibold mb-2">{t('landing.features.projects.title')}</h3>
             <p className="text-muted-foreground">
-              Guarda y organiza todos tus trabajos de impresión
+              {t('landing.features.projects.description')}
             </p>
           </div>
 
           <div className="text-center p-6 rounded-lg bg-card border">
             <TrendingUp className="w-12 h-12 mx-auto mb-4 text-primary" />
-            <h3 className="text-xl font-semibold mb-2">Dashboard</h3>
+            <h3 className="text-xl font-semibold mb-2">{t('landing.features.dashboard.title')}</h3>
             <p className="text-muted-foreground">
-              Visualiza tus estadísticas y rendimiento en tiempo real
+              {t('landing.features.dashboard.description')}
             </p>
           </div>
         </div>
 
         <div className="text-center">
-          <h3 className="text-3xl font-bold mb-4">¿Listo para comenzar?</h3>
+          <h3 className="text-3xl font-bold mb-4">{t('landing.cta.title')}</h3>
           <p className="text-muted-foreground mb-6">
-            Únete a cientos de emprendedores que ya optimizan su negocio con Layer Suite
+            {t('landing.cta.description')}
           </p>
           <Button size="lg" onClick={() => navigate("/auth")}>
-            Crear Cuenta Gratuita
+            {t('landing.cta.button')}
           </Button>
         </div>
       </main>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +22,7 @@ interface OrderStats {
 }
 
 export const OrdersStats = ({ userId, tier, metricsHistory }: OrdersStatsProps) => {
+  const { t } = useTranslation();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('month');
   const [stats, setStats] = useState<OrderStats>({
     total: 0,
@@ -92,10 +94,10 @@ export const OrdersStats = ({ userId, tier, metricsHistory }: OrdersStatsProps) 
 
   const getFilterLabel = (filter: TimeFilter) => {
     switch (filter) {
-      case 'today': return 'Hoy';
-      case 'week': return 'Semana';
-      case 'month': return 'Mes';
-      case 'quarter': return '3 Meses';
+      case 'today': return t('dashboard.stats.timeFilters.today');
+      case 'week': return t('dashboard.stats.timeFilters.week');
+      case 'month': return t('dashboard.stats.timeFilters.month');
+      case 'quarter': return t('dashboard.stats.timeFilters.quarter');
     }
   };
 
@@ -116,33 +118,33 @@ export const OrdersStats = ({ userId, tier, metricsHistory }: OrdersStatsProps) 
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Pedidos</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.stats.orders.totalOrders')}</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{loading ? '...' : stats.total}</div>
             <p className="text-xs text-muted-foreground">
-              Todos los estados
+              {t('dashboard.stats.orders.allStatuses')}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completados</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.stats.orders.completed')}</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{loading ? '...' : stats.completed}</div>
             <p className="text-xs text-muted-foreground">
-              {stats.total > 0 ? `${((stats.completed / stats.total) * 100).toFixed(1)}% del total` : 'Sin pedidos'}
+              {stats.total > 0 ? `${((stats.completed / stats.total) * 100).toFixed(1)}% ${t('dashboard.stats.orders.ofTotal')}` : t('dashboard.stats.orders.noOrders')}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ingresos</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.stats.orders.revenue')}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -150,14 +152,14 @@ export const OrdersStats = ({ userId, tier, metricsHistory }: OrdersStatsProps) 
               {loading ? '...' : `€${stats.revenue.toFixed(2)}`}
             </div>
             <p className="text-xs text-muted-foreground">
-              De pedidos completados
+              {t('dashboard.stats.orders.fromCompleted')}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ticket Promedio</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.stats.orders.avgTicket')}</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -165,7 +167,7 @@ export const OrdersStats = ({ userId, tier, metricsHistory }: OrdersStatsProps) 
               {loading ? '...' : `€${stats.avgOrderValue.toFixed(2)}`}
             </div>
             <p className="text-xs text-muted-foreground">
-              Por pedido completado
+              {t('dashboard.stats.orders.perCompleted')}
             </p>
           </CardContent>
         </Card>

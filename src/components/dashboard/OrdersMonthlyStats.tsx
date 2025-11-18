@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from "recharts";
@@ -9,6 +10,7 @@ interface OrdersMonthlyStatsProps {
 }
 
 export function OrdersMonthlyStats({ userId }: OrdersMonthlyStatsProps) {
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [completedOrders, setCompletedOrders] = useState(0);
   const [totalCost, setTotalCost] = useState(0);
@@ -113,12 +115,13 @@ export function OrdersMonthlyStats({ userId }: OrdersMonthlyStatsProps) {
         }
       });
 
+      const locale = i18n.language === 'es' ? 'es-ES' : i18n.language === 'fr' ? 'fr-FR' : 'en-US';
       const monthlyArray = Object.entries(monthlyMap).map(([month, data]) => ({
-        month: new Date(month + '-01').toLocaleDateString('es-ES', { month: 'short', year: '2-digit' }),
-        'Ingresos': Math.round(data.income * 100) / 100,
-        'Costos': Math.round(data.cost * 100) / 100,
-        'Beneficio': Math.round(data.profit * 100) / 100,
-        'Completados': data.completed
+        month: new Date(month + '-01').toLocaleDateString(locale, { month: 'short', year: '2-digit' }),
+        [t('dashboard.stats.financial.revenue')]: Math.round(data.income * 100) / 100,
+        [t('dashboard.stats.financial.costs')]: Math.round(data.cost * 100) / 100,
+        [t('dashboard.stats.financial.profit')]: Math.round(data.profit * 100) / 100,
+        [t('dashboard.stats.financial.completed')]: data.completed
       }));
 
       setMonthlyData(monthlyArray);
@@ -154,14 +157,14 @@ export function OrdersMonthlyStats({ userId }: OrdersMonthlyStatsProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Pedidos Finalizados (Mes)
+              {t('dashboard.stats.financial.completedOrdersMonth')}
             </CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{completedOrders}</div>
             <p className="text-xs text-muted-foreground">
-              Pedidos enviados este mes
+              {t('dashboard.stats.financial.sentThisMonth')}
             </p>
           </CardContent>
         </Card>
@@ -169,14 +172,14 @@ export function OrdersMonthlyStats({ userId }: OrdersMonthlyStatsProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Ingresos Mensuales
+              {t('dashboard.stats.financial.monthlyRevenue')}
             </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">€{totalIncome.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              Total facturado este mes
+              {t('dashboard.stats.financial.totalBilledThisMonth')}
             </p>
           </CardContent>
         </Card>
@@ -184,14 +187,14 @@ export function OrdersMonthlyStats({ userId }: OrdersMonthlyStatsProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Costos Mensuales
+              {t('dashboard.stats.financial.monthlyCosts')}
             </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">€{totalCost.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              Material + mano de obra + electricidad
+              {t('dashboard.stats.financial.materialLaborElectricity')}
             </p>
           </CardContent>
         </Card>
@@ -199,7 +202,7 @@ export function OrdersMonthlyStats({ userId }: OrdersMonthlyStatsProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Beneficio Neto
+              {t('dashboard.stats.financial.netProfit')}
             </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -208,7 +211,7 @@ export function OrdersMonthlyStats({ userId }: OrdersMonthlyStatsProps) {
               €{profit.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
-              Margen: {profitMargin.toFixed(1)}%
+              {t('dashboard.stats.financial.margin')}: {profitMargin.toFixed(1)}%
             </p>
           </CardContent>
         </Card>
@@ -218,7 +221,7 @@ export function OrdersMonthlyStats({ userId }: OrdersMonthlyStatsProps) {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Ingresos vs Costos por Mes</CardTitle>
+            <CardTitle>{t('dashboard.stats.financial.revenueVsCosts')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -228,8 +231,8 @@ export function OrdersMonthlyStats({ userId }: OrdersMonthlyStatsProps) {
                 <YAxis />
                 <Tooltip formatter={(value) => `€${Number(value).toFixed(2)}`} />
                 <Legend />
-                <Bar dataKey="Ingresos" fill="#10b981" />
-                <Bar dataKey="Costos" fill="#ef4444" />
+                <Bar dataKey={t('dashboard.stats.financial.revenue')} fill="#10b981" />
+                <Bar dataKey={t('dashboard.stats.financial.costs')} fill="#ef4444" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -237,7 +240,7 @@ export function OrdersMonthlyStats({ userId }: OrdersMonthlyStatsProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Beneficio Mensual</CardTitle>
+            <CardTitle>{t('dashboard.stats.financial.monthlyProfit')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -247,8 +250,8 @@ export function OrdersMonthlyStats({ userId }: OrdersMonthlyStatsProps) {
                 <YAxis />
                 <Tooltip formatter={(value) => `€${Number(value).toFixed(2)}`} />
                 <Legend />
-                <Line type="monotone" dataKey="Beneficio" stroke="#8b5cf6" strokeWidth={2} />
-                <Line type="monotone" dataKey="Completados" stroke="#3b82f6" strokeWidth={2} />
+                <Line type="monotone" dataKey={t('dashboard.stats.financial.profit')} stroke="#8b5cf6" strokeWidth={2} />
+                <Line type="monotone" dataKey={t('dashboard.stats.financial.completed')} stroke="#3b82f6" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>

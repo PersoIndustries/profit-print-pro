@@ -51,12 +51,12 @@ const ResetPassword = () => {
     e.preventDefault();
     
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
+      toast.error(t('auth.passwordsDontMatch'));
       return;
     }
 
     if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+      toast.error(t('auth.passwordMinLength'));
       return;
     }
 
@@ -68,11 +68,11 @@ const ResetPassword = () => {
 
       if (error) throw error;
 
-      toast.success("Password updated successfully");
+      toast.success(t('auth.passwordUpdated'));
       navigate("/auth");
     } catch (error: any) {
       console.error("Error resetting password:", error);
-      toast.error(error.message || "Error resetting password");
+      toast.error(error.message || t('auth.errorResettingPassword'));
     } finally {
       setLoading(false);
     }
@@ -84,7 +84,7 @@ const ResetPassword = () => {
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="py-8 text-center">
-            <p>Loading...</p>
+            <p>{t('common.loading')}</p>
           </CardContent>
         </Card>
       </div>
@@ -97,9 +97,9 @@ const ResetPassword = () => {
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <KeyRound className="h-12 w-12 mx-auto mb-4 text-primary" />
-            <CardTitle>Invalid Reset Link</CardTitle>
+            <CardTitle>{t('auth.resetPassword.invalidLink')}</CardTitle>
             <CardDescription>
-              This password reset link is invalid or has expired. Please request a new one.
+              {t('auth.resetPassword.invalidLinkDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -107,14 +107,14 @@ const ResetPassword = () => {
               className="w-full" 
               onClick={() => navigate("/auth?mode=forgot")}
             >
-              Request New Reset Link
+              {t('auth.resetPassword.requestNewLink')}
             </Button>
             <Button 
               variant="outline" 
               className="w-full" 
               onClick={() => navigate("/auth")}
             >
-              Back to Login
+              {t('auth.backToLogin')}
             </Button>
           </CardContent>
         </Card>
@@ -130,37 +130,37 @@ const ResetPassword = () => {
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <KeyRound className="h-12 w-12 mx-auto mb-4 text-primary" />
-            <CardTitle>{t('auth.resetPassword')}</CardTitle>
-            <CardDescription>Enter your new password</CardDescription>
+            <CardTitle>{t('auth.resetPasswordTitle')}</CardTitle>
+            <CardDescription>{t('auth.resetPassword.enterNewPassword')}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div>
-                <Label htmlFor="password">New Password</Label>
+                <Label htmlFor="password">{t('auth.newPassword')}</Label>
                 <Input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter new password"
+                  placeholder={t('auth.newPasswordPlaceholder')}
                   required
                   minLength={6}
                 />
               </div>
               <div>
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Label htmlFor="confirmPassword">{t('auth.confirmPassword')}</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm new password"
+                  placeholder={t('auth.confirmPasswordPlaceholder')}
                   required
                   minLength={6}
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? t('common.loading') : 'Reset Password'}
+                {loading ? t('common.loading') : t('auth.resetPasswordTitle')}
               </Button>
               <Button
                 type="button"

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,7 @@ type ProductItem =
 
 export default function CatalogProjectDetail() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { catalogId, projectId } = useParams<{ catalogId: string; projectId: string }>();
   const { user } = useAuth();
   const [projectName, setProjectName] = useState("");
@@ -158,7 +160,7 @@ export default function CatalogProjectDetail() {
       })));
     } catch (error) {
       console.error("Error fetching project data:", error);
-      toast.error("Error al cargar los datos del proyecto");
+      toast.error(t('catalog.detail.messages.errorLoading'));
     } finally {
       setLoading(false);
     }
@@ -212,11 +214,11 @@ export default function CatalogProjectDetail() {
           .eq("id", update.id);
       }
 
-      toast.success("Orden guardado");
+      toast.success(t('catalog.projectDetail.orderSaved'));
       fetchProjectData();
     } catch (error) {
       console.error("Error saving order:", error);
-      toast.error("Error al guardar el orden");
+      toast.error(t('catalog.projectDetail.errorSavingOrder'));
     } finally {
       setIsSaving(false);
     }
@@ -246,7 +248,7 @@ export default function CatalogProjectDetail() {
   };
 
   const handleDeleteProduct = async (productId: string) => {
-    if (!confirm("¿Eliminar este producto?")) return;
+    if (!confirm(t('catalog.projectDetail.confirmDeleteProduct'))) return;
 
     try {
       const { error } = await supabase
@@ -255,16 +257,16 @@ export default function CatalogProjectDetail() {
         .eq("id", productId);
 
       if (error) throw error;
-      toast.success("Producto eliminado");
+      toast.success(t('catalog.detail.messages.productDeleted'));
       fetchProjectData();
     } catch (error) {
       console.error("Error deleting product:", error);
-      toast.error("Error al eliminar el producto");
+      toast.error(t('catalog.detail.messages.errorDeletingProduct'));
     }
   };
 
   const handleDeleteSection = async (sectionId: string) => {
-    if (!confirm("¿Eliminar esta sección? Los productos dentro se moverán fuera de la sección.")) return;
+    if (!confirm(t('catalog.projectDetail.confirmDeleteSection'))) return;
 
     try {
       // Mover productos fuera de la sección
@@ -280,11 +282,11 @@ export default function CatalogProjectDetail() {
         .eq("id", sectionId);
 
       if (error) throw error;
-      toast.success("Sección eliminada");
+      toast.success(t('catalog.detail.messages.sectionDeleted'));
       fetchProjectData();
     } catch (error) {
       console.error("Error deleting section:", error);
-      toast.error("Error al eliminar la sección");
+      toast.error(t('catalog.detail.messages.errorDeletingSection'));
     }
   };
 
@@ -323,17 +325,17 @@ export default function CatalogProjectDetail() {
       <div className="mb-6">
         <Button variant="ghost" onClick={() => navigate(`/catalogs/${catalogId}`)}>
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Volver al Catálogo
+          {t('catalog.projectDetail.backToCatalog')}
         </Button>
       </div>
 
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">{projectName}</h1>
-          <p className="text-muted-foreground">Productos del proyecto</p>
+          <p className="text-muted-foreground">{t('catalog.projectDetail.projectProducts')}</p>
           {projectColors.length > 0 && (
             <div className="flex items-center gap-2 mt-2">
-              <span className="text-sm font-medium">Colores:</span>
+              <span className="text-sm font-medium">{t('catalog.projectDetail.colors')}:</span>
               <div className="flex gap-1">
                 {projectColors.map((color, idx) => (
                   <div
@@ -350,11 +352,11 @@ export default function CatalogProjectDetail() {
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleNewSection}>
             <Plus className="w-4 h-4 mr-2" />
-            Nueva Sección
+            {t('catalog.detail.section.addProject')}
           </Button>
           <Button onClick={handleNewProduct}>
             <Plus className="w-4 h-4 mr-2" />
-            Nuevo Producto
+            {t('catalog.detail.project.addProduct')}
           </Button>
         </div>
       </div>
@@ -363,10 +365,10 @@ export default function CatalogProjectDetail() {
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>No hay productos en este proyecto</p>
+            <p>{t('catalog.projectDetail.noProducts')}</p>
             <Button onClick={handleNewProduct} variant="outline" className="mt-4">
               <Plus className="w-4 h-4 mr-2" />
-              Crear primer producto
+              {t('catalog.projectDetail.createFirstProduct')}
             </Button>
           </CardContent>
         </Card>
@@ -421,7 +423,7 @@ export default function CatalogProjectDetail() {
       {isSaving && (
         <div className="fixed bottom-4 right-4 bg-background border rounded-lg p-3 shadow-lg flex items-center gap-2">
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span className="text-sm">Guardando orden...</span>
+          <span className="text-sm">{t('catalog.projectDetail.savingOrder')}</span>
         </div>
       )}
 
@@ -571,7 +573,7 @@ function ProductCard({ product, onEdit, onDelete, viewMode, style, dragHandlePro
 
         {product.dimensions && (
           <p className="text-sm text-muted-foreground">
-            <span className="font-medium">Dimensiones:</span> {product.dimensions}
+            <span className="font-medium">{t('catalog.productForm.dimensions')}:</span> {product.dimensions}
           </p>
         )}
 
@@ -598,7 +600,7 @@ function ProductCard({ product, onEdit, onDelete, viewMode, style, dragHandlePro
               <h3 className="font-semibold text-base mb-1">{product.name}</h3>
               {product.dimensions && (
                 <p className="text-sm text-muted-foreground">
-                  <span className="font-medium">Dimensiones:</span> {product.dimensions}
+                  <span className="font-medium">{t('catalog.productForm.dimensions')}:</span> {product.dimensions}
                 </p>
               )}
             </div>

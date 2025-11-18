@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useTierFeatures } from "@/hooks/useTierFeatures";
@@ -22,6 +23,7 @@ interface Catalog {
 }
 
 export default function Catalogs() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isPro, isEnterprise, loading: tierLoading } = useTierFeatures();
@@ -78,14 +80,14 @@ export default function Catalogs() {
       setCatalogs(catalogsWithCount);
     } catch (error) {
       console.error("Error fetching catalogs:", error);
-      toast.error("Error al cargar los catálogos");
+      toast.error(t('catalog.messages.errorLoading'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (catalogId: string) => {
-    if (!confirm("¿Eliminar este catálogo? Se eliminarán todos sus proyectos y productos.")) return;
+    if (!confirm(t('catalog.messages.confirmDelete'))) return;
 
     try {
       const { error } = await supabase
@@ -94,11 +96,11 @@ export default function Catalogs() {
         .eq("id", catalogId);
 
       if (error) throw error;
-      toast.success("Catálogo eliminado");
+      toast.success(t('catalog.messages.catalogDeleted'));
       fetchCatalogs();
     } catch (error) {
       console.error("Error deleting catalog:", error);
-      toast.error("Error al eliminar el catálogo");
+      toast.error(t('catalog.messages.errorDeleting'));
     }
   };
 
@@ -143,7 +145,7 @@ export default function Catalogs() {
           .eq("id", editingCatalog.id);
 
         if (error) throw error;
-        toast.success("Catálogo actualizado");
+        toast.success(t('catalog.messages.catalogUpdated'));
       } else {
         const { error } = await supabase
           .from("catalogs")
@@ -154,7 +156,7 @@ export default function Catalogs() {
           });
 
         if (error) throw error;
-        toast.success("Catálogo creado");
+        toast.success(t('catalog.messages.catalogCreated'));
       }
 
       setHasUnsavedChanges(false);
@@ -163,7 +165,7 @@ export default function Catalogs() {
       fetchCatalogs();
     } catch (error) {
       console.error("Error saving catalog:", error);
-      toast.error("Error al guardar el catálogo");
+      toast.error(t('catalog.messages.errorSaving'));
     } finally {
       setSaving(false);
     }
@@ -184,16 +186,15 @@ export default function Catalogs() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Crown className="w-5 h-5 text-primary" />
-              Catálogos - Función Pro
+              {t('catalog.proFeature')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">
-              Los catálogos son una función exclusiva para usuarios Pro y Enterprise.
-              Actualiza tu plan para acceder a esta funcionalidad.
+              {t('catalog.proDescription')}
             </p>
             <Button onClick={() => navigate("/pricing")}>
-              Ver Planes
+              {t('catalog.viewPlans')}
             </Button>
           </CardContent>
         </Card>
@@ -205,12 +206,12 @@ export default function Catalogs() {
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Catálogos</h1>
-          <p className="text-muted-foreground">Gestiona tus catálogos de productos</p>
+          <h1 className="text-3xl font-bold">{t('catalog.title')}</h1>
+          <p className="text-muted-foreground">{t('catalog.subtitle')}</p>
         </div>
         <Button onClick={handleNewCatalog}>
           <Plus className="w-4 h-4 mr-2" />
-          Nuevo Catálogo
+          {t('catalog.newCatalog')}
         </Button>
       </div>
 
@@ -218,11 +219,11 @@ export default function Catalogs() {
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <FolderOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg mb-2">No tienes catálogos creados</p>
-            <p className="text-sm mb-4">Crea tu primer catálogo para empezar a organizar tus productos</p>
+            <p className="text-lg mb-2">{t('catalog.empty.title')}</p>
+            <p className="text-sm mb-4">{t('catalog.empty.description')}</p>
             <Button onClick={handleNewCatalog} variant="outline">
               <Plus className="w-4 h-4 mr-2" />
-              Crear primer catálogo
+              {t('catalog.empty.createFirst')}
             </Button>
           </CardContent>
         </Card>
@@ -263,7 +264,7 @@ export default function Catalogs() {
                 )}
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">
-                    {catalog._count?.projects || 0} proyecto(s)
+                    {catalog._count?.projects || 0} {t('catalog.card.projects')}
                   </span>
                   <Button
                     variant="outline"
@@ -273,7 +274,7 @@ export default function Catalogs() {
                       navigate(`/catalogs/${catalog.id}`);
                     }}
                   >
-                    Ver Proyectos
+                    {t('catalog.card.viewProjects')}
                   </Button>
                 </div>
               </CardContent>
@@ -285,12 +286,12 @@ export default function Catalogs() {
       <Dialog open={isFormOpen} onOpenChange={handleCloseAttempt}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{editingCatalog ? "Editar Catálogo" : "Nuevo Catálogo"}</DialogTitle>
+            <DialogTitle>{editingCatalog ? t('catalog.form.edit') : t('catalog.form.new')}</DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nombre del Catálogo *</Label>
+              <Label htmlFor="name">{t('catalog.form.name')}</Label>
               <Input
                 id="name"
                 value={formName}
@@ -298,13 +299,13 @@ export default function Catalogs() {
                   setFormName(e.target.value);
                   setHasUnsavedChanges(true);
                 }}
-                placeholder="Ej: Catálogo Primavera 2024"
+                placeholder={t('catalog.form.namePlaceholder')}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Descripción</Label>
+              <Label htmlFor="description">{t('catalog.form.description')}</Label>
               <Textarea
                 id="description"
                 value={formDescription}
@@ -312,18 +313,18 @@ export default function Catalogs() {
                   setFormDescription(e.target.value);
                   setHasUnsavedChanges(true);
                 }}
-                placeholder="Descripción del catálogo (opcional)"
+                placeholder={t('catalog.form.descriptionPlaceholder')}
                 rows={4}
               />
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={handleCloseAttempt} disabled={saving}>
-                Cancelar
+                {t('catalog.form.cancel')}
               </Button>
               <Button type="submit" disabled={saving || !formName}>
                 {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {editingCatalog ? "Actualizar" : "Crear"}
+                {editingCatalog ? t('catalog.form.update') : t('catalog.form.create')}
               </Button>
             </div>
           </form>
@@ -333,15 +334,15 @@ export default function Catalogs() {
       <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Descartar cambios?</AlertDialogTitle>
+            <AlertDialogTitle>{t('catalog.form.unsaved.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tienes cambios sin guardar. ¿Estás seguro de que quieres salir sin guardar?
+              {t('catalog.form.unsaved.description')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Continuar editando</AlertDialogCancel>
+            <AlertDialogCancel>{t('catalog.form.unsaved.continueEditing')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmClose}>
-              Descartar cambios
+              {t('catalog.form.unsaved.discard')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

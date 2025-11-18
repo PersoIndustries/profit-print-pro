@@ -40,7 +40,7 @@ const Dashboard = () => {
       <div className="mb-8">
         <h2 className="text-3xl font-bold mb-2">{t('dashboard.title')}</h2>
         <p className="text-muted-foreground">
-          Análisis completo del rendimiento de tu negocio
+          {t('dashboard.description')}
         </p>
       </div>
 
@@ -50,20 +50,20 @@ const Dashboard = () => {
             <TabsList>
               <TabsTrigger value="overview">
                 <BarChart3 className="w-4 h-4 mr-2" />
-                Resumen
+                {t('dashboard.tabs.overview')}
               </TabsTrigger>
               <TabsTrigger value="prints">
                 <Printer className="w-4 h-4 mr-2" />
-                Impresiones
+                {t('dashboard.tabs.prints')}
                 {isFreeUser && (
-                  <Badge className="ml-2 bg-primary text-[10px] py-0 px-1.5">PRO</Badge>
+                  <Badge className="ml-2 bg-primary text-[10px] py-0 px-1.5">{t('dashboard.proBadge')}</Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger value="financial">
                 <TrendingUp className="w-4 h-4 mr-2" />
-                Financiero
+                {t('dashboard.tabs.financial')}
                 {isFreeUser && (
-                  <Badge className="ml-2 bg-primary text-[10px] py-0 px-1.5">PRO</Badge>
+                  <Badge className="ml-2 bg-primary text-[10px] py-0 px-1.5">{t('dashboard.proBadge')}</Badge>
                 )}
               </TabsTrigger>
             </TabsList>
@@ -85,28 +85,28 @@ const Dashboard = () => {
                         <Printer className="w-10 h-10 text-primary" />
                       </div>
                       <div>
-                        <h3 className="text-2xl font-bold mb-2">Estadísticas de Impresiones - Premium</h3>
+                        <h3 className="text-2xl font-bold mb-2">{t('dashboard.printsPremium.title')}</h3>
                         <p className="text-muted-foreground mb-4">
-                          Accede a análisis detallados de tus impresiones: tiempo total, material usado, tipos más comunes y tendencias mensuales.
+                          {t('dashboard.printsPremium.description')}
                         </p>
                         <ul className="text-sm text-muted-foreground space-y-2 mb-6 text-left max-w-sm mx-auto">
                           <li className="flex items-start gap-2">
                             <span className="text-primary">✓</span>
-                            <span>Tiempo total de impresión</span>
+                            <span>{t('dashboard.printsPremium.features.totalTime')}</span>
                           </li>
                           <li className="flex items-start gap-2">
                             <span className="text-primary">✓</span>
-                            <span>Material usado total y por mes</span>
+                            <span>{t('dashboard.printsPremium.features.materialUsed')}</span>
                           </li>
                           <li className="flex items-start gap-2">
                             <span className="text-primary">✓</span>
-                            <span>Gráficos y tendencias (60 días)</span>
+                            <span>{t('dashboard.printsPremium.features.charts')}</span>
                           </li>
                         </ul>
                       </div>
                       <Button onClick={() => navigate('/pricing')} size="lg">
                         <TrendingUp className="w-4 h-4 mr-2" />
-                        Ver Planes
+                        {t('dashboard.printsPremium.viewPlans')}
                       </Button>
                     </div>
                   </CardContent>
@@ -125,28 +125,28 @@ const Dashboard = () => {
                         <TrendingUp className="w-10 h-10 text-primary" />
                       </div>
                       <div>
-                        <h3 className="text-2xl font-bold mb-2">Análisis Financiero - Premium</h3>
+                        <h3 className="text-2xl font-bold mb-2">{t('dashboard.financialPremium.title')}</h3>
                         <p className="text-muted-foreground mb-4">
-                          Obtén análisis completo de ingresos, costos y márgenes de beneficio con gráficos mensuales y tendencias.
+                          {t('dashboard.financialPremium.description')}
                         </p>
                         <ul className="text-sm text-muted-foreground space-y-2 mb-6 text-left max-w-sm mx-auto">
                           <li className="flex items-start gap-2">
                             <span className="text-primary">✓</span>
-                            <span>Ingresos y costos mensuales</span>
+                            <span>{t('dashboard.financialPremium.features.revenueCosts')}</span>
                           </li>
                           <li className="flex items-start gap-2">
                             <span className="text-primary">✓</span>
-                            <span>Margen de beneficio por período</span>
+                            <span>{t('dashboard.financialPremium.features.profitMargin')}</span>
                           </li>
                           <li className="flex items-start gap-2">
                             <span className="text-primary">✓</span>
-                            <span>Pedidos completados y tendencias</span>
+                            <span>{t('dashboard.financialPremium.features.completedOrders')}</span>
                           </li>
                         </ul>
                       </div>
                       <Button onClick={() => navigate('/pricing')} size="lg">
                         <TrendingUp className="w-4 h-4 mr-2" />
-                        Ver Planes
+                        {t('dashboard.financialPremium.viewPlans')}
                       </Button>
                     </div>
                   </CardContent>

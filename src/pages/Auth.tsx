@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,7 @@ import { Footer } from "@/components/Footer";
 const Auth = () => {
   const { user, loading, signUp, signIn, resetPassword } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const mode = searchParams.get("mode");
 
@@ -36,7 +38,7 @@ const Auth = () => {
     e.preventDefault();
     
     if (!acceptTerms) {
-      toast.error("Debes aceptar los términos y condiciones");
+      toast.error(t('auth.mustAcceptTerms'));
       return;
     }
     
@@ -47,7 +49,7 @@ const Auth = () => {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("¡Cuenta creada! Revisa tu email para confirmar.");
+      toast.success(t('auth.accountCreated'));
     }
     setIsLoading(false);
   };
@@ -76,7 +78,7 @@ const Auth = () => {
       toast.error(error.message);
     } else {
       setEmailSent(true);
-      toast.success("Email de recuperación enviado. Revisa tu bandeja de entrada.");
+      toast.success(t('auth.resetEmailSent'));
     }
     setIsLoading(false);
   };
@@ -96,11 +98,11 @@ const Auth = () => {
         <div className="flex-1 container mx-auto px-4 py-16 flex items-center justify-center">
           <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Recuperar Contraseña</CardTitle>
+            <CardTitle>{t('auth.resetPasswordTitle')}</CardTitle>
             <CardDescription>
               {emailSent 
-                ? "¡Email enviado! Revisa tu bandeja de entrada y carpeta de spam."
-                : "Ingresa tu email y te enviaremos un link para restablecer tu contraseña. El proceso puede tardar unos minutos."
+                ? t('auth.resetPassword.emailSent')
+                : t('auth.resetPasswordDesc')
               }
             </CardDescription>
           </CardHeader>
@@ -109,18 +111,18 @@ const Auth = () => {
               <div className="space-y-4">
                 <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
                   <p className="text-sm text-muted-foreground mb-2">
-                    📧 Hemos enviado un email a <strong>{email}</strong>
+                    📧 {t('auth.resetPassword.emailSentTo')} <strong>{email}</strong>
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Haz clic en el link del email para restablecer tu contraseña. El link expira en 1 hora.
+                    {t('auth.resetPassword.clickLink')}
                   </p>
                 </div>
                 <div className="text-sm text-muted-foreground space-y-2">
-                  <p className="font-semibold">¿No recibiste el email?</p>
+                  <p className="font-semibold">{t('auth.resetPassword.noEmailReceived')}</p>
                   <ul className="list-disc list-inside space-y-1 pl-2">
-                    <li>Revisa tu carpeta de spam</li>
-                    <li>Verifica que el email sea correcto</li>
-                    <li>Espera unos minutos, puede tardar</li>
+                    <li>{t('auth.resetPassword.checkSpam')}</li>
+                    <li>{t('auth.resetPassword.verifyEmail')}</li>
+                    <li>{t('auth.resetPassword.waitMinutes')}</li>
                   </ul>
                 </div>
                 <Button
@@ -132,7 +134,7 @@ const Auth = () => {
                     setEmail("");
                   }}
                 >
-                  Intentar con otro email
+                  {t('auth.resetPassword.tryAnotherEmail')}
                 </Button>
                 <Button
                   type="button"
@@ -140,13 +142,13 @@ const Auth = () => {
                   className="w-full"
                   onClick={() => navigate("/auth")}
                 >
-                  Volver al Login
+                  {t('auth.backToLogin')}
                 </Button>
               </div>
             ) : (
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t('auth.email')}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -157,7 +159,7 @@ const Auth = () => {
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Enviar Email de Recuperación
+                  {t('auth.sendResetEmail')}
                 </Button>
                 <Button
                   type="button"
@@ -165,7 +167,7 @@ const Auth = () => {
                   className="w-full"
                   onClick={() => navigate("/auth")}
                 >
-                  Volver al Login
+                  {t('auth.backToLogin')}
                 </Button>
               </form>
             )}
@@ -183,20 +185,20 @@ const Auth = () => {
       <div className="flex-1 container mx-auto px-4 py-16 flex items-center justify-center">
         <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Layer Suite</CardTitle>
-          <CardDescription>Gestiona tu emprendimiento de impresión 3D</CardDescription>
+          <CardTitle>{t('auth.title')}</CardTitle>
+          <CardDescription>{t('auth.subtitle')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
-              <TabsTrigger value="signup">Registrarse</TabsTrigger>
+              <TabsTrigger value="login">{t('auth.login')}</TabsTrigger>
+              <TabsTrigger value="signup">{t('auth.signup')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="login-email">Email</Label>
+                  <Label htmlFor="login-email">{t('auth.email')}</Label>
                   <Input
                     id="login-email"
                     type="email"
@@ -206,7 +208,7 @@ const Auth = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="login-password">Contraseña</Label>
+                  <Label htmlFor="login-password">{t('auth.password')}</Label>
                   <div className="relative">
                     <Input
                       id="login-password"
@@ -236,11 +238,11 @@ const Auth = () => {
                   className="px-0"
                   onClick={() => navigate("/auth?mode=forgot")}
                 >
-                  ¿Olvidaste tu contraseña?
+                  {t('auth.forgotPassword')}
                 </Button>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Iniciar Sesión
+                  {t('auth.login')}
                 </Button>
               </form>
             </TabsContent>
@@ -248,7 +250,7 @@ const Auth = () => {
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-name">Nombre Completo</Label>
+                  <Label htmlFor="signup-name">{t('auth.fullName')}</Label>
                   <Input
                     id="signup-name"
                     type="text"
@@ -258,7 +260,7 @@ const Auth = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
+                  <Label htmlFor="signup-email">{t('auth.email')}</Label>
                   <Input
                     id="signup-email"
                     type="email"
@@ -268,7 +270,7 @@ const Auth = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password">Contraseña</Label>
+                  <Label htmlFor="signup-password">{t('auth.password')}</Label>
                   <div className="relative">
                     <Input
                       id="signup-password"
@@ -303,19 +305,19 @@ const Auth = () => {
                     htmlFor="terms"
                     className="text-sm text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                   >
-                    Acepto los{" "}
+                    {t('auth.acceptTerms')}{" "}
                     <button
                       type="button"
                       onClick={() => window.open('/terms', '_blank')}
                       className="text-primary underline hover:text-primary/80"
                     >
-                      términos y condiciones
+                      {t('auth.termsAndConditions')}
                     </button>
                   </label>
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading || !acceptTerms}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Crear Cuenta
+                  {t('auth.createAccount')}
                 </Button>
               </form>
             </TabsContent>

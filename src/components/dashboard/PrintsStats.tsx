@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
@@ -10,14 +11,15 @@ interface PrintsStatsProps {
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b'];
 
-const PRINT_TYPE_LABELS = {
-  order: 'Pedidos',
-  tools: 'Herramientas',
-  personal: 'Personal',
-  operational: 'Operativa'
-};
-
 export function PrintsStats({ userId }: PrintsStatsProps) {
+  const { t, i18n } = useTranslation();
+  
+  const PRINT_TYPE_LABELS = {
+    order: t('dashboard.stats.prints.types.order'),
+    tools: t('dashboard.stats.prints.types.tools'),
+    personal: t('dashboard.stats.prints.types.personal'),
+    operational: t('dashboard.stats.prints.types.operational')
+  };
   const [loading, setLoading] = useState(true);
   const [totalPrintTime, setTotalPrintTime] = useState(0);
   const [totalMaterial, setTotalMaterial] = useState(0);
@@ -54,7 +56,7 @@ export function PrintsStats({ userId }: PrintsStatsProps) {
         
         const materialMap: Record<string, number> = {};
         relevantMaterials.forEach((pm: any) => {
-          const name = pm.materials?.name || "Desconocido";
+          const name = pm.materials?.name || t('dashboard.stats.prints.unknown');
           materialMap[name] = (materialMap[name] || 0) + Number(pm.weight_grams);
         });
 
@@ -91,10 +93,11 @@ export function PrintsStats({ userId }: PrintsStatsProps) {
         }
       });
 
+      const locale = i18n.language === 'es' ? 'es-ES' : i18n.language === 'fr' ? 'fr-FR' : 'en-US';
       const monthlyArray = Object.entries(monthlyMap).map(([month, data]) => ({
-        month: new Date(month + '-01').toLocaleDateString('es-ES', { month: 'short', year: '2-digit' }),
-        'Tiempo (h)': Math.round(data.time * 10) / 10,
-        'Material (kg)': Math.round(data.material * 100) / 100
+        month: new Date(month + '-01').toLocaleDateString(locale, { month: 'short', year: '2-digit' }),
+        [t('dashboard.stats.prints.timeHours')]: Math.round(data.time * 10) / 10,
+        [t('dashboard.stats.prints.materialKg')]: Math.round(data.material * 100) / 100
       }));
 
       setMonthlyData(monthlyArray);
@@ -140,14 +143,14 @@ export function PrintsStats({ userId }: PrintsStatsProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Tiempo Total de Impresión
+              {t('dashboard.stats.prints.totalTime')}
             </CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalPrintTime.toFixed(1)}h</div>
             <p className="text-xs text-muted-foreground">
-              Todas las impresiones completadas
+              {t('dashboard.stats.prints.allCompleted')}
             </p>
           </CardContent>
         </Card>
@@ -155,14 +158,14 @@ export function PrintsStats({ userId }: PrintsStatsProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Material Total Usado
+              {t('dashboard.stats.prints.totalMaterial')}
             </CardTitle>
             <Package2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{(totalMaterial / 1000).toFixed(2)}kg</div>
             <p className="text-xs text-muted-foreground">
-              {totalMaterial.toFixed(0)}g en total
+              {totalMaterial.toFixed(0)}{t('dashboard.stats.prints.totalGrams')}
             </p>
           </CardContent>
         </Card>
@@ -170,16 +173,16 @@ export function PrintsStats({ userId }: PrintsStatsProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Tipo Más Común
+              {t('dashboard.stats.prints.mostCommonType')}
             </CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {typeData.length > 0 ? typeData.reduce((a, b) => a.value > b.value ? a : b).name : 'N/A'}
+              {typeData.length > 0 ? typeData.reduce((a, b) => a.value > b.value ? a : b).name : t('dashboard.stats.prints.notAvailable')}
             </div>
             <p className="text-xs text-muted-foreground">
-              {typeData.length > 0 ? `${typeData.reduce((a, b) => a.value > b.value ? a : b).value} impresiones` : ''}
+              {typeData.length > 0 ? `${typeData.reduce((a, b) => a.value > b.value ? a : b).value} ${t('dashboard.stats.prints.printsCount')}` : ''}
             </p>
           </CardContent>
         </Card>
@@ -189,7 +192,7 @@ export function PrintsStats({ userId }: PrintsStatsProps) {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Impresiones por Mes</CardTitle>
+            <CardTitle>{t('dashboard.stats.prints.printsByMonth')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -200,8 +203,8 @@ export function PrintsStats({ userId }: PrintsStatsProps) {
                 <YAxis yAxisId="right" orientation="right" />
                 <Tooltip />
                 <Legend />
-                <Bar yAxisId="left" dataKey="Tiempo (h)" fill="#8b5cf6" />
-                <Bar yAxisId="right" dataKey="Material (kg)" fill="#3b82f6" />
+                <Bar yAxisId="left" dataKey={t('dashboard.stats.prints.timeHours')} fill="#8b5cf6" />
+                <Bar yAxisId="right" dataKey={t('dashboard.stats.prints.materialKg')} fill="#3b82f6" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -209,7 +212,7 @@ export function PrintsStats({ userId }: PrintsStatsProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Distribución por Tipo</CardTitle>
+            <CardTitle>{t('dashboard.stats.prints.typeDistribution')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -239,7 +242,7 @@ export function PrintsStats({ userId }: PrintsStatsProps) {
       {topMaterials.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Materiales Más Usados</CardTitle>
+            <CardTitle>{t('dashboard.stats.prints.topMaterials')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -85,24 +86,25 @@ interface FormMaterial {
   weight_grams: string;
 }
 
-const PRINT_TYPE_CONFIG = {
-  order: { label: 'Pedido', icon: Package, color: 'bg-blue-500' },
-  tools: { label: 'Herramientas', icon: Wrench, color: 'bg-purple-500' },
-  personal: { label: 'Personal', icon: User, color: 'bg-green-500' },
-  operational: { label: 'Operativa', icon: Building, color: 'bg-orange-500' },
-  for_sale: { label: 'Para Vender', icon: Package, color: 'bg-teal-500' }
-};
+const getPrintTypeConfig = (t: any) => ({
+  order: { label: t('prints.types.order'), icon: Package, color: 'bg-blue-500' },
+  tools: { label: t('prints.types.tools'), icon: Wrench, color: 'bg-purple-500' },
+  personal: { label: t('prints.types.personal'), icon: User, color: 'bg-green-500' },
+  operational: { label: t('prints.types.operational'), icon: Building, color: 'bg-orange-500' },
+  for_sale: { label: t('prints.types.for_sale'), icon: Package, color: 'bg-teal-500' }
+});
 
-const STATUS_CONFIG = {
-  pending_print: { label: 'Pendiente', color: 'bg-gray-500' },
-  printing: { label: 'Imprimiendo', color: 'bg-yellow-500' },
-  completed: { label: 'Completado', color: 'bg-green-500' },
-  failed: { label: 'Fallido', color: 'bg-red-500' }
-};
+const getStatusConfig = (t: any) => ({
+  pending_print: { label: t('prints.status.pending'), color: 'bg-gray-500' },
+  printing: { label: t('prints.status.printing'), color: 'bg-yellow-500' },
+  completed: { label: t('prints.status.completed'), color: 'bg-green-500' },
+  failed: { label: t('prints.status.failed'), color: 'bg-red-500' }
+});
 
 const Prints = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [prints, setPrints] = useState<Print[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -177,7 +179,7 @@ const Prints = () => {
       if (error) throw error;
       setPrints((data || []) as Print[]);
     } catch (error: any) {
-      toast.error("Error al cargar impresiones");
+      toast.error(t('prints.messages.errorLoading'));
     } finally {
       setPrintsLoading(false);
     }
@@ -252,7 +254,7 @@ const Prints = () => {
 
   const handleImportFromProject = async () => {
     if (!formData.project_id) {
-      toast.error("Selecciona un proyecto primero");
+      toast.error(t('prints.messages.selectProjectFirst'));
       return;
     }
 
@@ -280,12 +282,12 @@ const Prints = () => {
           setFormData(prev => ({ ...prev, print_time_hours: project.print_time_hours.toString() }));
         }
 
-        toast.success("Materiales importados del proyecto");
+        toast.success(t('prints.messages.materialsImported'));
       } else {
-        toast.info("El proyecto no tiene materiales asignados");
+        toast.info(t('prints.messages.projectNoMaterials'));
       }
     } catch (error: any) {
-      toast.error("Error al importar materiales");
+      toast.error(t('prints.messages.errorImportingMaterials'));
     }
   };
 
@@ -389,7 +391,7 @@ const Prints = () => {
     if (!user) return;
 
     if (formMaterials.length === 0) {
-      toast.error("Añade al menos un material");
+      toast.error(t('prints.messages.addAtLeastOneMaterial'));
       return;
     }
 
@@ -468,7 +470,7 @@ const Prints = () => {
 
         if (materialsError) throw materialsError;
 
-        toast.success("Impresión actualizada");
+        toast.success(t('prints.messages.printUpdated'));
       } else {
         const { data: print, error: printError } = await supabase
           .from("prints")
@@ -498,14 +500,14 @@ const Prints = () => {
 
         if (materialsError) throw materialsError;
 
-        toast.success("Impresión registrada");
+        toast.success(t('prints.messages.printRegistered'));
       }
 
       setIsModalOpen(false);
       await fetchPrints();
       fetchInventory(); // Refresh inventory after saving
     } catch (error: any) {
-      toast.error("Error al guardar impresión");
+      toast.error(t('prints.messages.errorSaving'));
     }
   };
 
@@ -513,13 +515,13 @@ const Prints = () => {
     try {
       const { error } = await supabase.from("prints").delete().eq("id", id);
       if (error) throw error;
-      toast.success("Impresión eliminada");
+      toast.success(t('prints.messages.printDeleted'));
       fetchPrints();
       if (selectedPrint?.id === id) {
         setSelectedPrint(null);
       }
     } catch (error: any) {
-      toast.error("Error al eliminar impresión");
+      toast.error(t('prints.messages.errorDeleting'));
     }
   };
 
@@ -531,6 +533,9 @@ const Prints = () => {
   const filteredPrints = statusFilter === "all"
     ? prints
     : prints.filter(print => print.status === statusFilter);
+
+  const PRINT_TYPE_CONFIG = getPrintTypeConfig(t);
+  const STATUS_CONFIG = getStatusConfig(t);
 
   if (loading || printsLoading) {
     return (
@@ -544,14 +549,14 @@ const Prints = () => {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-4xl font-bold">Impresiones</h1>
+          <h1 className="text-4xl font-bold">{t('prints.title')}</h1>
           <p className="text-muted-foreground mt-2">
-            Gestiona y registra tus impresiones 3D
+            {t('prints.subtitle')}
           </p>
         </div>
         <Button onClick={handleOpenModal}>
           <Plus className="w-4 h-4 mr-2" />
-          Nueva Impresión
+          {t('prints.newPrint')}
         </Button>
       </div>
 
@@ -560,13 +565,13 @@ const Prints = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-medium text-muted-foreground">Filtrar por estado:</span>
+              <span className="text-sm font-medium text-muted-foreground">{t('prints.filterByStatus')}:</span>
               <Button
                 variant={statusFilter === "all" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setStatusFilter("all")}
               >
-                Todos
+                {t('prints.all')}
               </Button>
               {Object.entries(STATUS_CONFIG).map(([key, config]) => (
                 <Button
@@ -590,8 +595,8 @@ const Prints = () => {
             <Printer className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground">
               {prints.length === 0 
-                ? "No hay impresiones registradas. Crea tu primera impresión."
-                : "No hay impresiones con el estado seleccionado."}
+                ? t('prints.empty.noPrints')
+                : t('prints.empty.noPrintsWithStatus')}
             </p>
           </CardContent>
         </Card>
@@ -632,7 +637,7 @@ const Prints = () => {
                         </span>
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          {new Date(print.print_date).toLocaleDateString('es-ES', {
+                          {new Date(print.print_date).toLocaleDateString(undefined, {
                             day: '2-digit',
                             month: '2-digit',
                             year: 'numeric'
@@ -685,13 +690,13 @@ const Prints = () => {
       }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingPrint ? 'Editar Impresión' : 'Nueva Impresión'}</DialogTitle>
+            <DialogTitle>{editingPrint ? t('prints.editPrint') : t('prints.newPrint')}</DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSavePrint} className="space-y-6">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nombre *</Label>
+                <Label htmlFor="name">{t('prints.form.name')} *</Label>
                 <Input
                   id="name"
                   value={formData.name}
@@ -701,7 +706,7 @@ const Prints = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="print_type">Tipo de Impresión *</Label>
+                <Label htmlFor="print_type">{t('prints.form.printType')} *</Label>
                 <Select
                   value={formData.print_type}
                   onValueChange={(value: any) => setFormData({ ...formData, print_type: value })}
@@ -723,16 +728,16 @@ const Prints = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="order_id">Pedido (opcional)</Label>
+                <Label htmlFor="order_id">{t('prints.form.order')} ({t('prints.form.optional')})</Label>
                 <Select
                   value={formData.order_id || "none"}
                   onValueChange={(value) => setFormData({ ...formData, order_id: value === "none" ? "" : value })}
                 >
                   <SelectTrigger id="order_id">
-                    <SelectValue placeholder="Seleccionar pedido" />
+                    <SelectValue placeholder={t('prints.form.selectOrder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Sin pedido</SelectItem>
+                    <SelectItem value="none">{t('prints.form.noOrder')}</SelectItem>
                     {orders.map((order) => (
                       <SelectItem key={order.id} value={order.id}>
                         {order.order_number} - {order.customer_name}
@@ -743,17 +748,17 @@ const Prints = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="project_id">Proyecto (opcional)</Label>
+                <Label htmlFor="project_id">{t('prints.form.project')} ({t('prints.form.optional')})</Label>
                 <div className="flex gap-2">
                   <Select
                     value={formData.project_id || "none"}
                     onValueChange={(value) => setFormData({ ...formData, project_id: value === "none" ? "" : value })}
                   >
                     <SelectTrigger id="project_id">
-                      <SelectValue placeholder="Seleccionar proyecto" />
+                      <SelectValue placeholder={t('prints.form.selectProject')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Sin proyecto</SelectItem>
+                      <SelectItem value="none">{t('prints.form.noProject')}</SelectItem>
                       {projects.map((project) => (
                         <SelectItem key={project.id} value={project.id}>
                           {project.name}
@@ -766,7 +771,7 @@ const Prints = () => {
                       type="button"
                       variant="outline"
                       onClick={handleImportFromProject}
-                      title="Importar materiales del proyecto"
+                      title={t('prints.form.importMaterials')}
                     >
                       <Download className="w-4 h-4" />
                     </Button>
@@ -775,7 +780,7 @@ const Prints = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="print_time_hours">Tiempo de Impresión (horas) *</Label>
+                <Label htmlFor="print_time_hours">{t('prints.form.printTime')} *</Label>
                 <Input
                   id="print_time_hours"
                   type="number"
@@ -787,7 +792,7 @@ const Prints = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="print_date">Fecha y Hora *</Label>
+                <Label htmlFor="print_date">{t('prints.form.dateTime')} *</Label>
                 <Input
                   id="print_date"
                   type="datetime-local"
@@ -798,7 +803,7 @@ const Prints = () => {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="status">Estado *</Label>
+                <Label htmlFor="status">{t('prints.form.status')} *</Label>
                 <Select
                   value={formData.status}
                   onValueChange={(value: any) => setFormData({ ...formData, status: value })}
@@ -817,7 +822,7 @@ const Prints = () => {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="notes">Notas</Label>
+                <Label htmlFor="notes">{t('prints.form.notes')}</Label>
                 <Textarea
                   id="notes"
                   value={formData.notes}
@@ -829,27 +834,27 @@ const Prints = () => {
 
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <Label className="text-lg font-semibold">Materiales *</Label>
+                <Label className="text-lg font-semibold">{t('prints.form.materials')} *</Label>
                 <Button type="button" variant="outline" size="sm" onClick={addMaterialRow}>
                   <Plus className="w-3 h-3 mr-1" />
-                  Añadir Material
+                  {t('prints.form.addMaterial')}
                 </Button>
               </div>
 
               {formMaterials.length === 0 ? (
                 <Card className="border-dashed">
                   <CardContent className="py-8 text-center text-muted-foreground">
-                    <p>No hay materiales añadidos.</p>
-                    <p className="text-sm">Usa el botón de arriba o importa desde un proyecto</p>
+                    <p>{t('prints.form.noMaterialsAdded')}</p>
+                    <p className="text-sm">{t('prints.form.useButtonOrImport')}</p>
                   </CardContent>
                 </Card>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Material</TableHead>
-                      <TableHead>Peso (g)</TableHead>
-                      <TableHead className="w-[100px]">Acciones</TableHead>
+                      <TableHead>{t('prints.form.material')}</TableHead>
+                      <TableHead>{t('prints.form.weight')}</TableHead>
+                      <TableHead className="w-[100px]">{t('prints.form.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -861,7 +866,7 @@ const Prints = () => {
                             onValueChange={(value) => updateMaterialRow(material.tempId, 'material_id', value)}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Seleccionar material" />
+                              <SelectValue placeholder={t('prints.form.selectMaterial')} />
                             </SelectTrigger>
                             <SelectContent>
                               {materials.map((mat) => (
@@ -900,7 +905,7 @@ const Prints = () => {
               {formMaterials.length > 0 && (
                 <div className="text-right">
                   <p className="text-sm font-medium">
-                    Total: {formMaterials.reduce((sum, m) => sum + (parseFloat(m.weight_grams) || 0), 0).toFixed(1)}g
+                    {t('prints.form.total')}: {formMaterials.reduce((sum, m) => sum + (parseFloat(m.weight_grams) || 0), 0).toFixed(1)}g
                     {" "}
                     ({(formMaterials.reduce((sum, m) => sum + (parseFloat(m.weight_grams) || 0), 0) / 1000).toFixed(3)}kg)
                   </p>
@@ -910,10 +915,10 @@ const Prints = () => {
 
             <div className="flex gap-2 justify-end">
               <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
-                Cancelar
+                {t('common.cancel')}
               </Button>
               <Button type="submit">
-                {editingPrint ? 'Actualizar' : 'Crear'} Impresión
+                {editingPrint ? t('prints.form.update') : t('prints.form.create')} {t('prints.print')}
               </Button>
             </div>
           </form>
@@ -928,29 +933,29 @@ const Prints = () => {
       }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>⚠️ Stock Insuficiente</AlertDialogTitle>
+            <AlertDialogTitle>⚠️ {t('prints.stockWarning.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              No hay suficiente stock disponible para algunos materiales:
+              {t('prints.stockWarning.description')}:
               <ul className="list-disc list-inside mt-3 space-y-1">
                 {stockWarning.insufficientMaterials.map((item, idx) => (
                   <li key={idx} className="text-sm">
-                    <strong>{item.materialName}</strong>: Disponible {item.available.toFixed(0)}g, 
-                    Necesitas {item.needed.toFixed(0)}g 
+                    <strong>{item.materialName}</strong>: {t('prints.stockWarning.available')} {item.available.toFixed(0)}g, 
+                    {t('prints.stockWarning.needed')} {item.needed.toFixed(0)}g 
                     <span className="text-destructive">
-                      (Faltan {(item.needed - item.available).toFixed(0)}g)
+                      ({t('prints.stockWarning.missing')} {(item.needed - item.available).toFixed(0)}g)
                     </span>
                   </li>
                 ))}
               </ul>
               <p className="mt-3 text-sm">
-                El stock puede quedar negativo. ¿Deseas continuar de todas formas?
+                {t('prints.stockWarning.continueQuestion')}
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={stockWarning.onConfirm}>
-              Continuar de todas formas
+              {t('prints.stockWarning.continueAnyway')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -978,7 +983,7 @@ const Prints = () => {
                     }}
                   >
                     <Edit2 className="w-4 h-4 mr-2" />
-                    Editar
+                    {t('common.edit')}
                   </Button>
                 </div>
               </DialogHeader>
@@ -988,7 +993,7 @@ const Prints = () => {
                 <div className="grid md:grid-cols-2 gap-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Información General</CardTitle>
+                      <CardTitle className="text-lg">{t('prints.detail.generalInfo')}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="flex items-center gap-2">
@@ -1004,16 +1009,16 @@ const Prints = () => {
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-muted-foreground" />
                           <div>
-                            <p className="text-sm text-muted-foreground">Tiempo de impresión</p>
+                            <p className="text-sm text-muted-foreground">{t('prints.detail.printTime')}</p>
                             <p className="font-semibold">{selectedPrint.print_time_hours}h</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-muted-foreground" />
                           <div>
-                            <p className="text-sm text-muted-foreground">Fecha</p>
+                            <p className="text-sm text-muted-foreground">{t('prints.detail.date')}</p>
                             <p className="font-semibold">
-                              {new Date(selectedPrint.print_date).toLocaleString('es-ES', {
+                              {new Date(selectedPrint.print_date).toLocaleString(undefined, {
                                 day: '2-digit',
                                 month: '2-digit',
                                 year: 'numeric',
@@ -1025,7 +1030,7 @@ const Prints = () => {
                         </div>
                         {selectedPrint.orders && (
                           <div>
-                            <p className="text-sm text-muted-foreground">Pedido</p>
+                            <p className="text-sm text-muted-foreground">{t('prints.detail.order')}</p>
                             <p className="font-semibold">
                               {selectedPrint.orders.order_number} - {selectedPrint.orders.customer_name}
                             </p>
@@ -1033,7 +1038,7 @@ const Prints = () => {
                         )}
                         {selectedPrint.projects && (
                           <div>
-                            <p className="text-sm text-muted-foreground">Proyecto</p>
+                            <p className="text-sm text-muted-foreground">{t('prints.detail.project')}</p>
                             <p className="font-semibold">{selectedPrint.projects.name}</p>
                           </div>
                         )}
@@ -1043,7 +1048,7 @@ const Prints = () => {
                         <div>
                           <p className="text-sm text-muted-foreground mb-2 flex items-center gap-1">
                             <FileText className="w-4 h-4" />
-                            Notas
+                            {t('prints.detail.notes')}
                           </p>
                           <p className="text-sm">{selectedPrint.notes}</p>
                         </div>
@@ -1053,7 +1058,7 @@ const Prints = () => {
 
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Materiales Utilizados</CardTitle>
+                      <CardTitle className="text-lg">{t('prints.detail.materialsUsed')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       {selectedPrint.print_materials && selectedPrint.print_materials.length > 0 ? (
@@ -1073,14 +1078,14 @@ const Prints = () => {
                           ))}
                           <div className="pt-2 border-t">
                             <div className="flex justify-between items-center">
-                              <span className="font-semibold">Total:</span>
+                              <span className="font-semibold">{t('prints.detail.total')}:</span>
                               <div className="text-right">
                                 <p className="font-semibold">
                                   {selectedPrint.material_used_grams}g ({(selectedPrint.material_used_grams / 1000).toFixed(2)}kg)
                                 </p>
                                 {selectedPrint.print_materials.reduce((sum, pm) => sum + pm.material_cost, 0) > 0 && (
                                   <p className="text-xs text-muted-foreground">
-                                    Coste: {selectedPrint.print_materials.reduce((sum, pm) => sum + pm.material_cost, 0).toFixed(2)}€
+                                    {t('prints.detail.cost')}: {selectedPrint.print_materials.reduce((sum, pm) => sum + pm.material_cost, 0).toFixed(2)}€
                                   </p>
                                 )}
                               </div>
@@ -1088,7 +1093,7 @@ const Prints = () => {
                           </div>
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">Sin materiales registrados</p>
+                        <p className="text-sm text-muted-foreground">{t('prints.detail.noMaterials')}</p>
                       )}
                     </CardContent>
                   </Card>

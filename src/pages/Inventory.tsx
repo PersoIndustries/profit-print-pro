@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -72,38 +73,45 @@ interface Printer {
   updated_at: string;
 }
 
-const MATERIAL_TYPES = [
-  { value: 'filament', label: 'Filamento', icon: Disc },
-  { value: 'resin', label: 'Resina', icon: Droplet },
-  { value: 'glue', label: 'Pegamento', icon: Droplet },
-  { value: 'keyring', label: 'Llavero', icon: KeyRound },
-  { value: 'screw', label: 'Tornillo', icon: Wrench },
-  { value: 'paint', label: 'Pintura', icon: Paintbrush },
-  { value: 'sandpaper', label: 'Lija', icon: FileBox },
-  { value: 'other', label: 'Otro', icon: Package },
+// Helper function to get material types with translations
+const getMaterialTypes = (t: (key: string) => string) => [
+  { value: 'filament', label: t('inventory.materialTypes.filament'), icon: Disc },
+  { value: 'resin', label: t('inventory.materialTypes.resin'), icon: Droplet },
+  { value: 'glue', label: t('inventory.materialTypes.glue'), icon: Droplet },
+  { value: 'keyring', label: t('inventory.materialTypes.keyring'), icon: KeyRound },
+  { value: 'screw', label: t('inventory.materialTypes.screw'), icon: Wrench },
+  { value: 'paint', label: t('inventory.materialTypes.paint'), icon: Paintbrush },
+  { value: 'sandpaper', label: t('inventory.materialTypes.sandpaper'), icon: FileBox },
+  { value: 'other', label: t('inventory.materialTypes.other'), icon: Package },
 ];
 
-const PREDEFINED_COLORS = [
-  { name: "Rojo", value: "#ef4444" },
-  { name: "Naranja", value: "#f97316" },
-  { name: "Amarillo", value: "#eab308" },
-  { name: "Verde", value: "#22c55e" },
-  { name: "Azul", value: "#3b82f6" },
-  { name: "Morado", value: "#a855f7" },
-  { name: "Rosa", value: "#ec4899" },
-  { name: "Blanco", value: "#f3f4f6" },
-  { name: "Negro", value: "#1f2937" },
-  { name: "Gris", value: "#6b7280" },
+// Helper function to get predefined colors with translations
+const getPredefinedColors = (t: (key: string) => string) => [
+  { name: t('inventory.colors.red'), value: "#ef4444" },
+  { name: t('inventory.colors.orange'), value: "#f97316" },
+  { name: t('inventory.colors.yellow'), value: "#eab308" },
+  { name: t('inventory.colors.green'), value: "#22c55e" },
+  { name: t('inventory.colors.blue'), value: "#3b82f6" },
+  { name: t('inventory.colors.purple'), value: "#a855f7" },
+  { name: t('inventory.colors.pink'), value: "#ec4899" },
+  { name: t('inventory.colors.white'), value: "#f3f4f6" },
+  { name: t('inventory.colors.black'), value: "#1f2937" },
+  { name: t('inventory.colors.gray'), value: "#6b7280" },
 ];
 
-const getMaterialIcon = (type: string | null) => {
-  const materialType = MATERIAL_TYPES.find(t => t.value === type);
+const getMaterialIcon = (type: string | null, materialTypes: ReturnType<typeof getMaterialTypes>) => {
+  const materialType = materialTypes.find(t => t.value === type);
   return materialType?.icon || Package;
 };
 
 const Inventory = () => {
+  const { t } = useTranslation();
   const { user, loading } = useAuth();
   const [tooltipOpen, setTooltipOpen] = useState<{ [key: string]: boolean }>({});
+  
+  // Get translated constants
+  const MATERIAL_TYPES = getMaterialTypes(t);
+  const PREDEFINED_COLORS = getPredefinedColors(t);
   const navigate = useNavigate();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -206,7 +214,7 @@ const Inventory = () => {
         display_mode: (m.display_mode || 'color') as 'color' | 'icon'
       })));
     } catch (error: any) {
-      toast.error("Error al cargar materiales");
+      toast.error(t('inventory.messages.errorLoadingMaterials'));
     }
   };
 
@@ -228,7 +236,7 @@ const Inventory = () => {
         }
       })));
     } catch (error: any) {
-      toast.error("Error al cargar inventario");
+      toast.error(t('inventory.messages.errorLoadingInventory'));
     }
   };
 
@@ -277,7 +285,7 @@ const Inventory = () => {
         }
       })));
     } catch (error: any) {
-      toast.error("Error al cargar adquisiciones");
+      toast.error(t('inventory.messages.errorLoadingAcquisitions'));
     }
   };
 
@@ -301,7 +309,7 @@ const Inventory = () => {
         }
       })));
     } catch (error: any) {
-      toast.error("Error al cargar movimientos");
+      toast.error(t('inventory.messages.errorLoadingMovements'));
     }
   };
 
@@ -383,7 +391,7 @@ const Inventory = () => {
 
       if (materialError) throw materialError;
 
-      toast.success("Material añadido correctamente");
+      toast.success(t('inventory.messages.materialAdded'));
       setIsMaterialDialogOpen(false);
       setMaterialForm({
         name: "",
@@ -394,7 +402,7 @@ const Inventory = () => {
       });
       fetchData();
     } catch (error: any) {
-      toast.error("Error al añadir material");
+      toast.error(t('inventory.messages.errorAddingMaterial'));
     }
   };
 
@@ -435,7 +443,7 @@ const Inventory = () => {
 
       if (error) throw error;
 
-      toast.success("Material actualizado");
+      toast.success(t('inventory.messages.materialUpdated'));
       setIsMaterialDialogOpen(false);
       setEditingMaterial(null);
       setMaterialForm({
@@ -447,20 +455,20 @@ const Inventory = () => {
       });
       fetchData();
     } catch (error: any) {
-      toast.error("Error al actualizar material");
+      toast.error(t('inventory.messages.errorUpdatingMaterial'));
     }
   };
 
   const handleDeleteMaterial = async (id: string) => {
-    if (!confirm("¿Eliminar este material?")) return;
+    if (!confirm(t('inventory.dialogs.confirmDeleteMaterial'))) return;
 
     try {
       const { error } = await supabase.from("materials").delete().eq("id", id);
       if (error) throw error;
-      toast.success("Material eliminado");
+      toast.success(t('inventory.messages.materialDeleted'));
       fetchData();
     } catch (error: any) {
-      toast.error("Error al eliminar material");
+      toast.error(t('inventory.messages.errorDeletingMaterial'));
     }
   };
 
@@ -483,7 +491,7 @@ const Inventory = () => {
 
       if (error) throw error;
 
-      toast.success("Impresora agregada");
+      toast.success(t('inventory.messages.printerAdded'));
       setIsPrinterDialogOpen(false);
       setPrinterForm({
         brand: "",
@@ -493,7 +501,7 @@ const Inventory = () => {
       });
       fetchPrinters();
     } catch (error: any) {
-      toast.error("Error al agregar impresora");
+      toast.error(t('inventory.messages.errorAddingPrinter'));
     }
   };
 
@@ -514,7 +522,7 @@ const Inventory = () => {
 
       if (error) throw error;
 
-      toast.success("Impresora actualizada");
+      toast.success(t('inventory.messages.printerUpdated'));
       setIsPrinterDialogOpen(false);
       setEditingPrinter(null);
       setPrinterForm({
@@ -525,20 +533,20 @@ const Inventory = () => {
       });
       fetchPrinters();
     } catch (error: any) {
-      toast.error("Error al actualizar impresora");
+      toast.error(t('inventory.messages.errorUpdatingPrinter'));
     }
   };
 
   const handleDeletePrinter = async (id: string) => {
-    if (!confirm("¿Eliminar esta impresora?")) return;
+    if (!confirm(t('inventory.dialogs.confirmDeletePrinter'))) return;
 
     try {
       const { error } = await supabase.from("printers").delete().eq("id", id);
       if (error) throw error;
-      toast.success("Impresora eliminada");
+      toast.success(t('inventory.messages.printerDeleted'));
       fetchPrinters();
     } catch (error: any) {
-      toast.error("Error al eliminar impresora");
+      toast.error(t('inventory.messages.errorDeletingPrinter'));
     }
   };
 
@@ -563,7 +571,7 @@ const Inventory = () => {
       if (error) throw error;
       fetchMaterials();
     } catch (error: any) {
-      toast.error("Error al actualizar favorito");
+      toast.error(t('inventory.messages.errorUpdatingFavorite'));
     }
   };
 
@@ -637,7 +645,7 @@ const Inventory = () => {
 
       if (movementError) throw movementError;
 
-      toast.success("Adquisición registrada correctamente");
+      toast.success(t('inventory.messages.acquisitionRegistered'));
       setIsAcquisitionDialogOpen(false);
       setAcquisitionForm({
         material_id: "",
@@ -649,7 +657,7 @@ const Inventory = () => {
       });
       fetchData();
     } catch (error: any) {
-      toast.error("Error al registrar adquisición");
+      toast.error(t('inventory.messages.errorRegisteringAcquisition'));
     }
   };
 
@@ -668,7 +676,7 @@ const Inventory = () => {
         .maybeSingle();
 
       if (!inventoryData || inventoryData.quantity_grams < quantityGrams) {
-        toast.error("No hay suficiente stock disponible");
+        toast.error(t('inventory.messages.insufficientStock'));
         return;
       }
 
@@ -695,7 +703,7 @@ const Inventory = () => {
 
       if (movementError) throw movementError;
 
-      toast.success("Desperdicio registrado correctamente");
+      toast.success(t('inventory.messages.wasteRegistered'));
       setIsWasteDialogOpen(false);
       setWasteForm({
         material_id: "",
@@ -704,12 +712,12 @@ const Inventory = () => {
       });
       fetchData();
     } catch (error: any) {
-      toast.error("Error al registrar desperdicio");
+      toast.error(t('inventory.messages.errorRegisteringWaste'));
     }
   };
 
   const handleDeleteAcquisition = async (id: string) => {
-    if (!confirm("¿Eliminar esta adquisición?")) return;
+    if (!confirm(t('inventory.dialogs.confirmDeleteAcquisition'))) return;
 
     try {
       const { error } = await supabase
@@ -718,19 +726,19 @@ const Inventory = () => {
         .eq("id", id);
 
       if (error) throw error;
-      toast.success("Adquisición eliminada");
+      toast.success(t('inventory.messages.acquisitionDeleted'));
       fetchData();
     } catch (error: any) {
-      toast.error("Error al eliminar adquisición");
+      toast.error(t('inventory.messages.errorDeletingAcquisition'));
     }
   };
 
   const getMovementTypeLabel = (type: string) => {
     const types: Record<string, string> = {
-      acquisition: "Adquisición",
-      consumption: "Consumo",
-      waste: "Desperdicio",
-      adjustment: "Ajuste"
+      acquisition: t('inventory.movementTypes.acquisition'),
+      consumption: t('inventory.movementTypes.consumption'),
+      waste: t('inventory.movementTypes.waste'),
+      adjustment: t('inventory.movementTypes.adjustment')
     };
     return types[type] || type;
   };
@@ -743,7 +751,7 @@ const Inventory = () => {
 
   const handleAssignSubmit = async () => {
     if (!selectedPrint || !selectedOrderId) {
-      toast.error("Por favor selecciona un pedido");
+      toast.error(t('inventory.messages.selectOrder'));
       return;
     }
 
@@ -759,14 +767,14 @@ const Inventory = () => {
 
       if (error) throw error;
 
-      toast.success("Objeto asignado al pedido correctamente");
+      toast.success(t('inventory.messages.assignedToOrder'));
       fetchData();
       setIsAssignDialogOpen(false);
       setSelectedPrint(null);
       setSelectedOrderId("");
     } catch (error: any) {
       console.error("Error al asignar objeto al pedido:", error);
-      toast.error("Error al asignar objeto al pedido");
+      toast.error(t('inventory.messages.errorAssigningToOrder'));
     }
   };
 
@@ -807,18 +815,18 @@ const Inventory = () => {
     <div className="container mx-auto p-6">
       <Tabs defaultValue="stock" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="stock">Stock</TabsTrigger>
-          <TabsTrigger value="acquisitions">Adquisiciones</TabsTrigger>
-          <TabsTrigger value="history">Historial</TabsTrigger>
+          <TabsTrigger value="stock">{t('inventory.tabs.materials')}</TabsTrigger>
+          <TabsTrigger value="acquisitions">{t('inventory.tabs.acquisitions')}</TabsTrigger>
+          <TabsTrigger value="history">{t('inventory.tabs.movements')}</TabsTrigger>
         </TabsList>
 
         {/* Tab de Stock */}
         <TabsContent value="stock">
           <Tabs defaultValue="materials" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="materials">Materiales</TabsTrigger>
-              <TabsTrigger value="objects">Objetos ({stockPrints.length})</TabsTrigger>
-              <TabsTrigger value="printers">Impresoras ({printers.length})</TabsTrigger>
+              <TabsTrigger value="materials">{t('inventory.tabs.materials')}</TabsTrigger>
+              <TabsTrigger value="objects">{t('inventory.tabs.assignments')} ({stockPrints.length})</TabsTrigger>
+              <TabsTrigger value="printers">{t('inventory.tabs.printers')} ({printers.length})</TabsTrigger>
             </TabsList>
 
             {/* Subtab de Materiales */}
@@ -827,7 +835,7 @@ const Inventory = () => {
             <CardHeader>
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <CardTitle>Gestión de Materiales y Stock</CardTitle>
+                  <CardTitle>{t('inventory.title')}</CardTitle>
                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -837,7 +845,7 @@ const Inventory = () => {
                       className="w-4 h-4 rounded border-input"
                     />
                     <Label htmlFor="low-stock-toggle-main" className="cursor-pointer text-sm">
-                      Solo stock bajo
+                      {t('inventory.lowStockWarning')}
                     </Label>
                     <Button onClick={() => {
                       setEditingMaterial(null);
@@ -851,7 +859,7 @@ const Inventory = () => {
                       setIsMaterialDialogOpen(true);
                     }}>
                       <Plus className="w-4 h-4 mr-2" />
-                      Añadir Material
+                      {t('inventory.addMaterial')}
                     </Button>
                   </div>
                 </div>
@@ -864,7 +872,7 @@ const Inventory = () => {
                   <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
                     <Info className="w-5 h-5 text-yellow-500" />
                     <span className="text-sm font-medium">
-                      Hay materiales con stock bajo (marcados en amarillo)
+                      {t('inventory.lowStockWarning')}
                     </span>
                   </div>
                 )}
@@ -875,7 +883,7 @@ const Inventory = () => {
                 <div>
                   <Input
                     id="search"
-                    placeholder="Buscar material..."
+                    placeholder={t('inventory.searchMaterial')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -886,7 +894,7 @@ const Inventory = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todos los tipos</SelectItem>
+                      <SelectItem value="all">{t('inventory.allTypes')}</SelectItem>
                       {MATERIAL_TYPES.map((type) => (
                         <SelectItem key={type.value} value={type.value}>
                           {type.label}
@@ -903,7 +911,7 @@ const Inventory = () => {
                       setFilterType("all");
                     }}
                   >
-                    Limpiar filtros
+                    {t('inventory.clearFilters')}
                   </Button>
                 </div>
               </div>
@@ -911,20 +919,20 @@ const Inventory = () => {
             <CardContent>
               {filteredMaterials.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  No se encontraron materiales con los filtros aplicados
+                  {t('inventory.noMaterialsFound')}
                 </div>
               ) : (
                 <TooltipProvider>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Favorito</TableHead>
-                        <TableHead>Material</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Precio/kg</TableHead>
+                        <TableHead>{t('inventory.favorite')}</TableHead>
+                        <TableHead>{t('inventory.material')}</TableHead>
+                        <TableHead>{t('inventory.type')}</TableHead>
+                        <TableHead>{t('inventory.pricePerKg')}</TableHead>
                         <TableHead>
                           <div className="flex items-center gap-2">
-                            Stock Disponible
+                            {t('inventory.stockAvailable')}
                             <Tooltip open={tooltipOpen['stock-disponible']} onOpenChange={(open) => setTooltipOpen(prev => ({ ...prev, 'stock-disponible': open }))}>
                               <TooltipTrigger asChild>
                                 <button
@@ -939,14 +947,14 @@ const Inventory = () => {
                                 </button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Cantidad total de material disponible en inventario</p>
+                                <p>{t('inventory.stockAvailableTooltip')}</p>
                               </TooltipContent>
                             </Tooltip>
                           </div>
                         </TableHead>
                         <TableHead>
                           <div className="flex items-center gap-2">
-                            Pendiente
+                            {t('inventory.pending')}
                             <Tooltip open={tooltipOpen['pendiente']} onOpenChange={(open) => setTooltipOpen(prev => ({ ...prev, 'pendiente': open }))}>
                               <TooltipTrigger asChild>
                                 <button
@@ -961,14 +969,14 @@ const Inventory = () => {
                                 </button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Material reservado para impresiones pendientes</p>
+                                <p>{t('inventory.pendingTooltip')}</p>
                               </TooltipContent>
                             </Tooltip>
                           </div>
                         </TableHead>
                         <TableHead>
                           <div className="flex items-center gap-2">
-                            Stock Real
+                            {t('inventory.realStock')}
                             <Tooltip open={tooltipOpen['stock-real']} onOpenChange={(open) => setTooltipOpen(prev => ({ ...prev, 'stock-real': open }))}>
                               <TooltipTrigger asChild>
                                 <button
@@ -983,17 +991,17 @@ const Inventory = () => {
                                 </button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Stock disponible menos pendiente de impresión</p>
+                                <p>{t('inventory.realStockTooltip')}</p>
                               </TooltipContent>
                             </Tooltip>
                           </div>
                         </TableHead>
-                        <TableHead>Acciones</TableHead>
+                        <TableHead>{t('inventory.actions')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredMaterials.map((material) => {
-                        const Icon = getMaterialIcon(material.type);
+                        const Icon = getMaterialIcon(material.type, MATERIAL_TYPES);
                         // Buscar el item de inventario correspondiente
                         const inventoryItem = inventory.find(inv => inv.material_id === material.id);
                         const pending = pendingMaterials[material.id] || 0;
@@ -1243,10 +1251,10 @@ const Inventory = () => {
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>Adquisiciones Recientes</CardTitle>
+                <CardTitle>{t('inventory.tables.recentAcquisitions')}</CardTitle>
                 <Button onClick={() => setIsAcquisitionDialogOpen(true)}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Nueva Adquisición
+                  {t('inventory.dialogs.newAcquisition')}
                 </Button>
               </div>
             </CardHeader>
@@ -1254,13 +1262,13 @@ const Inventory = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Material</TableHead>
-                    <TableHead>Cantidad</TableHead>
-                    <TableHead>Precio/kg</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Proveedor</TableHead>
-                    <TableHead>Acciones</TableHead>
+                    <TableHead>{t('inventory.tables.date')}</TableHead>
+                    <TableHead>{t('inventory.material')}</TableHead>
+                    <TableHead>{t('inventory.tables.quantity')}</TableHead>
+                    <TableHead>{t('inventory.tables.pricePerKg')}</TableHead>
+                    <TableHead>{t('inventory.tables.total')}</TableHead>
+                    <TableHead>{t('inventory.tables.supplier')}</TableHead>
+                    <TableHead>{t('inventory.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1298,10 +1306,10 @@ const Inventory = () => {
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>Historial de Movimientos</CardTitle>
+                <CardTitle>{t('inventory.tables.movementHistory')}</CardTitle>
                 <Button onClick={() => setIsWasteDialogOpen(true)} variant="outline">
                   <Trash className="w-4 h-4 mr-2" />
-                  Registrar Desperdicio
+                  {t('inventory.dialogs.registerWaste')}
                 </Button>
               </div>
             </CardHeader>
@@ -1309,11 +1317,11 @@ const Inventory = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Material</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Cantidad</TableHead>
-                    <TableHead>Notas</TableHead>
+                    <TableHead>{t('inventory.tables.dateAndTime')}</TableHead>
+                    <TableHead>{t('inventory.material')}</TableHead>
+                    <TableHead>{t('inventory.type')}</TableHead>
+                    <TableHead>{t('inventory.tables.quantity')}</TableHead>
+                    <TableHead>{t('inventory.tables.notes')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1343,11 +1351,11 @@ const Inventory = () => {
       <Dialog open={isMaterialDialogOpen} onOpenChange={setIsMaterialDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingMaterial ? "Editar Material" : "Añadir Material"}</DialogTitle>
+            <DialogTitle>{editingMaterial ? t('inventory.dialogs.editMaterial') : t('inventory.dialogs.addMaterial')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={editingMaterial ? handleSaveEditMaterial : handleAddMaterial} className="space-y-4">
             <div>
-              <Label htmlFor="material-name">Nombre *</Label>
+              <Label htmlFor="material-name">{t('inventory.formLabels.name')} *</Label>
               <Input
                 id="material-name"
                 value={materialForm.name}
@@ -1356,7 +1364,7 @@ const Inventory = () => {
               />
             </div>
             <div>
-              <Label htmlFor="material-price">Precio por KG (€) *</Label>
+              <Label htmlFor="material-price">{t('inventory.formLabels.pricePerKg')} *</Label>
               <Input
                 id="material-price"
                 type="number"
@@ -1367,13 +1375,13 @@ const Inventory = () => {
               />
             </div>
             <div>
-              <Label htmlFor="material-type">Tipo</Label>
+              <Label htmlFor="material-type">{t('inventory.formLabels.type')}</Label>
               <Select
                 value={materialForm.type}
                 onValueChange={(value) => setMaterialForm({ ...materialForm, type: value })}
               >
                 <SelectTrigger id="material-type">
-                  <SelectValue placeholder="Selecciona tipo" />
+                  <SelectValue placeholder={t('inventory.dialogs.selectType')} />
                 </SelectTrigger>
                 <SelectContent>
                   {MATERIAL_TYPES.map((type) => {
@@ -1391,7 +1399,7 @@ const Inventory = () => {
               </Select>
             </div>
             <div>
-              <Label htmlFor="display-mode">Mostrar como</Label>
+              <Label htmlFor="display-mode">{t('inventory.formLabels.displayMode')}</Label>
               <Select
                 value={materialForm.display_mode}
                 onValueChange={(value: 'color' | 'icon') => setMaterialForm({ ...materialForm, display_mode: value })}
@@ -1400,20 +1408,20 @@ const Inventory = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="color">Color</SelectItem>
-                  <SelectItem value="icon">Icono</SelectItem>
+                  <SelectItem value="color">{t('inventory.formLabels.displayModeColor')}</SelectItem>
+                  <SelectItem value="icon">{t('inventory.formLabels.displayModeIcon')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {materialForm.display_mode === 'color' && (
               <div>
-                <Label htmlFor="color">Color</Label>
+                <Label htmlFor="color">{t('inventory.formLabels.color')}</Label>
                 <Select
                   value={materialForm.color}
                   onValueChange={(value) => setMaterialForm({ ...materialForm, color: value })}
                 >
                   <SelectTrigger id="color">
-                    <SelectValue placeholder="Selecciona color" />
+                    <SelectValue placeholder={t('inventory.dialogs.selectColor')} />
                   </SelectTrigger>
                   <SelectContent>
                     {PREDEFINED_COLORS.map((color) => (
@@ -1433,10 +1441,10 @@ const Inventory = () => {
             )}
             <div className="flex gap-2 justify-end">
               <Button type="button" variant="outline" onClick={() => setIsMaterialDialogOpen(false)}>
-                Cancelar
+                {t('common.cancel')}
               </Button>
               <Button type="submit">
-                {editingMaterial ? "Actualizar" : "Crear"} Material
+                {editingMaterial ? t('inventory.dialogs.update') : t('inventory.dialogs.create')} {t('inventory.material')}
               </Button>
             </div>
           </form>
@@ -1447,11 +1455,11 @@ const Inventory = () => {
       <Dialog open={isPrinterDialogOpen} onOpenChange={setIsPrinterDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingPrinter ? "Editar Impresora" : "Añadir Impresora"}</DialogTitle>
+            <DialogTitle>{editingPrinter ? t('inventory.dialogs.editPrinter') : t('inventory.dialogs.addPrinter')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={editingPrinter ? handleUpdatePrinter : handleAddPrinter} className="space-y-4">
             <div>
-              <Label htmlFor="printer_brand">Marca *</Label>
+              <Label htmlFor="printer_brand">{t('inventory.formLabels.brand')} *</Label>
               <Input
                 id="printer_brand"
                 value={printerForm.brand}
@@ -1461,7 +1469,7 @@ const Inventory = () => {
               />
             </div>
             <div>
-              <Label htmlFor="printer_model">Modelo *</Label>
+              <Label htmlFor="printer_model">{t('inventory.formLabels.model')} *</Label>
               <Input
                 id="printer_model"
                 value={printerForm.model}
@@ -1471,7 +1479,7 @@ const Inventory = () => {
               />
             </div>
             <div>
-              <Label htmlFor="printer_hours">Horas de Uso *</Label>
+              <Label htmlFor="printer_hours">{t('inventory.formLabels.usageHours')} *</Label>
               <Input
                 id="printer_hours"
                 type="number"
@@ -1484,7 +1492,7 @@ const Inventory = () => {
               />
             </div>
             <div>
-              <Label htmlFor="printer_notes">Notas</Label>
+              <Label htmlFor="printer_notes">{t('inventory.formLabels.notes')}</Label>
               <Textarea
                 id="printer_notes"
                 value={printerForm.notes}
@@ -1504,10 +1512,10 @@ const Inventory = () => {
                   notes: ""
                 });
               }}>
-                Cancelar
+                {t('common.cancel')}
               </Button>
               <Button type="submit">
-                {editingPrinter ? "Actualizar" : "Crear"} Impresora
+                {editingPrinter ? t('inventory.dialogs.update') : t('inventory.dialogs.create')} {t('inventory.tabs.printers')}
               </Button>
             </div>
           </form>
@@ -1518,11 +1526,11 @@ const Inventory = () => {
       <Dialog open={isAcquisitionDialogOpen} onOpenChange={setIsAcquisitionDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Nueva Adquisición</DialogTitle>
+            <DialogTitle>{t('inventory.tabs.acquisitions')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSaveAcquisition} className="space-y-4">
             <div>
-              <Label htmlFor="acq_material">Material *</Label>
+              <Label htmlFor="acq_material">{t('inventory.material')} *</Label>
               <Select
                 value={acquisitionForm.material_id}
                 onValueChange={(value) => setAcquisitionForm({ ...acquisitionForm, material_id: value })}
@@ -1540,7 +1548,7 @@ const Inventory = () => {
               </Select>
             </div>
             <div>
-              <Label htmlFor="acq_quantity">Cantidad (g) *</Label>
+              <Label htmlFor="acq_quantity">{t('inventory.formLabels.quantity')} *</Label>
               <Input
                 id="acq_quantity"
                 type="number"
@@ -1551,7 +1559,7 @@ const Inventory = () => {
               />
             </div>
             <div>
-              <Label htmlFor="acq_price">Precio/kg (€) *</Label>
+              <Label htmlFor="acq_price">{t('inventory.formLabels.unitPrice')} *</Label>
               <Input
                 id="acq_price"
                 type="number"
@@ -1562,7 +1570,7 @@ const Inventory = () => {
               />
             </div>
             <div>
-              <Label htmlFor="acq_supplier">Proveedor</Label>
+              <Label htmlFor="acq_supplier">{t('inventory.formLabels.supplier')}</Label>
               <Input
                 id="acq_supplier"
                 value={acquisitionForm.supplier}
@@ -1570,7 +1578,7 @@ const Inventory = () => {
               />
             </div>
             <div>
-              <Label htmlFor="acq_date">Fecha de Compra *</Label>
+              <Label htmlFor="acq_date">{t('inventory.formLabels.purchaseDate')} *</Label>
               <Input
                 id="acq_date"
                 type="date"
@@ -1580,7 +1588,7 @@ const Inventory = () => {
               />
             </div>
             <div>
-              <Label htmlFor="acq_notes">Notas</Label>
+              <Label htmlFor="acq_notes">{t('inventory.formLabels.notes')}</Label>
               <Textarea
                 id="acq_notes"
                 value={acquisitionForm.notes}
@@ -1703,17 +1711,17 @@ const Inventory = () => {
       <Dialog open={isWasteDialogOpen} onOpenChange={setIsWasteDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Registrar Desperdicio</DialogTitle>
+            <DialogTitle>{t('inventory.dialogs.registerWaste')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSaveWaste} className="space-y-4">
             <div>
-              <Label htmlFor="waste_material">Material *</Label>
+              <Label htmlFor="waste_material">{t('inventory.material')} *</Label>
               <Select
                 value={wasteForm.material_id}
                 onValueChange={(value) => setWasteForm({ ...wasteForm, material_id: value })}
               >
                 <SelectTrigger id="waste_material">
-                  <SelectValue placeholder="Seleccionar material" />
+                  <SelectValue placeholder={t('inventory.dialogs.selectMaterial')} />
                 </SelectTrigger>
                 <SelectContent>
                   {materials.map((mat) => (
@@ -1725,7 +1733,7 @@ const Inventory = () => {
               </Select>
             </div>
             <div>
-              <Label htmlFor="waste_quantity">Cantidad (g) *</Label>
+              <Label htmlFor="waste_quantity">{t('inventory.formLabels.quantity')} *</Label>
               <Input
                 id="waste_quantity"
                 type="number"
@@ -1736,7 +1744,7 @@ const Inventory = () => {
               />
             </div>
             <div>
-              <Label htmlFor="waste_notes">Notas</Label>
+              <Label htmlFor="waste_notes">{t('inventory.formLabels.notes')}</Label>
               <Textarea
                 id="waste_notes"
                 value={wasteForm.notes}
@@ -1746,9 +1754,9 @@ const Inventory = () => {
             </div>
             <div className="flex gap-2 justify-end">
               <Button type="button" variant="outline" onClick={() => setIsWasteDialogOpen(false)}>
-                Cancelar
+                {t('common.cancel')}
               </Button>
-              <Button type="submit">Registrar Desperdicio</Button>
+              <Button type="submit">{t('inventory.dialogs.registerWaste')}</Button>
             </div>
           </form>
         </DialogContent>

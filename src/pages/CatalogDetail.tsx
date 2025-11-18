@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useTierFeatures } from "@/hooks/useTierFeatures";
@@ -78,6 +79,7 @@ type CatalogItem =
   | { type: 'product-section'; id: string; data: CatalogProductSection; projectId: string };
 
 export default function CatalogDetail() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { catalogId } = useParams<{ catalogId: string }>();
   const { user } = useAuth();
@@ -239,7 +241,7 @@ export default function CatalogDetail() {
       setExpandedProjects(new Set(projectsWithProducts.map(p => p.id)));
     } catch (error) {
       console.error("Error fetching catalog data:", error);
-      toast.error("Error al cargar los datos del catálogo");
+      toast.error(t('catalog.detail.messages.errorLoading'));
     } finally {
       setLoading(false);
     }
@@ -294,11 +296,11 @@ export default function CatalogDetail() {
         .eq("id", projectId);
 
       if (error) throw error;
-      toast.success("Proyecto eliminado");
+      toast.success(t('catalog.detail.messages.projectDeleted'));
       fetchCatalogData();
     } catch (error) {
       console.error("Error deleting project:", error);
-      toast.error("Error al eliminar el proyecto");
+      toast.error(t('catalog.detail.messages.errorDeletingProject'));
     }
   };
 
@@ -317,11 +319,11 @@ export default function CatalogDetail() {
         .eq("id", sectionId);
 
       if (error) throw error;
-      toast.success("Sección eliminada");
+      toast.success(t('catalog.detail.messages.sectionDeleted'));
       fetchCatalogData();
     } catch (error) {
       console.error("Error deleting section:", error);
-      toast.error("Error al eliminar la sección");
+      toast.error(t('catalog.detail.messages.errorDeletingSection'));
     }
   };
 
@@ -335,11 +337,11 @@ export default function CatalogDetail() {
         .eq("id", productId);
 
       if (error) throw error;
-      toast.success("Producto eliminado");
+      toast.success(t('catalog.detail.messages.productDeleted'));
       fetchCatalogData();
     } catch (error) {
       console.error("Error deleting product:", error);
-      toast.error("Error al eliminar el producto");
+      toast.error(t('catalog.detail.messages.errorDeletingProduct'));
     }
   };
 
@@ -397,27 +399,27 @@ export default function CatalogDetail() {
       <div className="mb-6">
         <Button variant="ghost" onClick={() => navigate("/catalogs")}>
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Volver a Catálogos
+          {t('catalog.detail.back')}
         </Button>
       </div>
 
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">{catalogName}</h1>
-          <p className="text-muted-foreground">Vista unificada del catálogo</p>
+          <p className="text-muted-foreground">{t('catalog.detail.unifiedView')}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setPreviewModalOpen(true)}>
             <Eye className="w-4 h-4 mr-2" />
-            Vista Previa
+            {t('catalog.detail.preview')}
           </Button>
           <Button variant="outline" onClick={handleNewSection}>
             <Plus className="w-4 h-4 mr-2" />
-            Nueva Sección
+            {t('catalog.detail.newSection')}
           </Button>
           <Button onClick={() => handleNewProject()}>
             <Plus className="w-4 h-4 mr-2" />
-            Nuevo Proyecto
+            {t('catalog.detail.newProject')}
           </Button>
         </div>
       </div>
@@ -427,17 +429,17 @@ export default function CatalogDetail() {
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Settings className="w-4 h-4" />
-              Configuración del Catálogo
+              {t('catalog.detail.settings.title')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="show-powered-by" className="text-sm font-normal">
-                  Mostrar "Powered by LAYER SUITE" en el PDF
+                  {t('catalog.detail.settings.showPoweredBy')}
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Por defecto está activado. Puedes ocultarlo si tienes plan Business.
+                  {t('catalog.detail.settings.showPoweredByDesc')}
                 </p>
               </div>
               <Switch
@@ -452,10 +454,10 @@ export default function CatalogDetail() {
 
                     if (error) throw error;
                     setShowPoweredBy(checked);
-                    toast.success("Configuración actualizada");
+                    toast.success(t('catalog.detail.settings.updated'));
                   } catch (error: any) {
                     console.error("Error updating catalog settings:", error);
-                    toast.error("Error al actualizar la configuración");
+                    toast.error(t('catalog.detail.settings.errorUpdating'));
                   }
                 }}
               />
@@ -512,10 +514,10 @@ export default function CatalogDetail() {
             <Card>
               <CardContent className="py-12 text-center text-muted-foreground">
                 <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No hay proyectos en este catálogo</p>
+                <p>{t('catalog.detail.empty.title')}</p>
                 <Button onClick={() => handleNewProject()} variant="outline" className="mt-4">
                   <Plus className="w-4 h-4 mr-2" />
-                  Crear primer proyecto
+                  {t('catalog.detail.empty.createFirst')}
                 </Button>
               </CardContent>
             </Card>
@@ -622,13 +624,13 @@ function SectionCard({
             </Button>
             <CardTitle className="text-lg">{section.title}</CardTitle>
             <span className="text-sm text-muted-foreground">
-              ({section.projects?.length || 0} proyectos)
+              ({section.projects?.length || 0} {t('catalog.detail.section.projects')})
             </span>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={onNewProject}>
               <Plus className="w-4 h-4 mr-1" />
-              Proyecto
+              {t('catalog.detail.section.addProject')}
             </Button>
             <Button variant="ghost" size="icon" onClick={() => onEdit(section.id)}>
               <Edit className="w-4 h-4" />
@@ -731,7 +733,7 @@ function ProjectCard({
                 )}
                 {hasProducts && (
                   <span className="text-xs text-muted-foreground">
-                    {project.products!.length} producto(s)
+                    {project.products!.length} {t('catalog.detail.project.products')}
                   </span>
                 )}
               </div>
@@ -740,7 +742,7 @@ function ProjectCard({
           <div className="flex gap-2 flex-shrink-0">
             <Button variant="outline" size="sm" onClick={() => onNewProduct(project.id)}>
               <Plus className="w-4 h-4 mr-1" />
-              Producto
+              {t('catalog.detail.project.addProduct')}
             </Button>
             <Button variant="ghost" size="icon" onClick={() => onEdit(project.id)}>
               <Edit className="w-4 h-4" />

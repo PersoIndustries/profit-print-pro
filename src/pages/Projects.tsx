@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -50,6 +51,7 @@ interface ProjectMaterial {
 const Projects = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { isPro, isEnterprise } = useTierFeatures();
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectMaterials, setProjectMaterials] = useState<Record<string, ProjectMaterial[]>>({});
@@ -109,7 +111,7 @@ const Projects = () => {
         setProjectMaterials(materialsByProject);
       }
     } catch (error: any) {
-      toast.error("Error al cargar proyectos");
+      toast.error(t('projects.messages.errorLoading'));
     } finally {
       setProjectsLoading(false);
     }
@@ -121,10 +123,10 @@ const Projects = () => {
 
       if (error) throw error;
 
-      toast.success("Proyecto eliminado");
+      toast.success(t('projects.messages.projectDeleted'));
       fetchProjects();
     } catch (error: any) {
-      toast.error("Error al eliminar proyecto");
+      toast.error(t('projects.messages.errorDeleting'));
     }
   };
 
@@ -168,7 +170,7 @@ const Projects = () => {
       setProjectPrints(data || []);
     } catch (error: any) {
       console.error("Error al cargar impresiones:", error);
-      toast.error("Error al cargar historial de impresiones");
+      toast.error(t('projects.messages.errorLoadingPrints'));
     } finally {
       setLoadingPrints(false);
     }
@@ -208,18 +210,18 @@ const Projects = () => {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-4xl font-bold">Proyectos</h1>
+        <h1 className="text-4xl font-bold">{t('projects.title')}</h1>
         <div className="flex items-center gap-3">
           <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "grid" | "list")}>
-            <ToggleGroupItem value="list" aria-label="Vista lista">
+            <ToggleGroupItem value="list" aria-label={t('projects.viewList')}>
               <List className="h-4 w-4" />
             </ToggleGroupItem>
-            <ToggleGroupItem value="grid" aria-label="Vista cuadrícula">
+            <ToggleGroupItem value="grid" aria-label={t('projects.viewGrid')}>
               <Grid3x3 className="h-4 w-4" />
             </ToggleGroupItem>
           </ToggleGroup>
           <Button onClick={handleCreateProject}>
-            Nuevo Proyecto
+            {t('projects.newProject')}
           </Button>
         </div>
       </div>
@@ -229,13 +231,13 @@ const Projects = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-medium text-muted-foreground">Filtrar por tag:</span>
+              <span className="text-sm font-medium text-muted-foreground">{t('projects.filterByTag')}:</span>
               <Button
                 variant={selectedTag === null ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedTag(null)}
               >
-                Todos
+                {t('projects.all')}
               </Button>
               {allTags.map((tag) => (
                 <Button
@@ -258,12 +260,12 @@ const Projects = () => {
             <div className="flex items-start gap-4">
               <Crown className="w-8 h-8 text-primary flex-shrink-0 mt-1" />
               <div className="flex-1">
-                <h3 className="text-lg font-semibold mb-2">Agrega imágenes a tus proyectos</h3>
+                <h3 className="text-lg font-semibold mb-2">{t('projects.addImages.title')}</h3>
                 <p className="text-muted-foreground mb-4">
-                  Con los planes Pro o Business puedes agregar imágenes a cada proyecto para visualizarlos mejor.
+                  {t('projects.addImages.description')}
                 </p>
                 <Button onClick={() => navigate("/pricing")} size="sm">
-                  Actualizar plan
+                  {t('projects.addImages.upgradePlan')}
                 </Button>
               </div>
             </div>
@@ -275,7 +277,7 @@ const Projects = () => {
         <Card>
           <CardContent className="p-12 text-center">
             <p className="text-muted-foreground">
-              No hay proyectos todavía. Crea tu primer proyecto.
+              {t('projects.empty.noProjects')}
             </p>
             </CardContent>
         </Card>
@@ -334,7 +336,7 @@ const Projects = () => {
                       );
                     })}
                     {projectMaterials[project.id].length > 3 && (
-                      <span className="text-xs text-muted-foreground">+{projectMaterials[project.id].length - 3} más</span>
+                      <span className="text-xs text-muted-foreground">+{projectMaterials[project.id].length - 3} {t('projects.more')}</span>
                     )}
                   </div>
                 )}
@@ -407,7 +409,7 @@ const Projects = () => {
                             );
                           })}
                           {projectMaterials[project.id].length > 4 && (
-                            <span className="text-xs text-muted-foreground">+{projectMaterials[project.id].length - 4} más</span>
+                            <span className="text-xs text-muted-foreground">+{projectMaterials[project.id].length - 4} {t('projects.more')}</span>
                           )}
                         </div>
                       )}
@@ -452,7 +454,7 @@ const Projects = () => {
                     }}
                   >
                     <Edit className="w-4 h-4 mr-2" />
-                    Editar
+                    {t('common.edit')}
                   </Button>
                 </div>
               </DialogHeader>
@@ -473,28 +475,28 @@ const Projects = () => {
                 <div className="grid md:grid-cols-2 gap-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Información del Proyecto</CardTitle>
+                      <CardTitle className="text-lg">{t('projects.detail.projectInfo')}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="flex items-center gap-2">
                           <Weight className="w-4 h-4 text-muted-foreground" />
                           <div>
-                            <p className="text-sm text-muted-foreground">Peso</p>
+                            <p className="text-sm text-muted-foreground">{t('projects.detail.weight')}</p>
                             <p className="font-semibold">{selectedProject.weight_grams}g</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-muted-foreground" />
                           <div>
-                            <p className="text-sm text-muted-foreground">Tiempo</p>
+                            <p className="text-sm text-muted-foreground">{t('projects.detail.time')}</p>
                             <p className="font-semibold">{selectedProject.print_time_hours}h</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 col-span-2">
                           <Euro className="w-4 h-4 text-muted-foreground" />
                           <div>
-                            <p className="text-sm text-muted-foreground">Precio</p>
+                            <p className="text-sm text-muted-foreground">{t('projects.detail.price')}</p>
                             <p className="font-semibold text-lg">{selectedProject.total_price?.toFixed(2)}€</p>
                           </div>
                         </div>
@@ -502,7 +504,7 @@ const Projects = () => {
 
                       {selectedProject.tags && selectedProject.tags.length > 0 && (
                         <div>
-                          <p className="text-sm text-muted-foreground mb-2">Tags</p>
+                          <p className="text-sm text-muted-foreground mb-2">{t('projects.detail.tags')}</p>
                           <div className="flex flex-wrap gap-1">
                             {selectedProject.tags.map((tag) => (
                               <Badge key={tag} variant="secondary">
@@ -515,7 +517,7 @@ const Projects = () => {
 
                       {selectedProject.notes && (
                         <div>
-                          <p className="text-sm text-muted-foreground mb-2">Notas</p>
+                          <p className="text-sm text-muted-foreground mb-2">{t('projects.detail.notes')}</p>
                           <p className="text-sm">{selectedProject.notes}</p>
                         </div>
                       )}
@@ -524,7 +526,7 @@ const Projects = () => {
 
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Materiales</CardTitle>
+                      <CardTitle className="text-lg">{t('projects.detail.materials')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       {projectMaterials[selectedProject.id] && projectMaterials[selectedProject.id].length > 0 ? (
@@ -551,7 +553,7 @@ const Projects = () => {
                           })}
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">Sin materiales</p>
+                        <p className="text-sm text-muted-foreground">{t('projects.detail.noMaterials')}</p>
                       )}
                     </CardContent>
                   </Card>
@@ -562,7 +564,7 @@ const Projects = () => {
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Package className="w-5 h-5" />
-                      Historial de Impresiones
+                      {t('projects.detail.printHistory')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -572,25 +574,25 @@ const Projects = () => {
                       </div>
                     ) : projectPrints.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-8">
-                        No hay impresiones registradas para este proyecto
+                        {t('projects.detail.noPrints')}
                       </p>
                     ) : (
                       <div className="overflow-x-auto">
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Fecha</TableHead>
-                              <TableHead>Nombre</TableHead>
-                              <TableHead>Materiales</TableHead>
-                              <TableHead>Tiempo</TableHead>
-                              <TableHead>Estado</TableHead>
+                              <TableHead>{t('projects.detail.date')}</TableHead>
+                              <TableHead>{t('projects.detail.name')}</TableHead>
+                              <TableHead>{t('projects.detail.materials')}</TableHead>
+                              <TableHead>{t('projects.detail.time')}</TableHead>
+                              <TableHead>{t('projects.detail.status')}</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {projectPrints.map((print) => (
                               <TableRow key={print.id}>
                                 <TableCell className="text-sm">
-                                  {new Date(print.print_date).toLocaleDateString('es-ES', {
+                                  {new Date(print.print_date).toLocaleDateString(undefined, {
                                     day: '2-digit',
                                     month: '2-digit',
                                     year: 'numeric'
@@ -613,7 +615,7 @@ const Projects = () => {
                                         </div>
                                       ))}
                                       {print.print_materials.length > 2 && (
-                                        <span className="text-xs text-muted-foreground">+{print.print_materials.length - 2} más</span>
+                                        <span className="text-xs text-muted-foreground">+{print.print_materials.length - 2} {t('projects.more')}</span>
                                       )}
                                     </div>
                                   ) : (
@@ -629,9 +631,9 @@ const Projects = () => {
                                       'destructive'
                                     }
                                   >
-                                    {print.status === 'completed' ? 'Completada' :
-                                     print.status === 'printing' ? 'Imprimiendo' :
-                                     'Fallida'}
+                                    {print.status === 'completed' ? t('projects.detail.statusCompleted') :
+                                     print.status === 'printing' ? t('projects.detail.statusPrinting') :
+                                     t('projects.detail.statusFailed')}
                                   </Badge>
                                 </TableCell>
                               </TableRow>

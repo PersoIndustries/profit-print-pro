@@ -150,7 +150,7 @@ const Settings = () => {
       }
     } catch (error) {
       console.error("Error fetching data:", error);
-      toast.error("Error loading settings");
+      toast.error(t('settings.messages.errorLoading'));
     } finally {
       setLoading(false);
     }
@@ -171,10 +171,10 @@ const Settings = () => {
         .eq("id", user?.id);
 
       if (error) throw error;
-      toast.success("Profile updated successfully");
+      toast.success(t('settings.messages.profileUpdated'));
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      toast.error(error.message || "Error updating profile");
+      toast.error(error.message || t('settings.messages.errorUpdatingProfile'));
     }
   };
 
@@ -183,7 +183,7 @@ const Settings = () => {
     if (!file) return;
 
     if (!user) {
-      toast.error("Debes estar autenticado para subir imágenes");
+      toast.error(t('settings.messages.mustBeAuthenticated'));
       return;
     }
 
@@ -194,13 +194,13 @@ const Settings = () => {
       ['jpg', 'jpeg', 'png', 'webp', 'svg'].includes(fileExtension || '');
     
     if (!isValidType) {
-      toast.error("Solo se permiten imágenes (JPG, PNG, WEBP, SVG)");
+      toast.error(t('settings.messages.onlyImages'));
       return;
     }
 
     // Validate file size (2MB max)
     if (file.size > 2097152) {
-      toast.error("La imagen no puede ser mayor a 2MB");
+      toast.error(t('settings.messages.maxSize'));
       return;
     }
 
@@ -228,7 +228,7 @@ const Settings = () => {
 
       if (uploadError) {
         console.error("Upload error details:", uploadError);
-        toast.error(`Error al subir el logo: ${uploadError.message || 'Error desconocido'}`);
+        toast.error(`${t('settings.messages.errorUploading')} ${uploadError.message || 'Error desconocido'}`);
         return;
       }
 
@@ -245,10 +245,10 @@ const Settings = () => {
       if (updateError) throw updateError;
 
       setProfile({ ...profile, brand_logo_url: publicUrl });
-      toast.success("Logo de marca actualizado correctamente");
+      toast.success(t('settings.messages.logoUpdated'));
     } catch (error: any) {
       console.error("Error uploading brand logo:", error);
-      toast.error(error.message || "Error al subir el logo");
+      toast.error(error.message || t('settings.messages.errorUploadingLogo'));
     } finally {
       setBrandLogoUploading(false);
     }
@@ -271,33 +271,28 @@ const Settings = () => {
       if (updateError) throw updateError;
 
       setProfile({ ...profile, brand_logo_url: null });
-      toast.success("Logo de marca eliminado");
+      toast.success(t('settings.messages.logoRemoved'));
     } catch (error: any) {
       console.error("Error removing brand logo:", error);
-      toast.error(error.message || "Error al eliminar el logo");
+      toast.error(error.message || t('settings.messages.errorRemovingLogo'));
     }
   };
 
   const handleCancelSubscription = async () => {
     // Si tiene un código promocional aplicado con suscripción permanente, prevenir cancelación
     if (appliedPromoCode && appliedPromoCode.is_permanent) {
-      toast.error(
-        "No puedes cancelar una suscripción obtenida mediante código promocional permanente. " +
-        "Si necesitas ayuda, contacta con soporte."
-      );
+      toast.error(t('settings.messages.cannotCancelPermanent'));
       return;
     }
 
     // Si tiene código promocional pero no es permanente, advertir
     if (appliedPromoCode && !appliedPromoCode.is_permanent) {
-      const confirmMessage = 
-        `Tienes un código promocional aplicado (${appliedPromoCode.code}). ` +
-        "Si cancelas, perderás el acceso premium. ¿Estás seguro?";
+      const confirmMessage = t('settings.messages.promoCodeWarning', { code: appliedPromoCode.code });
       if (!confirm(confirmMessage)) {
         return;
       }
     } else {
-      if (!confirm("Are you sure you want to cancel your subscription? You will lose access to premium features.")) {
+      if (!confirm(t('settings.messages.cancelSubscriptionConfirm'))) {
         return;
       }
     }
@@ -331,11 +326,11 @@ const Settings = () => {
           });
       }
 
-      toast.success("Subscription cancelled");
+      toast.success(t('settings.messages.subscriptionCancelled'));
       await fetchData();
     } catch (error: any) {
       console.error("Error cancelling subscription:", error);
-      toast.error(error.message || "Error cancelling subscription");
+      toast.error(error.message || t('settings.messages.errorCancelling'));
     }
   };
 
@@ -343,12 +338,12 @@ const Settings = () => {
     e.preventDefault();
     
     if (newPassword !== confirmPassword) {
-      toast.error("Las contraseñas no coinciden");
+      toast.error(t('settings.messages.passwordsDontMatch'));
       return;
     }
 
     if (newPassword.length < 6) {
-      toast.error("La contraseña debe tener al menos 6 caracteres");
+      toast.error(t('settings.messages.passwordMinLength'));
       return;
     }
 
@@ -359,12 +354,12 @@ const Settings = () => {
 
       if (error) throw error;
       
-      toast.success("Contraseña actualizada correctamente");
+      toast.success(t('settings.messages.passwordUpdated'));
       setNewPassword("");
       setConfirmPassword("");
     } catch (error: any) {
       console.error("Error changing password:", error);
-      toast.error(error.message || "Error al cambiar la contraseña");
+      toast.error(error.message || t('settings.messages.errorChangingPassword'));
     }
   };
 
@@ -408,11 +403,7 @@ const Settings = () => {
   }
 
   const getTierName = (tier: string) => {
-    switch(tier) {
-      case 'tier_1': return 'Professional';
-      case 'tier_2': return 'Business';
-      default: return 'Free';
-    }
+    return t(`settings.tierNames.${tier}` as any) || 'Free';
   };
 
   const getTierBadgeColor = (tier: string) => {
@@ -437,40 +428,40 @@ const Settings = () => {
     <>
       <div className="flex items-center gap-3 mb-4">
         <SettingsIcon className="h-6 w-6 text-primary" />
-        <h2 className="text-2xl font-bold">Settings</h2>
+        <h2 className="text-2xl font-bold">{t('settings.title')}</h2>
       </div>
 
         <Tabs defaultValue="profile" className="space-y-4">
           <TabsList className="grid w-full grid-cols-4 max-w-xl">
             <TabsTrigger value="profile">
               <User className="h-4 w-4 mr-2" />
-              Profile
+              {t('settings.tabs.profile')}
             </TabsTrigger>
             <TabsTrigger value="security">
               <Shield className="h-4 w-4 mr-2" />
-              Security
+              {t('settings.tabs.security')}
             </TabsTrigger>
             <TabsTrigger value="subscription">
               <CreditCard className="h-4 w-4 mr-2" />
-              Subscription
+              {t('settings.tabs.subscription')}
             </TabsTrigger>
             <TabsTrigger value="invoices">
               <Receipt className="h-4 w-4 mr-2" />
-              Invoices
+              {t('settings.tabs.invoices')}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile">
             <Card>
               <CardHeader className="pb-4">
-                <CardTitle className="text-lg">Profile Information</CardTitle>
-                <CardDescription className="text-sm">Update your personal and billing information</CardDescription>
+                <CardTitle className="text-lg">{t('settings.profile.title')}</CardTitle>
+                <CardDescription className="text-sm">{t('settings.profile.description')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleProfileUpdate} className="space-y-4 max-w-2xl">
                   <div className="grid md:grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor="full_name" className="text-sm">Full Name</Label>
+                      <Label htmlFor="full_name" className="text-sm">{t('settings.profile.fullName')}</Label>
                       <Input
                         id="full_name"
                         value={profile.full_name}
@@ -479,16 +470,16 @@ const Settings = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="email" className="text-sm">Email (Read-only)</Label>
+                      <Label htmlFor="email" className="text-sm">{t('settings.profile.email')}</Label>
                       <Input id="email" value={profile.email} disabled className="h-9 text-sm" />
                     </div>
                   </div>
 
                   <div className="border-t pt-4 mt-4">
-                    <h3 className="text-base font-semibold mb-3">Billing Address</h3>
+                    <h3 className="text-base font-semibold mb-3">{t('settings.profile.billingAddress')}</h3>
                     <div className="grid md:grid-cols-2 gap-3">
                       <div className="md:col-span-2">
-                        <Label htmlFor="billing_address" className="text-sm">Address</Label>
+                        <Label htmlFor="billing_address" className="text-sm">{t('settings.profile.address')}</Label>
                         <Input
                           id="billing_address"
                           value={profile.billing_address}
@@ -497,7 +488,7 @@ const Settings = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="billing_city" className="text-sm">City</Label>
+                        <Label htmlFor="billing_city" className="text-sm">{t('settings.profile.city')}</Label>
                         <Input
                           id="billing_city"
                           value={profile.billing_city}
@@ -506,7 +497,7 @@ const Settings = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="billing_postal_code" className="text-sm">Postal Code</Label>
+                        <Label htmlFor="billing_postal_code" className="text-sm">{t('settings.profile.postalCode')}</Label>
                         <Input
                           id="billing_postal_code"
                           value={profile.billing_postal_code}
@@ -515,7 +506,7 @@ const Settings = () => {
                         />
                       </div>
                       <div className="md:col-span-2">
-                        <Label htmlFor="billing_country" className="text-sm">Country</Label>
+                        <Label htmlFor="billing_country" className="text-sm">{t('settings.profile.country')}</Label>
                         <Input
                           id="billing_country"
                           value={profile.billing_country}
@@ -527,13 +518,13 @@ const Settings = () => {
                   </div>
 
                   <div className="border-t pt-4 mt-4">
-                    <h3 className="text-base font-semibold mb-3">Logo de Marca</h3>
+                    <h3 className="text-base font-semibold mb-3">{t('settings.profile.brandLogo')}</h3>
                     <div className="space-y-3">
                       {profile.brand_logo_url && (
                         <div className="flex items-center gap-4">
                           <img 
                             src={profile.brand_logo_url} 
-                            alt="Logo de marca" 
+                            alt={t('settings.profile.altLogo')} 
                             className="w-24 h-24 object-contain border rounded p-2 bg-background"
                           />
                           <Button
@@ -543,12 +534,12 @@ const Settings = () => {
                             onClick={handleRemoveBrandLogo}
                             disabled={brandLogoUploading}
                           >
-                            Eliminar Logo
+                            {t('settings.profile.removeLogo')}
                           </Button>
                         </div>
                       )}
                       <div>
-                        <Label htmlFor="brand_logo" className="text-sm">Subir Logo de Marca</Label>
+                        <Label htmlFor="brand_logo" className="text-sm">{t('settings.profile.uploadBrandLogo')}</Label>
                         <Input
                           id="brand_logo"
                           type="file"
@@ -558,7 +549,7 @@ const Settings = () => {
                           className="h-9 text-sm"
                         />
                         <p className="text-xs text-muted-foreground mt-1">
-                          Formatos: JPG, PNG, WEBP, SVG. Máximo 2MB.
+                          {t('settings.profile.formats')}
                         </p>
                       </div>
                     </div>
@@ -573,39 +564,39 @@ const Settings = () => {
           <TabsContent value="security">
             <Card>
               <CardHeader className="pb-4">
-                <CardTitle className="text-lg">Seguridad</CardTitle>
-                <CardDescription className="text-sm">Administra la seguridad de tu cuenta</CardDescription>
+                <CardTitle className="text-lg">{t('settings.security.title')}</CardTitle>
+                <CardDescription className="text-sm">{t('settings.security.description')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
                   <div className="space-y-3">
                     <div>
-                      <Label htmlFor="new_password" className="text-sm">Nueva Contraseña</Label>
+                      <Label htmlFor="new_password" className="text-sm">{t('settings.security.newPassword')}</Label>
                       <Input
                         id="new_password"
                         type="password"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Introduce tu nueva contraseña"
+                        placeholder={t('settings.security.newPasswordPlaceholder')}
                         className="h-9 text-sm"
                         required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="confirm_password" className="text-sm">Confirmar Contraseña</Label>
+                      <Label htmlFor="confirm_password" className="text-sm">{t('settings.security.confirmPassword')}</Label>
                       <Input
                         id="confirm_password"
                         type="password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Confirma tu nueva contraseña"
+                        placeholder={t('settings.security.confirmPasswordPlaceholder')}
                         className="h-9 text-sm"
                         required
                       />
                     </div>
                   </div>
 
-                  <Button type="submit" size="sm" className="mt-2">Cambiar Contraseña</Button>
+                  <Button type="submit" size="sm" className="mt-2">{t('settings.security.changePassword')}</Button>
                 </form>
               </CardContent>
             </Card>
@@ -614,8 +605,8 @@ const Settings = () => {
           <TabsContent value="subscription">
             <Card>
               <CardHeader className="pb-4">
-                <CardTitle className="text-lg">Subscription Management</CardTitle>
-                <CardDescription className="text-sm">Manage your subscription plan and usage</CardDescription>
+                <CardTitle className="text-lg">{t('settings.subscription.title')}</CardTitle>
+                <CardDescription className="text-sm">{t('settings.subscription.description')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
                 {subscriptionInfo && subscription && (
@@ -623,7 +614,7 @@ const Settings = () => {
                     {/* Plan Information */}
                     <div className="grid md:grid-cols-2 gap-4 max-w-2xl">
                       <div>
-                        <Label className="text-sm text-muted-foreground">Current Plan</Label>
+                        <Label className="text-sm text-muted-foreground">{t('settings.subscription.currentPlan')}</Label>
                         <div className="flex items-center gap-2 mt-1">
                           <p className="text-xl font-bold">{getTierName(subscriptionInfo.tier)}</p>
                           <Badge className={getTierBadgeColor(subscriptionInfo.tier)}>
@@ -632,7 +623,7 @@ const Settings = () => {
                         </div>
                       </div>
                       <div>
-                        <Label className="text-sm text-muted-foreground">Status</Label>
+                        <Label className="text-sm text-muted-foreground">{t('settings.subscription.status')}</Label>
                         <p className={`text-lg font-semibold mt-1 ${
                           subscriptionInfo.status === 'active' ? 'text-primary' : 'text-destructive'
                         }`}>
@@ -647,32 +638,32 @@ const Settings = () => {
                         <Card className="border-primary/50 bg-gradient-to-br from-primary/5 via-background to-background">
                           <CardHeader className="text-center pb-3">
                             <TrendingUp className="h-10 w-10 mx-auto mb-3 text-primary" />
-                            <CardTitle className="text-xl">Desbloquea Estadísticas Avanzadas</CardTitle>
+                            <CardTitle className="text-xl">{t('settings.subscription.unlockStats')}</CardTitle>
                             <CardDescription className="text-sm">
-                              Actualiza a un plan profesional para acceder a métricas detalladas de tu negocio
+                              {t('settings.subscription.unlockDescription')}
                             </CardDescription>
                           </CardHeader>
                           <CardContent className="space-y-4">
                             <div className="grid md:grid-cols-3 gap-3">
                               <div className="flex flex-col items-center text-center p-3 rounded-lg bg-card">
                                 <Calendar className="h-6 w-6 text-primary mb-2" />
-                                <h3 className="font-semibold text-sm mb-1">Historial Completo</h3>
+                                <h3 className="font-semibold text-sm mb-1">{t('settings.subscription.fullHistory')}</h3>
                                 <p className="text-xs text-muted-foreground">
-                                  Accede a métricas de hasta 2 años
+                                  {t('settings.subscription.fullHistoryDesc')}
                                 </p>
                               </div>
                               <div className="flex flex-col items-center text-center p-3 rounded-lg bg-card">
                                 <BarChart3 className="h-6 w-6 text-primary mb-2" />
-                                <h3 className="font-semibold text-sm mb-1">Análisis Detallado</h3>
+                                <h3 className="font-semibold text-sm mb-1">{t('settings.subscription.detailedAnalysis')}</h3>
                                 <p className="text-xs text-muted-foreground">
-                                  Filtra por día, semana, mes o trimestre
+                                  {t('settings.subscription.detailedAnalysisDesc')}
                                 </p>
                               </div>
                               <div className="flex flex-col items-center text-center p-3 rounded-lg bg-card">
                                 <TrendingUp className="h-6 w-6 text-primary mb-2" />
-                                <h3 className="font-semibold text-sm mb-1">Proyecciones</h3>
+                                <h3 className="font-semibold text-sm mb-1">{t('settings.subscription.projections')}</h3>
                                 <p className="text-xs text-muted-foreground">
-                                  Predicciones de ingresos y tendencias
+                                  {t('settings.subscription.projectionsDesc')}
                                 </p>
                               </div>
                             </div>
@@ -683,7 +674,7 @@ const Settings = () => {
                                 onClick={() => navigate("/pricing")}
                                 className="w-full md:w-auto"
                               >
-                                Ver Planes Profesionales
+                                {t('settings.subscription.viewPlans')}
                               </Button>
                             </div>
                           </CardContent>
@@ -691,27 +682,27 @@ const Settings = () => {
 
                         <Card>
                           <CardHeader className="pb-3">
-                            <CardTitle className="text-base">Plan Actual: Free</CardTitle>
+                            <CardTitle className="text-base">{t('settings.subscription.currentPlanTitle')}</CardTitle>
                             <CardDescription className="text-sm">
-                              Tu plan incluye funcionalidades básicas para empezar
+                              {t('settings.subscription.currentPlanDesc')}
                             </CardDescription>
                           </CardHeader>
                           <CardContent className="space-y-1.5">
                             <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Materiales</span>
-                              <span className="font-medium">Hasta 10</span>
+                              <span className="text-muted-foreground">{t('settings.subscription.materials')}</span>
+                              <span className="font-medium">{t('settings.subscription.upTo')} 10</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Proyectos</span>
-                              <span className="font-medium">Hasta 15</span>
+                              <span className="text-muted-foreground">{t('settings.subscription.projects')}</span>
+                              <span className="font-medium">{t('settings.subscription.upTo')} 15</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Pedidos mensuales</span>
-                              <span className="font-medium">Hasta 15</span>
+                              <span className="text-muted-foreground">{t('settings.subscription.monthlyOrders')}</span>
+                              <span className="font-medium">{t('settings.subscription.upTo')} 15</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Historial de métricas</span>
-                              <span className="font-medium text-muted-foreground">No disponible</span>
+                              <span className="text-muted-foreground">{t('settings.subscription.metricsHistory')}</span>
+                              <span className="font-medium text-muted-foreground">{t('settings.subscription.notAvailable')}</span>
                             </div>
                           </CardContent>
                         </Card>
@@ -722,13 +713,13 @@ const Settings = () => {
                     <div className="border-t pt-4 max-w-2xl">
                       <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
                         <AlertCircle className="h-4 w-4" />
-                        Uso Actual
+                        {t('settings.subscription.currentUsage')}
                       </h3>
                       <div className="space-y-3">
                         {/* Materials Usage */}
                         <div>
                           <div className="flex justify-between mb-1.5">
-                            <Label className="text-sm">Materiales</Label>
+                            <Label className="text-sm">{t('settings.subscription.materials')}</Label>
                             <span className={`text-xs font-medium ${getUsageColor(getUsagePercentage(subscription.usage.materials, subscription.limits.materials))}`}>
                               {subscription.usage.materials} / {subscription.limits.materials}
                             </span>
@@ -742,7 +733,7 @@ const Settings = () => {
                         {/* Projects Usage */}
                         <div>
                           <div className="flex justify-between mb-1.5">
-                            <Label className="text-sm">Proyectos</Label>
+                            <Label className="text-sm">{t('settings.subscription.projects')}</Label>
                             <span className={`text-xs font-medium ${getUsageColor(getUsagePercentage(subscription.usage.projects, subscription.limits.projects))}`}>
                               {subscription.usage.projects} / {subscription.limits.projects}
                             </span>
@@ -756,7 +747,7 @@ const Settings = () => {
                         {/* Orders Usage */}
                         <div>
                           <div className="flex justify-between mb-1.5">
-                            <Label className="text-sm">Pedidos Mensuales</Label>
+                            <Label className="text-sm">{t('settings.subscription.monthlyOrders')}</Label>
                             <span className={`text-xs font-medium ${getUsageColor(getUsagePercentage(subscription.usage.monthlyOrders, subscription.limits.monthlyOrders))}`}>
                               {subscription.usage.monthlyOrders} / {subscription.limits.monthlyOrders}
                             </span>
@@ -766,7 +757,7 @@ const Settings = () => {
                             className="h-1.5"
                           />
                           <p className="text-xs text-muted-foreground mt-1">
-                            Se reinicia el primer día de cada mes
+                            {t('settings.subscription.resetsFirstDay')}
                           </p>
                         </div>
                       </div>
@@ -777,12 +768,12 @@ const Settings = () => {
                       <div className="border-t pt-4 max-w-2xl">
                         <div className="grid md:grid-cols-2 gap-4">
                           <div>
-                            <Label className="text-sm text-muted-foreground">Billing Period</Label>
+                            <Label className="text-sm text-muted-foreground">{t('settings.subscription.billingPeriod')}</Label>
                             <p className="text-base font-medium capitalize mt-1">{subscriptionInfo.billing_period}</p>
                           </div>
                           {subscriptionInfo.next_billing_date && (
                             <div>
-                              <Label className="text-sm text-muted-foreground">Next Billing Date</Label>
+                              <Label className="text-sm text-muted-foreground">{t('settings.subscription.nextBillingDate')}</Label>
                               <p className="text-base font-medium mt-1">
                                 {new Date(subscriptionInfo.next_billing_date).toLocaleDateString()}
                               </p>
@@ -798,8 +789,8 @@ const Settings = () => {
                         <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-background">
                           <CardHeader className="pb-3">
                             <CardTitle className="text-base flex items-center gap-2">
-                              <Badge variant="outline" className="text-xs bg-primary/10">CÓDIGO APLICADO</Badge>
-                              <span>Código Promocional Activo</span>
+                              <Badge variant="outline" className="text-xs bg-primary/10">{t('settings.subscription.appliedCode')}</Badge>
+                              <span>{t('settings.subscription.activePromoCode')}</span>
                             </CardTitle>
                           </CardHeader>
                           <CardContent className="space-y-3">
@@ -817,16 +808,16 @@ const Settings = () => {
                             <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2 border-t">
                               <div className="flex items-center gap-1.5">
                                 <Calendar className="w-4 h-4" />
-                                <span>Aplicado: {new Date(appliedPromoCode.applied_at).toLocaleDateString()}</span>
+                                <span>{t('settings.subscription.applied')} {new Date(appliedPromoCode.applied_at).toLocaleDateString()}</span>
                               </div>
                               {appliedPromoCode.is_permanent ? (
                                 <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/20">
-                                  ✓ Suscripción Permanente
+                                  {t('settings.subscription.permanentSubscription')}
                                 </Badge>
                               ) : subscriptionInfo?.expires_at ? (
                                 <div className="flex items-center gap-1.5">
                                   <AlertCircle className="w-4 h-4" />
-                                  <span>Expira: {new Date(subscriptionInfo.expires_at).toLocaleDateString()}</span>
+                                  <span>{t('settings.subscription.expires')} {new Date(subscriptionInfo.expires_at).toLocaleDateString()}</span>
                                 </div>
                               ) : null}
                             </div>
@@ -867,11 +858,11 @@ const Settings = () => {
                     {/* Actions */}
                     <div className="flex gap-3 pt-3">
                       <Button variant="outline" size="sm" onClick={() => navigate('/pricing')}>
-                        {subscriptionInfo.tier === 'free' ? 'Upgrade Plan' : 'Change Plan'}
+                        {subscriptionInfo.tier === 'free' ? t('settings.subscription.upgradePlan') : t('settings.subscription.changePlan')}
                       </Button>
                       {subscriptionInfo.status === 'active' && subscriptionInfo.tier !== 'free' && (
                         <Button variant="destructive" size="sm" onClick={handleCancelSubscription}>
-                          Cancel Subscription
+                          {t('settings.subscription.cancelSubscription')}
                         </Button>
                       )}
                     </div>
@@ -884,22 +875,22 @@ const Settings = () => {
           <TabsContent value="invoices">
             <Card>
               <CardHeader className="pb-4">
-                <CardTitle className="text-lg">Invoice History</CardTitle>
-                <CardDescription className="text-sm">View and download your invoices</CardDescription>
+                <CardTitle className="text-lg">{t('settings.invoices.title')}</CardTitle>
+                <CardDescription className="text-sm">{t('settings.invoices.description')}</CardDescription>
               </CardHeader>
               <CardContent>
                 {invoices.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No invoices yet</p>
+                  <p className="text-muted-foreground text-center py-8">{t('settings.invoices.noInvoices')}</p>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Invoice #</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Plan</TableHead>
-                        <TableHead>Period</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead>{t('settings.invoices.invoiceNumber')}</TableHead>
+                        <TableHead>{t('settings.invoices.date')}</TableHead>
+                        <TableHead>{t('settings.invoices.plan')}</TableHead>
+                        <TableHead>{t('settings.invoices.period')}</TableHead>
+                        <TableHead>{t('settings.invoices.amount')}</TableHead>
+                        <TableHead>{t('settings.invoices.status')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

@@ -40,7 +40,7 @@ interface Order {
 const Orders = () => {
   const { user, loading: authLoading } = useAuth();
   const { subscription, loading: subLoading } = useSubscription();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -175,7 +175,7 @@ const Orders = () => {
     try {
       const { error } = await supabase.from("orders").delete().eq("id", orderToDelete);
       if (error) throw error;
-      toast.success("Pedido eliminado correctamente");
+      toast.success(t('orders.messages.orderDeleted'));
       setDeleteDialogOpen(false);
       setOrderToDelete(null);
       if (selectedOrder?.id === orderToDelete) {
@@ -184,18 +184,18 @@ const Orders = () => {
       fetchOrders();
     } catch (error) {
       console.error("Error deleting order:", error);
-      toast.error("Error al eliminar pedido");
+      toast.error(t('orders.messages.errorDeleting'));
     }
   };
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-      pending: { label: "Pendiente", variant: "outline" },
-      preparation: { label: "Preparación", variant: "secondary" },
-      ready_to_produce: { label: "Listo para Producir", variant: "default" },
-      on_production: { label: "En Producción", variant: "default" },
-      packaging: { label: "Embalaje", variant: "default" },
-      sent: { label: "Enviado", variant: "outline" },
+      pending: { label: t('orders.statusFilter.pending'), variant: "outline" },
+      preparation: { label: t('orders.statusFilter.preparation'), variant: "secondary" },
+      ready_to_produce: { label: t('orders.statusFilter.ready_to_produce'), variant: "default" },
+      on_production: { label: t('orders.statusFilter.on_production'), variant: "default" },
+      packaging: { label: t('orders.statusFilter.packaging'), variant: "default" },
+      sent: { label: t('orders.statusFilter.sent'), variant: "outline" },
     };
     const config = statusConfig[status] || { label: status, variant: "outline" };
     return <Badge variant={config.variant}>{config.label}</Badge>;
@@ -256,18 +256,18 @@ const Orders = () => {
         <TabsList>
           <TabsTrigger value="list">
             <Package className="mr-2 h-4 w-4" />
-            Lista de Pedidos
+            {t('orders.tabs.list')}
           </TabsTrigger>
           <TabsTrigger value="kanban">
             <Kanban className="mr-2 h-4 w-4" />
-            Kanban Board
+            {t('orders.tabs.kanban')}
             {subscription?.tier === 'free' && (
               <Badge className="ml-2 bg-primary text-[10px] py-0 px-1.5">PRO</Badge>
             )}
           </TabsTrigger>
           <TabsTrigger value="calendar">
             <Calendar className="mr-2 h-4 w-4" />
-            Calendario
+            {t('orders.tabs.calendar')}
             {subscription?.tier === 'free' && (
               <Badge className="ml-2 bg-primary text-[10px] py-0 px-1.5">PRO</Badge>
             )}
@@ -279,7 +279,7 @@ const Orders = () => {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por número de pedido, cliente, email o proyecto..."
+                placeholder={t('orders.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -287,16 +287,16 @@ const Orders = () => {
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Todos los estados" />
+                <SelectValue placeholder={t('orders.statusFilter.all')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="pending">Pendiente</SelectItem>
-                <SelectItem value="preparation">Preparación</SelectItem>
-                <SelectItem value="ready_to_produce">Listo para Producir</SelectItem>
-                <SelectItem value="on_production">En Producción</SelectItem>
-                <SelectItem value="packaging">Embalaje</SelectItem>
-                <SelectItem value="sent">Enviado</SelectItem>
+                <SelectItem value="all">{t('orders.statusFilter.allStatuses')}</SelectItem>
+                <SelectItem value="pending">{t('orders.statusFilter.pending')}</SelectItem>
+                <SelectItem value="preparation">{t('orders.statusFilter.preparation')}</SelectItem>
+                <SelectItem value="ready_to_produce">{t('orders.statusFilter.ready_to_produce')}</SelectItem>
+                <SelectItem value="on_production">{t('orders.statusFilter.on_production')}</SelectItem>
+                <SelectItem value="packaging">{t('orders.statusFilter.packaging')}</SelectItem>
+                <SelectItem value="sent">{t('orders.statusFilter.sent')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -306,17 +306,17 @@ const Orders = () => {
               <CardContent className="py-12 text-center">
                 <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-lg font-medium mb-2">
-                  {statusFilter === "all" ? "No hay pedidos todavía" : "No hay pedidos con este estado"}
+                  {statusFilter === "all" ? t('orders.empty.noOrders') : t('orders.empty.noOrdersWithStatus')}
                 </p>
                 <p className="text-sm text-muted-foreground mb-4">
                   {statusFilter === "all" 
-                    ? "Crea tu primer pedido haciendo click en el botón \"Nuevo Pedido\" arriba"
-                    : "Prueba con otro filtro o crea un nuevo pedido"}
+                    ? t('orders.empty.createFirst')
+                    : t('orders.empty.tryOtherFilter')}
                 </p>
                 {statusFilter === "all" && (
                   <Button variant="outline" onClick={handleCreateOrder}>
                     <Plus className="mr-2 h-4 w-4" />
-                    Crear Primer Pedido
+                    {t('orders.empty.createFirstButton')}
                   </Button>
                 )}
               </CardContent>
@@ -391,7 +391,7 @@ const Orders = () => {
                           <span className="font-semibold">{order.total_amount.toFixed(2)}€</span>
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {new Date(order.order_date).toLocaleDateString('es-ES', {
+                          {new Date(order.order_date).toLocaleDateString(i18n.language === 'es' ? 'es-ES' : i18n.language === 'fr' ? 'fr-FR' : 'en-US', {
                             day: '2-digit',
                             month: '2-digit',
                             year: 'numeric'
@@ -416,32 +416,32 @@ const Orders = () => {
                     <Kanban className="w-10 h-10 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold mb-2">Vista Kanban - Funcionalidad Premium</h3>
+                    <h3 className="text-2xl font-bold mb-2">{t('orders.premium.kanban.title')}</h3>
                     <p className="text-muted-foreground mb-4">
-                      Organiza tus pedidos visualmente arrastrando y soltando entre estados: Diseño, Por Producir, Imprimiendo, Limpieza y Enviado.
+                      {t('orders.premium.kanban.description')}
                     </p>
                     <ul className="text-sm text-muted-foreground space-y-2 mb-6 text-left max-w-sm mx-auto">
                       <li className="flex items-start gap-2">
                         <span className="text-primary">✓</span>
-                        <span>Drag & drop para cambiar estados fácilmente</span>
+                        <span>{t('orders.premium.kanban.features.dragDrop')}</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-primary">✓</span>
-                        <span>Vista clara del flujo de trabajo</span>
+                        <span>{t('orders.premium.kanban.features.workflow')}</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-primary">✓</span>
-                        <span>Gestión visual de todos los pedidos</span>
+                        <span>{t('orders.premium.kanban.features.visualManagement')}</span>
                       </li>
                     </ul>
                   </div>
                   <div className="flex gap-3 justify-center">
                     <Button onClick={() => navigate('/pricing')} size="lg">
                       <TrendingUp className="w-4 h-4 mr-2" />
-                      Actualizar a Professional
+                      {t('orders.premium.kanban.upgrade')}
                     </Button>
                     <Button variant="outline" onClick={() => setActiveTab('list')} size="lg">
-                      Ver Lista
+                      {t('orders.premium.kanban.viewList')}
                     </Button>
                   </div>
                 </div>
@@ -461,32 +461,32 @@ const Orders = () => {
                     <Calendar className="w-10 h-10 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold mb-2">Vista Calendario - Funcionalidad Premium</h3>
+                    <h3 className="text-2xl font-bold mb-2">{t('orders.premium.calendar.title')}</h3>
                     <p className="text-muted-foreground mb-4">
-                      Visualiza todos tus pedidos en un calendario mensual y arrastra para cambiar fechas de entrega fácilmente.
+                      {t('orders.premium.calendar.description')}
                     </p>
                     <ul className="text-sm text-muted-foreground space-y-2 mb-6 text-left max-w-sm mx-auto">
                       <li className="flex items-start gap-2">
                         <span className="text-primary">✓</span>
-                        <span>Vista mensual de todos los pedidos</span>
+                        <span>{t('orders.premium.calendar.features.monthlyView')}</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-primary">✓</span>
-                        <span>Drag & drop para cambiar fechas</span>
+                        <span>{t('orders.premium.calendar.features.dragDropDates')}</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-primary">✓</span>
-                        <span>Planificación visual de entregas</span>
+                        <span>{t('orders.premium.calendar.features.visualPlanning')}</span>
                       </li>
                     </ul>
                   </div>
                   <div className="flex gap-3 justify-center">
                     <Button onClick={() => navigate('/pricing')} size="lg">
                       <TrendingUp className="w-4 h-4 mr-2" />
-                      Actualizar a Professional
+                      {t('orders.premium.calendar.upgrade')}
                     </Button>
                     <Button variant="outline" onClick={() => setActiveTab('list')} size="lg">
-                      Ver Lista
+                      {t('orders.premium.calendar.viewList')}
                     </Button>
                   </div>
                 </div>
@@ -521,7 +521,7 @@ const Orders = () => {
                     }}
                   >
                     <Edit className="w-4 h-4 mr-2" />
-                    Editar
+                    {t('orders.view.edit')}
                   </Button>
                 </div>
               </DialogHeader>
@@ -531,16 +531,16 @@ const Orders = () => {
                 <div className="grid md:grid-cols-2 gap-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Información del Pedido</CardTitle>
+                      <CardTitle className="text-lg">{t('orders.view.orderInfo')}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="space-y-3">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-muted-foreground" />
                           <div>
-                            <p className="text-sm text-muted-foreground">Fecha</p>
+                            <p className="text-sm text-muted-foreground">{t('orders.view.date')}</p>
                             <p className="font-semibold">
-                              {new Date(selectedOrder.order_date).toLocaleDateString('es-ES', {
+                              {new Date(selectedOrder.order_date).toLocaleDateString(i18n.language === 'es' ? 'es-ES' : i18n.language === 'fr' ? 'fr-FR' : 'en-US', {
                                 day: '2-digit',
                                 month: '2-digit',
                                 year: 'numeric'
@@ -550,7 +550,7 @@ const Orders = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <div>
-                            <p className="text-sm text-muted-foreground">Estado</p>
+                            <p className="text-sm text-muted-foreground">{t('orders.view.status')}</p>
                             <div className="mt-1">
                               {getStatusBadge(selectedOrder.status)}
                             </div>
@@ -560,7 +560,7 @@ const Orders = () => {
                           <div className="flex items-center gap-2">
                             <User className="w-4 h-4 text-muted-foreground" />
                             <div>
-                              <p className="text-sm text-muted-foreground">Cliente</p>
+                              <p className="text-sm text-muted-foreground">{t('orders.view.customer')}</p>
                               <p className="font-semibold">{selectedOrder.customer_name}</p>
                               {selectedOrder.customer_email && (
                                 <div className="flex items-center gap-1 mt-1">
@@ -574,7 +574,7 @@ const Orders = () => {
                         <div className="flex items-center gap-2">
                           <Euro className="w-4 h-4 text-muted-foreground" />
                           <div>
-                            <p className="text-sm text-muted-foreground">Total</p>
+                            <p className="text-sm text-muted-foreground">{t('orders.view.total')}</p>
                             <p className="font-semibold text-lg">{selectedOrder.total_amount.toFixed(2)}€</p>
                           </div>
                         </div>
@@ -584,7 +584,7 @@ const Orders = () => {
 
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Proyectos</CardTitle>
+                      <CardTitle className="text-lg">{t('orders.view.projects')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       {selectedOrder.order_items && selectedOrder.order_items.length > 0 ? (
@@ -612,7 +612,7 @@ const Orders = () => {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">Sin proyectos</p>
+                        <p className="text-sm text-muted-foreground">{t('orders.view.noProjects')}</p>
                       )}
                     </CardContent>
                   </Card>
@@ -623,7 +623,7 @@ const Orders = () => {
                     <CardHeader>
                       <CardTitle className="text-lg flex items-center gap-2">
                         <FileText className="w-5 h-5" />
-                        Notas
+                        {t('orders.view.notes')}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -639,7 +639,7 @@ const Orders = () => {
                     onClick={() => handleDeleteClick(selectedOrder.id)}
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Eliminar Pedido
+                    {t('orders.view.deleteOrder')}
                   </Button>
                 </div>
               </div>
@@ -652,15 +652,15 @@ const Orders = () => {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar pedido?</AlertDialogTitle>
+            <AlertDialogTitle>{t('orders.delete.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará permanentemente el pedido y todos sus datos asociados.
+              {t('orders.delete.description')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{t('orders.delete.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Eliminar
+              {t('orders.delete.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

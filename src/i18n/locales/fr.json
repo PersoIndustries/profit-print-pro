@@ -18,6 +18,29 @@
       "subtitle": "Calculez les coûts, gérez les matériaux, suivez les projets et optimisez votre rentabilité avec notre plateforme tout-en-un.",
       "cta": "Commencer Gratuitement",
       "ctaSecondary": "Voir les Tarifs"
+    },
+    "features": {
+      "calculation": {
+        "title": "Calcul Précis",
+        "description": "Calculez automatiquement les coûts de matériau, d'électricité et de temps"
+      },
+      "materials": {
+        "title": "Gestion des Matériaux",
+        "description": "Maintenez un inventaire à jour avec des prix personnalisés"
+      },
+      "projects": {
+        "title": "Projets",
+        "description": "Enregistrez et organisez tous vos travaux d'impression"
+      },
+      "dashboard": {
+        "title": "Tableau de bord",
+        "description": "Visualisez vos statistiques et performances en temps réel"
+      }
+    },
+    "cta": {
+      "title": "Prêt à commencer?",
+      "description": "Rejoignez des centaines d'entrepreneurs qui optimisent déjà leur entreprise avec Layer Suite",
+      "button": "Créer un Compte Gratuit"
     }
   },
   "auth": {
@@ -29,16 +52,69 @@
     "password": "Mot de passe",
     "fullName": "Nom Complet",
     "forgotPassword": "Mot de passe oublié?",
-    "resetPassword": "Réinitialiser le mot de passe",
-    "resetPasswordDesc": "Entrez votre email et nous vous enverrons un lien pour réinitialiser votre mot de passe",
+    "resetPasswordTitle": "Réinitialiser le mot de passe",
+    "resetPasswordDesc": "Entrez votre email et nous vous enverrons un lien pour réinitialiser votre mot de passe. Le processus peut prendre quelques minutes.",
     "sendResetEmail": "Envoyer l'email de réinitialisation",
     "backToLogin": "Retour à la connexion",
     "accountCreated": "Compte créé! Vérifiez votre email pour confirmer.",
-    "resetEmailSent": "Email de réinitialisation envoyé. Vérifiez votre boîte de réception."
+    "resetEmailSent": "Email de réinitialisation envoyé. Vérifiez votre boîte de réception.",
+    "mustAcceptTerms": "Vous devez accepter les termes et conditions",
+    "acceptTerms": "J'accepte les",
+    "termsAndConditions": "termes et conditions",
+    "createAccount": "Créer un Compte",
+    "newPassword": "Nouveau Mot de Passe",
+    "confirmPassword": "Confirmer le Mot de Passe",
+    "newPasswordPlaceholder": "Entrez votre nouveau mot de passe",
+    "confirmPasswordPlaceholder": "Confirmez votre nouveau mot de passe",
+    "passwordUpdated": "Mot de passe mis à jour avec succès",
+    "errorResettingPassword": "Erreur lors de la réinitialisation du mot de passe",
+    "passwordsDontMatch": "Les mots de passe ne correspondent pas",
+    "passwordMinLength": "Le mot de passe doit contenir au moins 6 caractères",
+    "resetPassword": {
+      "emailSent": "Email envoyé! Vérifiez votre boîte de réception et dossier spam.",
+      "emailSentTo": "Nous avons envoyé un email à",
+      "clickLink": "Cliquez sur le lien dans l'email pour réinitialiser votre mot de passe. Le lien expire dans 1 heure.",
+      "noEmailReceived": "Vous n'avez pas reçu l'email?",
+      "checkSpam": "Vérifiez votre dossier spam",
+      "verifyEmail": "Vérifiez que l'email est correct",
+      "waitMinutes": "Attendez quelques minutes, cela peut prendre du temps",
+      "tryAnotherEmail": "Essayer avec un autre email",
+      "invalidLink": "Lien de Réinitialisation Invalide",
+      "invalidLinkDesc": "Ce lien de réinitialisation de mot de passe est invalide ou a expiré. Veuillez en demander un nouveau.",
+      "requestNewLink": "Demander un Nouveau Lien",
+      "enterNewPassword": "Entrez votre nouveau mot de passe"
+    }
   },
   "dashboard": {
     "title": "Tableau de bord",
     "subtitle": "Aperçu de votre entreprise d'impression 3D",
+    "description": "Analyse complète de la performance de votre entreprise",
+    "tabs": {
+      "overview": "Aperçu",
+      "prints": "Impressions",
+      "financial": "Financier"
+    },
+    "proBadge": "PRO",
+    "printsPremium": {
+      "title": "Statistiques d'Impressions - Premium",
+      "description": "Accédez à des analyses détaillées de vos impressions: temps total, matériau utilisé, types les plus courants et tendances mensuelles.",
+      "features": {
+        "totalTime": "Temps d'impression total",
+        "materialUsed": "Matériau utilisé total et par mois",
+        "charts": "Graphiques et tendances (60 jours)"
+      },
+      "viewPlans": "Voir les Plans"
+    },
+    "financialPremium": {
+      "title": "Analyse Financière - Premium",
+      "description": "Obtenez une analyse complète des revenus, coûts et marges bénéficiaires avec des graphiques mensuels et des tendances.",
+      "features": {
+        "revenueCosts": "Revenus et coûts mensuels",
+        "profitMargin": "Marge bénéficiaire par période",
+        "completedOrders": "Commandes terminées et tendances"
+      },
+      "viewPlans": "Voir les Plans"
+    },
     "totalProjects": "Total des Projets",
     "completedJobs": "Travaux terminés",
     "materialsCount": "Matériaux",
@@ -52,7 +128,65 @@
     "manageMaterials": "Gérer les Matériaux",
     "manageMaterialsDesc": "Ajoutez et gérez vos matériaux",
     "viewProjects": "Voir les Projets",
-    "viewProjectsDesc": "Consultez tous vos projets enregistrés"
+    "viewProjectsDesc": "Consultez tous vos projets enregistrés",
+    "stats": {
+      "timeFilters": {
+        "today": "Aujourd'hui",
+        "week": "Semaine",
+        "month": "Mois",
+        "quarter": "3 Mois"
+      },
+      "orders": {
+        "totalOrders": "Total des Commandes",
+        "allStatuses": "Tous les statuts",
+        "completed": "Terminées",
+        "noOrders": "Aucune commande",
+        "ofTotal": "du total",
+        "revenue": "Revenus",
+        "fromCompleted": "Des commandes terminées",
+        "avgTicket": "Ticket Moyen",
+        "perCompleted": "Par commande terminée"
+      },
+      "prints": {
+        "totalTime": "Temps d'Impression Total",
+        "allCompleted": "Toutes les impressions terminées",
+        "totalMaterial": "Matériau Total Utilisé",
+        "inLast60Days": "Au cours des 60 derniers jours",
+        "topMaterials": "Matériaux les Plus Utilisés",
+        "monthlyTrends": "Tendances Mensuelles",
+        "typeDistribution": "Distribution par Type",
+        "mostCommonType": "Type le Plus Commun",
+        "printsByMonth": "Impressions par Mois",
+        "timeHours": "Temps (h)",
+        "materialKg": "Matériau (kg)",
+        "totalGrams": "g au total",
+        "printsCount": "impressions",
+        "unknown": "Inconnu",
+        "notAvailable": "N/D",
+        "types": {
+          "order": "Commandes",
+          "tools": "Outils",
+          "personal": "Personnel",
+          "operational": "Opérationnel"
+        }
+      },
+      "financial": {
+        "completedOrdersMonth": "Commandes Terminées (Mois)",
+        "sentThisMonth": "Commandes envoyées ce mois",
+        "monthlyRevenue": "Revenus Mensuels",
+        "totalBilledThisMonth": "Total facturé ce mois",
+        "monthlyCosts": "Coûts Mensuels",
+        "materialLaborElectricity": "Matériau + main-d'œuvre + électricité",
+        "netProfit": "Bénéfice Net",
+        "margin": "Marge",
+        "revenueVsCosts": "Revenus vs Coûts par Mois",
+        "monthlyProfit": "Bénéfice Mensuel",
+        "revenue": "Revenus",
+        "costs": "Coûts",
+        "profit": "Bénéfice",
+        "completed": "Terminées"
+      }
+    }
   },
   "pricing": {
     "title": "Tarifs Simples et Transparents",
@@ -120,95 +254,443 @@
   "projects": {
     "title": "Projets",
     "subtitle": "Vos projets d'impression 3D",
-    "addProject": "Ajouter un Projet",
-    "editProject": "Modifier le Projet",
-    "projectName": "Nom du Projet",
-    "client": "Client",
-    "material": "Matériau",
-    "weight": "Poids (g)",
-    "printTime": "Temps d'Impression (h)",
-    "totalPrice": "Prix Total",
-    "status": "Statut",
-    "actions": "Actions",
-    "edit": "Modifier",
-    "delete": "Supprimer",
-    "view": "Voir",
-    "save": "Enregistrer",
-    "cancel": "Annuler",
-    "pending": "En attente",
-    "inProgress": "En cours",
-    "completed": "Terminé",
-    "projectAdded": "Projet ajouté avec succès",
-    "projectUpdated": "Projet mis à jour avec succès",
-    "projectDeleted": "Projet supprimé avec succès",
-    "limitReached": "Vous avez atteint votre limite de projets. Améliorez votre plan pour en ajouter plus."
+    "newProject": "Nouveau Projet",
+    "all": "Tous",
+    "more": "plus",
+    "filterByTag": "Filtrer par tag",
+    "viewList": "Vue liste",
+    "viewGrid": "Vue grille",
+    "addImages": {
+      "title": "Ajoutez des images à vos projets",
+      "description": "Avec les plans Pro ou Business, vous pouvez ajouter des images à chaque projet pour mieux les visualiser.",
+      "upgradePlan": "Améliorer le plan"
+    },
+    "empty": {
+      "noProjects": "Aucun projet pour le moment. Créez votre premier projet."
+    },
+    "detail": {
+      "projectInfo": "Informations du Projet",
+      "weight": "Poids",
+      "time": "Temps",
+      "price": "Prix",
+      "tags": "Tags",
+      "notes": "Notes",
+      "materials": "Matériaux",
+      "noMaterials": "Aucun matériau",
+      "printHistory": "Historique des Impressions",
+      "date": "Date",
+      "name": "Nom",
+      "status": "Statut",
+      "noPrints": "Aucune impression enregistrée pour ce projet",
+      "statusCompleted": "Terminée",
+      "statusPrinting": "Impression",
+      "statusFailed": "Échouée"
+    },
+    "messages": {
+      "errorLoading": "Erreur lors du chargement des projets",
+      "projectDeleted": "Projet supprimé",
+      "errorDeleting": "Erreur lors de la suppression du projet",
+      "errorLoadingPrints": "Erreur lors du chargement de l'historique des impressions"
+    }
   },
   "calculator": {
     "title": "Calculatrice de Prix",
     "subtitle": "Calculez le coût de vos impressions 3D",
-    "selectMaterial": "Sélectionner un Matériau",
-    "weight": "Poids (g)",
-    "printTime": "Temps d'Impression (heures)",
-    "electricityCost": "Coût de l'Électricité (€/kWh)",
-    "printerPower": "Puissance de l'Imprimante (W)",
-    "profitMargin": "Marge Bénéficiaire (%)",
-    "calculate": "Calculer",
-    "results": "Résultats",
-    "materialCost": "Coût du Matériau",
-    "electricityCost": "Coût de l'Électricité",
-    "laborCost": "Coût de la Main-d'œuvre",
-    "totalCost": "Coût Total",
-    "profitMargin": "Marge Bénéficiaire",
-    "finalPrice": "Prix Final",
-    "saveProject": "Enregistrer comme Projet",
-    "projectSaved": "Projet enregistré avec succès"
+    "editProject": "Modifier le Projet",
+    "description": "Ajoutez des lignes de concept de type facture",
+    "concepts": "Concepts / Lignes",
+    "addMaterial": "Matériau",
+    "addLabor": "Main-d'œuvre",
+    "addPackaging": "Emballage",
+    "addAmortization": "Amortissement",
+    "addPrintTime": "Heures d'Impression",
+    "addOther": "Autre",
+    "noLines": "Aucune ligne ajoutée.",
+    "addConcepts": "Utilisez les boutons ci-dessus pour ajouter des concepts",
+    "table": {
+      "type": "Type",
+      "description": "Description",
+      "quantity": "Quantité",
+      "unitPrice": "Prix Unitaire",
+      "total": "Total"
+    },
+    "selectMaterial": "Sélectionner un matériau",
+    "noMaterials": "Aucun matériau",
+    "subtotal": "Sous-total:",
+    "profitMargin": "Marge Bénéficiaire:",
+    "total": "TOTAL:",
+    "updateProject": "Mettre à jour le Projet",
+    "lineTypes": {
+      "material": "Matériau",
+      "labor": "Main-d'œuvre",
+      "packaging": "Emballage",
+      "amortization": "Amortissement",
+      "print_time": "Heures d'Impression",
+      "other": "Autre"
+    },
+    "messages": {
+      "errorLoadingProject": "Erreur lors du chargement du projet",
+      "errorLoadingMaterials": "Erreur lors du chargement des matériaux",
+      "addAtLeastOneLine": "Ajoutez au moins une ligne de concept",
+      "calculateFirst": "Calculez d'abord le prix et ajoutez un nom",
+      "projectUpdated": "Projet mis à jour",
+      "projectSaved": "Projet enregistré",
+      "errorSaving": "Erreur lors de l'enregistrement du projet:"
+    }
+  },
+  "catalog": {
+    "title": "Catalogues",
+    "subtitle": "Gérez vos catalogues de produits",
+    "proFeature": "Catalogues - Fonction Pro",
+    "proDescription": "Les catalogues sont une fonctionnalité exclusive pour les utilisateurs Pro et Enterprise. Améliorez votre plan pour accéder à cette fonctionnalité.",
+    "viewPlans": "Voir les Plans",
+    "newCatalog": "Nouveau Catalogue",
+    "empty": {
+      "title": "Vous n'avez pas de catalogues créés",
+      "description": "Créez votre premier catalogue pour commencer à organiser vos produits",
+      "createFirst": "Créer le premier catalogue"
+    },
+    "card": {
+      "projects": "projet(s)",
+      "viewProjects": "Voir les Projets"
+    },
+    "form": {
+      "edit": "Modifier le Catalogue",
+      "new": "Nouveau Catalogue",
+      "name": "Nom du Catalogue *",
+      "namePlaceholder": "Ex: Catalogue Printemps 2024",
+      "description": "Description",
+      "descriptionPlaceholder": "Description du catalogue (optionnel)",
+      "cancel": "Annuler",
+      "update": "Mettre à jour",
+      "create": "Créer",
+      "unsaved": {
+        "title": "Ignorer les modifications?",
+        "description": "Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloir quitter sans enregistrer?",
+        "continueEditing": "Continuer l'édition",
+        "discard": "Ignorer les modifications"
+      }
+    },
+    "messages": {
+      "errorLoading": "Erreur lors du chargement des catalogues",
+      "catalogDeleted": "Catalogue supprimé",
+      "errorDeleting": "Erreur lors de la suppression du catalogue",
+      "catalogUpdated": "Catalogue mis à jour",
+      "catalogCreated": "Catalogue créé",
+      "errorSaving": "Erreur lors de l'enregistrement du catalogue",
+      "confirmDelete": "Supprimer ce catalogue? Tous ses projets et produits seront supprimés."
+    },
+    "detail": {
+      "back": "Retour aux Catalogues",
+      "unifiedView": "Vue unifiée du catalogue",
+      "preview": "Aperçu",
+      "newSection": "Nouvelle Section",
+      "newProject": "Nouveau Projet",
+      "settings": {
+        "title": "Paramètres du Catalogue",
+        "showPoweredBy": "Afficher \"Powered by LAYER SUITE\" dans le PDF",
+        "showPoweredByDesc": "Activé par défaut. Vous pouvez le masquer si vous avez un plan Business.",
+        "updated": "Paramètres mis à jour",
+        "errorUpdating": "Erreur lors de la mise à jour des paramètres"
+      },
+      "empty": {
+        "title": "Aucun projet dans ce catalogue",
+        "createFirst": "Créer le premier projet"
+      },
+      "section": {
+        "projects": "projets",
+        "addProject": "Projet"
+      },
+      "project": {
+        "products": "produit(s)",
+        "addProduct": "Produit"
+      },
+      "messages": {
+        "errorLoading": "Erreur lors du chargement des données du catalogue",
+        "projectDeleted": "Projet supprimé",
+        "errorDeletingProject": "Erreur lors de la suppression du projet",
+        "sectionDeleted": "Section supprimée",
+        "errorDeletingSection": "Erreur lors de la suppression de la section",
+        "productDeleted": "Produit supprimé",
+        "errorDeletingProduct": "Erreur lors de la suppression du produit"
+      }
+    },
+    "projectForm": {
+      "edit": "Modifier le Projet",
+      "new": "Nouveau Projet",
+      "useExisting": "Utiliser un Projet Existant",
+      "createNew": "Créer un Nouveau Projet",
+      "selectProject": "Sélectionner un projet",
+      "selectProjectLabel": "Sélectionner le Projet",
+      "name": "Nom du projet",
+      "namePlaceholder": "Nom du projet",
+      "description": "Description",
+      "descriptionPlaceholder": "Description du projet (optionnel)",
+      "image": "Image (500x500 JPG)",
+      "imageHelpText": "L'image doit être JPG et exactement 500x500 pixels",
+      "uploadImage": "Télécharger une Image",
+      "colors": "Couleurs disponibles",
+      "addColor": "Ajouter une Couleur",
+      "addButton": "Ajouter",
+      "cancel": "Annuler",
+      "update": "Mettre à jour",
+      "create": "Créer",
+      "unsaved": {
+        "title": "Ignorer les modifications?",
+        "description": "Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloir quitter sans enregistrer?",
+        "continueEditing": "Continuer l'édition",
+        "discard": "Ignorer les modifications"
+      },
+      "messages": {
+        "errorLoading": "Erreur lors du chargement du projet",
+        "mustBeAuthenticated": "Vous devez être authentifié pour télécharger des images",
+        "onlyJpgJpeg": "Seules les images JPG/JPEG sont autorisées",
+        "imageDimensions": "L'image doit être de 500x500 pixels",
+        "fileExists": "Un fichier avec ce nom existe déjà. Essayez un autre nom.",
+        "permissionError": "Erreur de permission. Vérifiez que vous êtes correctement authentifié.",
+        "uploadError": "Erreur lors du téléchargement de l'image",
+        "imageLoadError": "Erreur lors du chargement de l'image. Vérifiez que c'est un fichier image valide.",
+        "imageUploaded": "Image téléchargée avec succès",
+        "projectUpdated": "Projet mis à jour",
+        "projectCreated": "Projet créé",
+        "errorSaving": "Erreur lors de l'enregistrement du projet"
+      }
+    },
+    "sectionForm": {
+      "edit": "Modifier la Section",
+      "new": "Nouvelle Section",
+      "title": "Titre de la Section *",
+      "titlePlaceholder": "Ex: Produits Premium",
+      "cancel": "Annuler",
+      "update": "Mettre à jour",
+      "create": "Créer",
+      "messages": {
+        "errorLoading": "Erreur lors du chargement de la section",
+        "sectionUpdated": "Section mise à jour",
+        "sectionCreated": "Section créée",
+        "errorSaving": "Erreur lors de l'enregistrement de la section"
+      }
+    },
+    "productForm": {
+      "edit": "Modifier le Produit",
+      "new": "Nouveau Produit",
+      "referenceCode": "Code de Référence *",
+      "referenceCodePlaceholder": "Ex: REF-001",
+      "name": "Nom *",
+      "namePlaceholder": "Nom du produit",
+      "dimensions": "Dimensions",
+      "dimensionsPlaceholder": "Ex: 10x15x20 cm",
+      "price": "Prix (€) *",
+      "pricePlaceholder": "0.00",
+      "cancel": "Annuler",
+      "update": "Mettre à jour",
+      "create": "Créer",
+      "unsaved": {
+        "title": "Ignorer les modifications?",
+        "description": "Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloir quitter sans enregistrer?",
+        "continueEditing": "Continuer l'édition",
+        "discard": "Ignorer les modifications"
+      },
+      "messages": {
+        "errorLoading": "Erreur lors du chargement du produit",
+        "productUpdated": "Produit mis à jour",
+        "productCreated": "Produit créé",
+        "errorSaving": "Erreur lors de l'enregistrement du produit"
+      }
+    },
+    "projectDetail": {
+      "backToCatalog": "Retour au Catalogue",
+      "projectProducts": "Produits du projet",
+      "colors": "Couleurs",
+      "noProducts": "Aucun produit dans ce projet",
+      "createFirstProduct": "Créer le premier produit",
+      "orderSaved": "Ordre enregistré",
+      "errorSavingOrder": "Erreur lors de l'enregistrement de l'ordre",
+      "confirmDeleteProduct": "Supprimer ce produit?",
+      "confirmDeleteSection": "Supprimer cette section? Les produits à l'intérieur seront déplacés en dehors de la section.",
+      "savingOrder": "Enregistrement de l'ordre..."
+    }
   },
   "orders": {
     "title": "Commandes",
     "subtitle": "Gérez vos commandes d'impression",
-    "addOrder": "Ajouter une Commande",
-    "orderNumber": "Commande #",
-    "client": "Client",
-    "project": "Projet",
-    "quantity": "Quantité",
-    "totalPrice": "Prix Total",
-    "status": "Statut",
-    "dueDate": "Date de Livraison",
-    "actions": "Actions",
-    "pending": "En attente",
-    "processing": "En cours",
-    "completed": "Terminé",
-    "cancelled": "Annulé",
-    "orderAdded": "Commande ajoutée avec succès",
-    "orderUpdated": "Commande mise à jour avec succès",
-    "orderDeleted": "Commande supprimée avec succès",
-    "limitReached": "Vous avez atteint votre limite mensuelle de commandes. Améliorez votre plan ou attendez le mois prochain."
+    "add": "Nouvelle Commande",
+    "thisMonth": "Ce mois",
+    "tabs": {
+      "list": "Liste des Commandes",
+      "kanban": "Tableau Kanban",
+      "calendar": "Calendrier"
+    },
+    "searchPlaceholder": "Rechercher par numéro de commande, client, email ou projet...",
+    "statusFilter": {
+      "all": "Tous les statuts",
+      "allStatuses": "Tous",
+      "pending": "En attente",
+      "preparation": "Préparation",
+      "ready_to_produce": "Prêt à Produire",
+      "on_production": "En Production",
+      "packaging": "Emballage",
+      "sent": "Envoyé"
+    },
+    "empty": {
+      "noOrders": "Aucune commande pour le moment",
+      "noOrdersWithStatus": "Aucune commande avec ce statut",
+      "createFirst": "Créez votre première commande en cliquant sur le bouton \"Nouvelle Commande\" ci-dessus",
+      "tryOtherFilter": "Essayez un autre filtre ou créez une nouvelle commande",
+      "createFirstButton": "Créer la Première Commande"
+    },
+    "premium": {
+      "kanban": {
+        "title": "Vue Kanban - Fonctionnalité Premium",
+        "description": "Organisez vos commandes visuellement en glissant-déposant entre les états: Conception, À Produire, Impression, Nettoyage et Envoyé.",
+        "features": {
+          "dragDrop": "Glisser-déposer pour changer d'état facilement",
+          "workflow": "Vue claire du flux de travail",
+          "visualManagement": "Gestion visuelle de toutes les commandes"
+        },
+        "upgrade": "Passer à Professional",
+        "viewList": "Voir la Liste"
+      },
+      "calendar": {
+        "title": "Vue Calendrier - Fonctionnalité Premium",
+        "description": "Visualisez toutes vos commandes dans un calendrier mensuel et glissez pour changer les dates de livraison facilement.",
+        "features": {
+          "monthlyView": "Vue mensuelle de toutes les commandes",
+          "dragDropDates": "Glisser-déposer pour changer les dates",
+          "visualPlanning": "Planification visuelle des livraisons"
+        },
+        "upgrade": "Passer à Professional",
+        "viewList": "Voir la Liste"
+      }
+    },
+    "view": {
+      "edit": "Modifier",
+      "orderInfo": "Informations de la Commande",
+      "date": "Date",
+      "status": "Statut",
+      "customer": "Client",
+      "total": "Total",
+      "projects": "Projets",
+      "noProjects": "Aucun projet",
+      "notes": "Notes",
+      "deleteOrder": "Supprimer la Commande"
+    },
+    "delete": {
+      "title": "Supprimer la commande?",
+      "description": "Cette action ne peut pas être annulée. La commande et toutes ses données associées seront définitivement supprimées.",
+      "cancel": "Annuler",
+      "confirm": "Supprimer"
+    },
+    "messages": {
+      "errorLoading": "Erreur lors du chargement des commandes",
+      "orderDeleted": "Commande supprimée avec succès",
+      "errorDeleting": "Erreur lors de la suppression de la commande"
+    }
   },
   "settings": {
     "title": "Paramètres",
-    "profile": "Profil",
-    "billing": "Facturation",
-    "subscription": "Abonnement",
-    "invoices": "Factures",
-    "fullName": "Nom Complet",
-    "email": "Email",
-    "save": "Enregistrer les Modifications",
-    "profileUpdated": "Profil mis à jour avec succès",
-    "currentPlan": "Plan Actuel",
-    "billingPeriod": "Période de Facturation",
-    "monthly": "Mensuel",
-    "annual": "Annuel",
-    "nextBilling": "Prochaine Date de Facturation",
-    "amount": "Montant",
-    "status": "Statut",
-    "active": "Actif",
-    "cancelled": "Annulé",
-    "changePlan": "Changer de Plan",
-    "cancelSubscription": "Annuler l'Abonnement",
-    "invoiceNumber": "Facture #",
-    "date": "Date",
-    "download": "Télécharger",
-    "noInvoices": "Aucune facture pour le moment",
+    "tabs": {
+      "profile": "Profil",
+      "security": "Sécurité",
+      "subscription": "Abonnement",
+      "invoices": "Factures"
+    },
+    "profile": {
+      "title": "Informations du Profil",
+      "description": "Mettez à jour vos informations personnelles et de facturation",
+      "fullName": "Nom Complet",
+      "email": "Email (Lecture seule)",
+      "billingAddress": "Adresse de Facturation",
+      "address": "Adresse",
+      "city": "Ville",
+      "postalCode": "Code Postal",
+      "country": "Pays",
+      "brandLogo": "Logo de Marque",
+      "uploadBrandLogo": "Télécharger le Logo de Marque",
+      "removeLogo": "Supprimer le Logo",
+      "formats": "Formats: JPG, PNG, WEBP, SVG. Maximum 2MB.",
+      "altLogo": "Logo de marque"
+    },
+    "security": {
+      "title": "Sécurité",
+      "description": "Gérez la sécurité de votre compte",
+      "newPassword": "Nouveau Mot de Passe",
+      "confirmPassword": "Confirmer le Mot de Passe",
+      "newPasswordPlaceholder": "Entrez votre nouveau mot de passe",
+      "confirmPasswordPlaceholder": "Confirmez votre nouveau mot de passe",
+      "changePassword": "Changer le Mot de Passe"
+    },
+    "subscription": {
+      "title": "Gestion de l'Abonnement",
+      "description": "Gérez votre plan d'abonnement et votre utilisation",
+      "currentPlan": "Plan Actuel",
+      "status": "Statut",
+      "unlockStats": "Débloquer les Statistiques Avancées",
+      "unlockDescription": "Passez à un plan professionnel pour accéder à des métriques détaillées de votre entreprise",
+      "fullHistory": "Historique Complet",
+      "fullHistoryDesc": "Accédez aux métriques jusqu'à 2 ans",
+      "detailedAnalysis": "Analyse Détaillée",
+      "detailedAnalysisDesc": "Filtrez par jour, semaine, mois ou trimestre",
+      "projections": "Projections",
+      "projectionsDesc": "Prédictions de revenus et tendances",
+      "viewPlans": "Voir les Plans Professionnels",
+      "currentPlanTitle": "Plan Actuel: Free",
+      "currentPlanDesc": "Votre plan inclut des fonctionnalités de base pour commencer",
+      "materials": "Matériaux",
+      "projects": "Projets",
+      "monthlyOrders": "Commandes Mensuelles",
+      "metricsHistory": "Historique des Métriques",
+      "upTo": "Jusqu'à",
+      "notAvailable": "Non disponible",
+      "currentUsage": "Utilisation Actuelle",
+      "resetsFirstDay": "Se réinitialise le premier jour de chaque mois",
+      "billingPeriod": "Période de Facturation",
+      "nextBillingDate": "Prochaine Date de Facturation",
+      "appliedCode": "CODE APPLIQUÉ",
+      "activePromoCode": "Code Promo Actif",
+      "applied": "Appliqué:",
+      "permanentSubscription": "✓ Abonnement Permanent",
+      "expires": "Expire:",
+      "upgradePlan": "Améliorer le Plan",
+      "changePlan": "Changer de Plan",
+      "cancelSubscription": "Annuler l'Abonnement"
+    },
+    "invoices": {
+      "title": "Historique des Factures",
+      "description": "Visualisez et téléchargez vos factures",
+      "invoiceNumber": "Facture #",
+      "date": "Date",
+      "plan": "Plan",
+      "period": "Période",
+      "amount": "Montant",
+      "status": "Statut",
+      "actions": "Actions",
+      "download": "Télécharger",
+      "noInvoices": "Aucune facture pour le moment"
+    },
+    "messages": {
+      "errorLoading": "Erreur lors du chargement des paramètres",
+      "profileUpdated": "Profil mis à jour avec succès",
+      "errorUpdatingProfile": "Erreur lors de la mise à jour du profil",
+      "mustBeAuthenticated": "Vous devez être authentifié pour télécharger des images",
+      "onlyImages": "Seules les images sont autorisées (JPG, PNG, WEBP, SVG)",
+      "maxSize": "L'image ne peut pas dépasser 2MB",
+      "errorUploading": "Erreur lors du téléchargement du logo:",
+      "logoUpdated": "Logo de marque mis à jour avec succès",
+      "errorUploadingLogo": "Erreur lors du téléchargement du logo",
+      "logoRemoved": "Logo de marque supprimé",
+      "errorRemovingLogo": "Erreur lors de la suppression du logo",
+      "errorRemoving": "Erreur lors de la suppression du logo du stockage",
+      "subscriptionCancelled": "Abonnement annulé",
+      "errorCancelling": "Erreur lors de l'annulation de l'abonnement",
+      "passwordsDontMatch": "Les mots de passe ne correspondent pas",
+      "passwordMinLength": "Le mot de passe doit contenir au moins 6 caractères",
+      "passwordUpdated": "Mot de passe mis à jour avec succès",
+      "errorChangingPassword": "Erreur lors du changement de mot de passe",
+      "cannotCancelPermanent": "Vous ne pouvez pas annuler un abonnement obtenu via un code promotionnel permanent. Si vous avez besoin d'aide, contactez le support.",
+      "promoCodeWarning": "Vous avez un code promotionnel appliqué ({{code}}). Si vous annulez, vous perdrez l'accès premium. Êtes-vous sûr?",
+      "cancelSubscriptionConfirm": "Êtes-vous sûr de vouloir annuler votre abonnement? Vous perdrez l'accès aux fonctionnalités premium."
+    },
     "promoCode": {
       "title": "Code Promo",
       "description": "Vous avez un code? Utilisez-le ici pour débloquer des abonnements gratuits",
@@ -216,6 +698,11 @@
       "apply": "Appliquer",
       "emptyCode": "Veuillez entrer un code",
       "error": "Erreur lors de l'application du code promo"
+    },
+    "tierNames": {
+      "tier_1": "Professional",
+      "tier_2": "Business",
+      "free": "Free"
     }
   },
   "admin": {
@@ -241,6 +728,76 @@
     "title": "Tarifs",
     "subtitle": "Choisissez le plan parfait pour votre entreprise",
     "monthly": "/mois",
+    "annual": "Annuel",
+    "freeTrial": "Essai gratuit de 15 jours",
+    "currency": "Devise",
+    "save20": "Économisez 20%",
+    "popular": "Populaire",
+    "currentPlan": "Votre plan actuel",
+    "billedAnnually": "facturé annuellement",
+    "save": "Économisez",
+    "perYear": "an",
+    "or": "ou",
+    "alreadySubscribed": "Vous êtes déjà abonné à ce plan",
+    "comparison": {
+      "title": "Comparaison des Plans",
+      "feature": "Caractéristique",
+      "free": "Gratuit",
+      "pro": "Pro",
+      "enterprise": "Enterprise",
+      "unlimited": "Illimités",
+      "no": "Non",
+      "days60": "60 jours",
+      "years2": "2 ans",
+      "comingSoon": "Bientôt disponible",
+      "categories": {
+        "materials": "Gestion des Matériaux",
+        "orders": "Commandes",
+        "analysis": "Analyse",
+        "tools": "Outils",
+        "catalogs": "Catalogues",
+        "support": "Support",
+        "enterprise": "Entreprise",
+        "inventory": "Inventaire",
+        "security": "Sécurité"
+      },
+      "features": {
+        "materials": "Matériaux",
+        "projects": "Projets",
+        "ordersPerMonth": "Commandes par mois",
+        "listView": "Vue liste",
+        "kanbanView": "Vue Kanban",
+        "calendarView": "Vue calendrier",
+        "basicDashboard": "Tableau de bord de base",
+        "advancedDashboard": "Tableau de bord avancé",
+        "metricsHistory": "Historique des métriques",
+        "detailedFinancial": "Analyse financière détaillée",
+        "calculator": "Calculatrice",
+        "advancedFilters": "Filtres avancés",
+        "exportData": "Exporter les données",
+        "customCatalogs": "Catalogues personnalisés",
+        "templates": "Modèles",
+        "premiumTemplates": "Modèles premium",
+        "sectionsOrganization": "Sections et organisation",
+        "basicSupport": "Support de base",
+        "prioritySupport": "Support prioritaire",
+        "dedicatedSupport": "Support dédié",
+        "customBranding": "Marque personnalisée",
+        "teamCollaboration": "Collaboration d'équipe",
+        "apiAccess": "Accès API",
+        "inventoryHistory": "Historique d'inventaire",
+        "autoStockCalculation": "Calcul automatique du stock et des consommations",
+        "machineStockMaintenance": "Stock de machines et alertes de maintenance",
+        "dataEncryption": "Chiffrement des données",
+        "gdprCompliance": "Conformité GDPR",
+        "autoBackup": "Sauvegarde automatique",
+        "twoFactorAuth": "Authentification à deux facteurs"
+      }
+    },
+    "roadmap": {
+      "title": "Roadmap vivant pour tous les plans",
+      "description": "Nous continuerons à construire de nouvelles fonctionnalités (comme l'accès API prévu pour 2026) en fonction du succès de Layer Suite et des retours de la communauté. Toutes les améliorations clés seront déployées progressivement sur chaque plan pour que vous puissiez grandir avec nous."
+    },
     "free": {
       "name": "Gratuit",
       "cta": "Commencer Gratuitement",
@@ -284,6 +841,354 @@
     "daysLeft": "Il vous reste {{days}} jours d'essai gratuit",
     "upgradeMessage": "Mettez à niveau maintenant pour continuer à profiter de toutes les fonctionnalités premium",
     "upgradeNow": "Voir les Plans"
+  },
+  "inventory": {
+    "title": "Inventaire",
+    "addMaterial": "Ajouter un Matériau",
+    "editMaterial": "Modifier le Matériau",
+    "searchMaterial": "Rechercher un matériau...",
+    "allTypes": "Tous les types",
+    "clearFilters": "Effacer les filtres",
+    "favorite": "Favori",
+    "material": "Matériau",
+    "type": "Type",
+    "pricePerKg": "Prix/kg",
+    "stockAvailable": "Stock Disponible",
+    "stockAvailableTooltip": "Quantité totale de matériau disponible en inventaire",
+    "pending": "En attente",
+    "pendingTooltip": "Matériau réservé pour les impressions en attente",
+    "realStock": "Stock Réel",
+    "realStockTooltip": "Stock disponible moins les impressions en attente",
+    "actions": "Actions",
+    "noMaterialsFound": "Aucun matériau trouvé avec les filtres appliqués",
+    "lowStockWarning": "Il y a des matériaux avec un stock faible (marqués en jaune)",
+    "materialTypes": {
+      "filament": "Filament",
+      "resin": "Résine",
+      "glue": "Colle",
+      "keyring": "Porte-clés",
+      "screw": "Vis",
+      "paint": "Peinture",
+      "sandpaper": "Papier de verre",
+      "other": "Autre"
+    },
+    "colors": {
+      "red": "Rouge",
+      "orange": "Orange",
+      "yellow": "Jaune",
+      "green": "Vert",
+      "blue": "Bleu",
+      "purple": "Violet",
+      "pink": "Rose",
+      "white": "Blanc",
+      "black": "Noir",
+      "gray": "Gris"
+    },
+    "messages": {
+      "materialAdded": "Matériau ajouté avec succès",
+      "materialUpdated": "Matériau mis à jour",
+      "materialDeleted": "Matériau supprimé",
+      "errorLoadingMaterials": "Erreur lors du chargement des matériaux",
+      "errorLoadingInventory": "Erreur lors du chargement de l'inventaire",
+      "errorLoadingAcquisitions": "Erreur lors du chargement des acquisitions",
+      "errorLoadingMovements": "Erreur lors du chargement des mouvements",
+      "errorLoadingPrinters": "Erreur lors du chargement des imprimantes",
+      "errorAddingMaterial": "Erreur lors de l'ajout du matériau",
+      "errorUpdatingMaterial": "Erreur lors de la mise à jour du matériau",
+      "errorDeletingMaterial": "Erreur lors de la suppression du matériau",
+      "errorUpdatingFavorite": "Erreur lors de la mise à jour du favori",
+      "insufficientStock": "Stock insuffisant disponible",
+      "acquisitionRegistered": "Acquisition enregistrée avec succès",
+      "errorRegisteringAcquisition": "Erreur lors de l'enregistrement de l'acquisition",
+      "wasteRegistered": "Déchet enregistré avec succès",
+      "errorRegisteringWaste": "Erreur lors de l'enregistrement du déchet",
+      "acquisitionDeleted": "Acquisition supprimée",
+      "errorDeletingAcquisition": "Erreur lors de la suppression de l'acquisition",
+      "selectOrder": "Veuillez sélectionner une commande",
+      "assignedToOrder": "Article assigné à la commande avec succès",
+      "errorAssigningToOrder": "Erreur lors de l'assignation de l'article à la commande",
+      "printerAdded": "Imprimante ajoutée",
+      "errorAddingPrinter": "Erreur lors de l'ajout de l'imprimante",
+      "printerUpdated": "Imprimante mise à jour",
+      "errorUpdatingPrinter": "Erreur lors de la mise à jour de l'imprimante",
+      "printerDeleted": "Imprimante supprimée",
+      "errorDeletingPrinter": "Erreur lors de la suppression de l'imprimante"
+    },
+    "tabs": {
+      "materials": "Matériaux",
+      "acquisitions": "Acquisitions",
+      "movements": "Mouvements",
+      "printers": "Imprimantes",
+      "assignments": "Assignations"
+    },
+    "movementTypes": {
+      "acquisition": "Acquisition",
+      "consumption": "Consommation",
+      "waste": "Déchet",
+      "adjustment": "Ajustement"
+    },
+    "dialogs": {
+      "editMaterial": "Modifier le Matériau",
+      "addMaterial": "Ajouter un Matériau",
+      "selectType": "Sélectionner le type",
+      "selectColor": "Sélectionner la couleur",
+      "update": "Mettre à jour",
+      "create": "Créer",
+      "editPrinter": "Modifier l'Imprimante",
+      "addPrinter": "Ajouter une Imprimante",
+      "selectMaterial": "Sélectionner un matériau",
+      "confirmDeleteMaterial": "Supprimer ce matériau?",
+      "confirmDeletePrinter": "Supprimer cette imprimante?",
+      "confirmDeleteAcquisition": "Supprimer cette acquisition?",
+      "newAcquisition": "Nouvelle Acquisition",
+      "registerWaste": "Enregistrer un Déchet"
+    },
+    "tables": {
+      "recentAcquisitions": "Acquisitions Récentes",
+      "movementHistory": "Historique des Mouvements",
+      "date": "Date",
+      "quantity": "Quantité",
+      "pricePerKg": "Prix/kg",
+      "total": "Total",
+      "supplier": "Fournisseur",
+      "dateAndTime": "Date et Heure",
+      "notes": "Notes"
+    },
+    "formLabels": {
+      "name": "Nom",
+      "pricePerKg": "Prix par KG (€)",
+      "type": "Type",
+      "color": "Couleur",
+      "displayMode": "Afficher comme",
+      "displayModeColor": "Couleur",
+      "displayModeIcon": "Icône",
+      "brand": "Marque",
+      "model": "Modèle",
+      "usageHours": "Heures d'Utilisation",
+      "notes": "Notes",
+      "quantity": "Quantité (g)",
+      "unitPrice": "Prix/kg (€)",
+      "supplier": "Fournisseur",
+      "purchaseDate": "Date d'Achat"
+    }
+  },
+  "prints": {
+    "title": "Impressions",
+    "subtitle": "Gérez et enregistrez vos impressions 3D",
+    "newPrint": "Nouvelle Impression",
+    "editPrint": "Modifier l'Impression",
+    "print": "Impression",
+    "all": "Tous",
+    "filterByStatus": "Filtrer par statut",
+    "types": {
+      "order": "Commande",
+      "tools": "Outils",
+      "personal": "Personnel",
+      "operational": "Opérationnel",
+      "for_sale": "À Vendre"
+    },
+    "status": {
+      "pending": "En attente",
+      "printing": "Impression",
+      "completed": "Terminé",
+      "failed": "Échoué"
+    },
+    "empty": {
+      "noPrints": "Aucune impression enregistrée. Créez votre première impression.",
+      "noPrintsWithStatus": "Aucune impression avec le statut sélectionné."
+    },
+    "form": {
+      "name": "Nom",
+      "printType": "Type d'Impression",
+      "order": "Commande",
+      "project": "Projet",
+      "optional": "optionnel",
+      "selectOrder": "Sélectionner une commande",
+      "noOrder": "Sans commande",
+      "selectProject": "Sélectionner un projet",
+      "noProject": "Sans projet",
+      "importMaterials": "Importer les matériaux du projet",
+      "printTime": "Temps d'Impression (heures)",
+      "dateTime": "Date et Heure",
+      "status": "Statut",
+      "notes": "Notes",
+      "materials": "Matériaux",
+      "addMaterial": "Ajouter un Matériau",
+      "noMaterialsAdded": "Aucun matériau ajouté.",
+      "useButtonOrImport": "Utilisez le bouton ci-dessus ou importez depuis un projet",
+      "material": "Matériau",
+      "weight": "Poids (g)",
+      "actions": "Actions",
+      "selectMaterial": "Sélectionner un matériau",
+      "total": "Total",
+      "update": "Mettre à jour",
+      "create": "Créer"
+    },
+    "detail": {
+      "generalInfo": "Informations Générales",
+      "printTime": "Temps d'impression",
+      "date": "Date",
+      "order": "Commande",
+      "project": "Projet",
+      "notes": "Notes",
+      "materialsUsed": "Matériaux Utilisés",
+      "total": "Total",
+      "cost": "Coût",
+      "noMaterials": "Aucun matériau enregistré"
+    },
+    "stockWarning": {
+      "title": "Stock Insuffisant",
+      "description": "Il n'y a pas assez de stock disponible pour certains matériaux",
+      "available": "Disponible",
+      "needed": "Nécessaire",
+      "missing": "Manquant",
+      "continueQuestion": "Le stock peut devenir négatif. Voulez-vous continuer quand même?",
+      "continueAnyway": "Continuer quand même"
+    },
+    "messages": {
+      "errorLoading": "Erreur lors du chargement des impressions",
+      "selectProjectFirst": "Sélectionnez d'abord un projet",
+      "materialsImported": "Matériaux importés du projet",
+      "projectNoMaterials": "Le projet n'a pas de matériaux assignés",
+      "errorImportingMaterials": "Erreur lors de l'importation des matériaux",
+      "addAtLeastOneMaterial": "Ajoutez au moins un matériau",
+      "printUpdated": "Impression mise à jour",
+      "printRegistered": "Impression enregistrée",
+      "errorSaving": "Erreur lors de l'enregistrement de l'impression",
+      "printDeleted": "Impression supprimée",
+      "errorDeleting": "Erreur lors de la suppression de l'impression"
+    }
+  },
+  "about": {
+    "hero": {
+      "title": "À Propos de Layer Suite",
+      "subtitle": "La solution complète pour gérer et optimiser votre entreprise d'impression 3D"
+    },
+    "mission": {
+      "title": "Notre Mission",
+      "description": "Layer Suite est né du besoin de simplifier la gestion des entreprises d'impression 3D. Notre objectif est de fournir aux entrepreneurs et professionnels les outils nécessaires pour calculer les coûts avec précision, gérer les inventaires efficacement et faire croître leurs entreprises de manière durable."
+    },
+    "features": {
+      "title": "Ce Que Nous Offrons?",
+      "calculator": {
+        "title": "Calculatrice de Prix",
+        "description": "Calculez automatiquement le coût de vos impressions en tenant compte des matériaux, de l'électricité et du temps d'impression"
+      },
+      "inventory": {
+        "title": "Gestion d'Inventaire",
+        "description": "Maintenez un contrôle complet de vos matériaux, stock et mouvements d'inventaire en temps réel"
+      },
+      "projects": {
+        "title": "Gestion de Projets",
+        "description": "Organisez tous vos projets d'impression, matériaux utilisés et configurations d'impression"
+      },
+      "dashboard": {
+        "title": "Tableau de Bord Analytique",
+        "description": "Visualisez des statistiques détaillées de vos commandes, impressions et performances commerciales"
+      },
+      "orders": {
+        "title": "Gestion des Commandes",
+        "description": "Gérez les commandes clients avec suivi complet de l'état et organisation visuelle"
+      },
+      "catalogs": {
+        "title": "Catalogues Numériques",
+        "description": "Créez et partagez des catalogues professionnels de vos produits avec les clients (fonctionnalité Premium)"
+      }
+    },
+    "values": {
+      "title": "Nos Valeurs",
+      "security": {
+        "title": "Sécurité et Confidentialité",
+        "description": "Vos données sont protégées avec les meilleures pratiques de sécurité. Nous respectons votre vie privée et ne partageons jamais vos informations."
+      },
+      "simplicity": {
+        "title": "Simplicité",
+        "description": "Nous avons conçu Layer Suite pour être intuitif et facile à utiliser. Vous n'avez pas besoin de connaissances techniques avancées pour profiter de toutes ses fonctionnalités."
+      },
+      "improvement": {
+        "title": "Amélioration Continue",
+        "description": "Nous écoutons nos utilisateurs et améliorons constamment la plateforme avec de nouvelles fonctionnalités et optimisations."
+      },
+      "community": {
+        "title": "Communauté",
+        "description": "Nous faisons partie d'une communauté d'entrepreneurs qui partagent la passion pour l'impression 3D et la croissance de leurs entreprises."
+      }
+    },
+    "creator": {
+      "title": "Qui Je Suis",
+      "name": "Carlos Peralta Sorolla",
+      "experience": "Avec plus de 5 ans d'expérience dans l'industrie du gaming, j'ai travaillé dans la gestion de projets, la direction créative et le leadership d'équipes techniques multidisciplinaires, collaborant au développement de jeux vidéo Web3 et Web2.",
+      "story1": "L'histoire de Layer Suite a commencé personnellement: en acquérant mon imprimante 3D Bambu Lab P2S et en commençant à gérer ma propre entreprise, j'ai réalisé que j'avais besoin d'un outil pour gérer mon stock, mes matériaux et mes commandes efficacement. J'ai donc créé une application pour usage personnel.",
+      "story2": "En voyant qu'elle résolvait vraiment un problème réel dans l'industrie et pouvait aider d'autres entrepreneurs et professionnels du secteur, j'ai décidé de la partager avec le monde entier. Layer Suite est le résultat de la combinaison de mon expérience technique avec les besoins réels que j'ai découverts dans mon propre quotidien."
+    },
+    "cta": {
+      "title": "Prêt à commencer?",
+      "description": "Rejoignez notre communauté et commencez à optimiser votre entreprise d'impression 3D dès aujourd'hui",
+      "createAccount": "Créer un Compte Gratuit",
+      "viewPlans": "Voir les Plans"
+    }
+  },
+  "notFound": {
+    "title": "Page non trouvée",
+    "description": "La page que vous recherchez n'existe pas ou a été déplacée.",
+    "backHome": "Retour à l'accueil"
+  },
+  "terms": {
+    "title": "Termes et Conditions",
+    "lastUpdated": "Dernière mise à jour",
+    "section1": {
+      "title": "Acceptation des Termes",
+      "content": "En accédant et en utilisant Layer Suite, vous acceptez d'être lié par ces termes et conditions d'utilisation. Si vous n'êtes pas d'accord avec l'un de ces termes, vous ne devez pas utiliser ce service."
+    },
+    "section2": {
+      "title": "Description du Service",
+      "content": "Layer Suite est une plateforme de gestion d'entreprise conçue pour aider les entrepreneurs d'impression 3D à gérer leurs matériaux, projets, calculateur de prix et commandes."
+    },
+    "section3": {
+      "title": "Inscription et Compte Utilisateur",
+      "intro": "Pour utiliser certaines fonctionnalités du service, vous devez vous inscrire et créer un compte. Vous vous engagez à:",
+      "item1": "Fournir des informations précises, à jour et complètes pendant le processus d'inscription",
+      "item2": "Maintenir et mettre à jour vos informations pour qu'elles restent précises et complètes",
+      "item3": "Maintenir la sécurité de votre mot de passe et accepter toute responsabilité pour les activités sous votre compte",
+      "item4": "Nous notifier immédiatement de toute utilisation non autorisée de votre compte"
+    },
+    "section4": {
+      "title": "Utilisation Acceptable",
+      "intro": "Vous acceptez de NE PAS utiliser le service pour:",
+      "item1": "Violer toute loi ou réglementation applicable",
+      "item2": "Porter atteinte aux droits de propriété intellectuelle de tiers",
+      "item3": "Transmettre du contenu offensant, diffamatoire ou illégal",
+      "item4": "Tenter d'accéder de manière non autorisée à d'autres systèmes ou réseaux",
+      "item5": "Interférer avec le fonctionnement normal du service"
+    },
+    "section5": {
+      "title": "Plans et Paiements",
+      "content": "Layer Suite propose différents plans d'abonnement. Les prix et caractéristiques de chaque plan sont détaillés sur notre page de tarification. Les paiements sont traités de manière sécurisée via nos fournisseurs de paiement autorisés."
+    },
+    "section6": {
+      "title": "Propriété Intellectuelle",
+      "content": "Tout le contenu, les caractéristiques et la fonctionnalité du service (y compris mais sans s'y limiter aux informations, logiciels, texte, graphiques, logos) sont la propriété exclusive de Layer Suite et sont protégés par les lois sur le droit d'auteur, les marques de commerce et autres lois sur la propriété intellectuelle."
+    },
+    "section7": {
+      "title": "Confidentialité et Protection des Données",
+      "content": "Votre confidentialité est importante pour nous. Nous collectons, utilisons et protégeons vos informations personnelles conformément à notre Politique de Confidentialité. En utilisant notre service, vous acceptez la collecte et l'utilisation d'informations telles que décrites dans cette politique."
+    },
+    "section8": {
+      "title": "Limitation de Responsabilité",
+      "content": "Layer Suite est fourni \"tel quel\" sans garanties d'aucune sorte. Nous ne garantissons pas que le service sera ininterrompu, sécurisé ou sans erreur. En aucun cas, nous ne serons responsables des dommages indirects, accessoires, spéciaux ou consécutifs résultant de l'utilisation ou de l'impossibilité d'utiliser le service."
+    },
+    "section9": {
+      "title": "Annulation et Résiliation",
+      "content": "Vous pouvez annuler votre abonnement à tout moment depuis les paramètres de votre compte. Nous nous réservons le droit de suspendre ou de résilier votre accès au service si vous violez ces termes ou pour toute autre raison que nous jugeons appropriée."
+    },
+    "section10": {
+      "title": "Modifications des Termes",
+      "content": "Nous nous réservons le droit de modifier ces termes à tout moment. Nous vous informerons des changements importants par courrier électronique ou via un avis sur notre service. L'utilisation continue du service après ces changements constitue votre acceptation des nouveaux termes."
+    },
+    "section11": {
+      "title": "Contact",
+      "content": "Si vous avez des questions concernant ces Termes et Conditions, vous pouvez nous contacter via notre formulaire de contact sur le site web."
+    }
   },
   "common": {
     "loading": "Chargement...",

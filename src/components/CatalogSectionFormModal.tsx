@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -16,6 +17,7 @@ interface CatalogSectionFormModalProps {
 }
 
 export function CatalogSectionFormModal({ open, onOpenChange, catalogId, sectionId, onSuccess }: CatalogSectionFormModalProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
 
@@ -41,7 +43,7 @@ export function CatalogSectionFormModal({ open, onOpenChange, catalogId, section
       setTitle(data.title);
     } catch (error) {
       console.error("Error fetching section:", error);
-      toast.error("Error al cargar la sección");
+      toast.error(t('catalog.sectionForm.messages.errorLoading'));
     }
   };
 
@@ -61,7 +63,7 @@ export function CatalogSectionFormModal({ open, onOpenChange, catalogId, section
           .eq("id", sectionId);
 
         if (error) throw error;
-        toast.success("Sección actualizada");
+        toast.success(t('catalog.sectionForm.messages.sectionUpdated'));
       } else {
         // Obtener el máximo position actual para poner la nueva sección al final
         const { data: maxPositionData } = await supabase
@@ -83,14 +85,14 @@ export function CatalogSectionFormModal({ open, onOpenChange, catalogId, section
           });
 
         if (error) throw error;
-        toast.success("Sección creada");
+        toast.success(t('catalog.sectionForm.messages.sectionCreated'));
       }
 
       onSuccess();
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving section:", error);
-      toast.error("Error al guardar la sección");
+      toast.error(t('catalog.sectionForm.messages.errorSaving'));
     } finally {
       setLoading(false);
     }
@@ -100,28 +102,28 @@ export function CatalogSectionFormModal({ open, onOpenChange, catalogId, section
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{sectionId ? "Editar Sección" : "Nueva Sección"}</DialogTitle>
+          <DialogTitle>{sectionId ? t('catalog.sectionForm.edit') : t('catalog.sectionForm.new')}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title">Título de la Sección *</Label>
+            <Label htmlFor="title">{t('catalog.sectionForm.title')}</Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ej: Productos Premium"
+              placeholder={t('catalog.sectionForm.titlePlaceholder')}
               required
             />
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-              Cancelar
+              {t('catalog.sectionForm.cancel')}
             </Button>
             <Button type="submit" disabled={loading || !title}>
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {sectionId ? "Actualizar" : "Crear"}
+              {sectionId ? t('catalog.sectionForm.update') : t('catalog.sectionForm.create')}
             </Button>
           </div>
         </form>

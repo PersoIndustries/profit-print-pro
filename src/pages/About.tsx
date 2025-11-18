@@ -17,9 +17,9 @@ const About = () => {
       <main className="flex-1 container mx-auto px-4 py-16">
         {/* Hero Section */}
         <div className="text-center max-w-4xl mx-auto mb-16">
-          <h1 className="text-5xl font-bold mb-6">Acerca de Layer Suite</h1>
+          <h1 className="text-5xl font-bold mb-6">{t('about.hero.title')}</h1>
           <p className="text-xl text-muted-foreground mb-8">
-            La solución completa para gestionar y optimizar tu negocio de impresión 3D
+            {t('about.hero.subtitle')}
           </p>
         </div>
 
@@ -29,15 +29,12 @@ const About = () => {
             <CardHeader>
               <CardTitle className="text-3xl flex items-center gap-3">
                 <Target className="w-8 h-8 text-primary" />
-                Nuestra Misión
+                {t('about.mission.title')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Layer Suite nació de la necesidad de simplificar la gestión de negocios de impresión 3D. 
-                Nuestro objetivo es proporcionar a emprendedores y profesionales las herramientas necesarias 
-                para calcular costes con precisión, gestionar inventarios eficientemente y hacer crecer sus 
-                negocios de forma sostenible.
+                {t('about.mission.description')}
               </p>
             </CardContent>
           </Card>
@@ -45,15 +42,14 @@ const About = () => {
 
         {/* Features Section */}
         <div className="mb-16">
-          <h2 className="text-3xl font-bold text-center mb-12">¿Qué Ofrecemos?</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">{t('about.features.title')}</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card>
               <CardHeader>
                 <Calculator className="w-10 h-10 text-primary mb-4" />
-                <CardTitle>Calculadora de Precios</CardTitle>
+                <CardTitle>{t('about.features.calculator.title')}</CardTitle>
                 <CardDescription>
-                  Calcula automáticamente el coste de tus impresiones considerando materiales, 
-                  electricidad y tiempo de impresión
+                  {t('about.features.calculator.description')}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -61,10 +57,9 @@ const About = () => {
             <Card>
               <CardHeader>
                 <Package className="w-10 h-10 text-primary mb-4" />
-                <CardTitle>Gestión de Inventario</CardTitle>
+                <CardTitle>{t('about.features.inventory.title')}</CardTitle>
                 <CardDescription>
-                  Mantén un control completo de tus materiales, stock y movimientos de inventario 
-                  en tiempo real
+                  {t('about.features.inventory.description')}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -72,10 +67,9 @@ const About = () => {
             <Card>
               <CardHeader>
                 <Printer className="w-10 h-10 text-primary mb-4" />
-                <CardTitle>Gestión de Proyectos</CardTitle>
+                <CardTitle>{t('about.features.projects.title')}</CardTitle>
                 <CardDescription>
-                  Organiza todos tus proyectos de impresión, materiales utilizados y configuraciones 
-                  de impresión
+                  {t('about.features.projects.description')}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -83,10 +77,9 @@ const About = () => {
             <Card>
               <CardHeader>
                 <TrendingUp className="w-10 h-10 text-primary mb-4" />
-                <CardTitle>Dashboard Analítico</CardTitle>
+                <CardTitle>{t('about.features.dashboard.title')}</CardTitle>
                 <CardDescription>
-                  Visualiza estadísticas detalladas de tus pedidos, impresiones y rendimiento 
-                  del negocio
+                  {t('about.features.dashboard.description')}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -94,10 +87,9 @@ const About = () => {
             <Card>
               <CardHeader>
                 <Users className="w-10 h-10 text-primary mb-4" />
-                <CardTitle>Gestión de Pedidos</CardTitle>
+                <CardTitle>{t('about.features.orders.title')}</CardTitle>
                 <CardDescription>
-                  Administra pedidos de clientes con seguimiento completo del estado y 
-                  organización visual
+                  {t('about.features.orders.description')}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -105,10 +97,9 @@ const About = () => {
             <Card>
               <CardHeader>
                 <Zap className="w-10 h-10 text-primary mb-4" />
-                <CardTitle>Catálogos Digitales</CardTitle>
+                <CardTitle>{t('about.features.catalogs.title')}</CardTitle>
                 <CardDescription>
-                  Crea y comparte catálogos profesionales de tus productos con clientes 
-                  (funcionalidad Premium)
+                  {t('about.features.catalogs.description')}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -117,17 +108,16 @@ const About = () => {
 
         {/* Values Section */}
         <div className="max-w-4xl mx-auto mb-16">
-          <h2 className="text-3xl font-bold text-center mb-12">Nuestros Valores</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">{t('about.values.title')}</h2>
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
                 <Shield className="w-8 h-8 text-primary mb-3" />
-                <CardTitle>Seguridad y Privacidad</CardTitle>
+                <CardTitle>{t('about.values.security.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Tus datos están protegidos con las mejores prácticas de seguridad. 
-                  Respetamos tu privacidad y nunca compartimos tu información.
+                  {t('about.values.security.description')}
                 </p>
               </CardContent>
             </Card>
@@ -135,12 +125,11 @@ const About = () => {
             <Card>
               <CardHeader>
                 <Zap className="w-8 h-8 text-primary mb-3" />
-                <CardTitle>Simplicidad</CardTitle>
+                <CardTitle>{t('about.values.simplicity.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Diseñamos Layer Suite para ser intuitivo y fácil de usar. 
-                  No necesitas conocimientos técnicos avanzados para aprovechar todas sus funciones.
+                  {t('about.values.simplicity.description')}
                 </p>
               </CardContent>
             </Card>
@@ -148,12 +137,11 @@ const About = () => {
             <Card>
               <CardHeader>
                 <TrendingUp className="w-8 h-8 text-primary mb-3" />
-                <CardTitle>Mejora Continua</CardTitle>
+                <CardTitle>{t('about.values.improvement.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Escuchamos a nuestros usuarios y mejoramos constantemente la plataforma 
-                  con nuevas funcionalidades y optimizaciones.
+                  {t('about.values.improvement.description')}
                 </p>
               </CardContent>
             </Card>
@@ -161,12 +149,11 @@ const About = () => {
             <Card>
               <CardHeader>
                 <Users className="w-8 h-8 text-primary mb-3" />
-                <CardTitle>Comunidad</CardTitle>
+                <CardTitle>{t('about.values.community.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Formamos parte de una comunidad de emprendedores que comparten la pasión 
-                  por la impresión 3D y el crecimiento de sus negocios.
+                  {t('about.values.community.description')}
                 </p>
               </CardContent>
             </Card>
@@ -175,7 +162,7 @@ const About = () => {
 
         {/* Creator Section */}
         <div className="max-w-4xl mx-auto mb-16">
-          <h2 className="text-3xl font-bold text-center mb-12">Quién Soy</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">{t('about.creator.title')}</h2>
           <Card className="border-primary/50 bg-gradient-to-br from-primary/5 via-background to-background">
             <CardContent className="p-8">
               <div className="flex flex-col md:flex-row items-center gap-8">
@@ -185,23 +172,15 @@ const About = () => {
                   </div>
                 </div>
                 <div className="flex-1 text-center md:text-left">
-                  <h3 className="text-2xl font-bold mb-4">Carlos Peralta Sorolla</h3>
+                  <h3 className="text-2xl font-bold mb-4">{t('about.creator.name')}</h3>
                   <p className="text-lg text-muted-foreground mb-4 leading-relaxed">
-                    Con más de 5 años de experiencia en la industria del gaming, he trabajado 
-                    en gestión de proyectos, dirección creativa y liderazgo de equipos técnicos 
-                    multidisciplinarios, colaborando en el desarrollo de videojuegos Web3 y Web2.
+                    {t('about.creator.experience')}
                   </p>
                   <p className="text-muted-foreground mb-4 leading-relaxed">
-                    La historia de Layer Suite comenzó de forma personal: al adquirir mi impresora 
-                    3D Bambu Lab P2S y empezar a gestionar mi propio negocio, me di cuenta de que 
-                    necesitaba una herramienta para gestionar mi stock, materiales y pedidos de forma 
-                    eficiente. Así que creé una aplicación para uso personal.
+                    {t('about.creator.story1')}
                   </p>
                   <p className="text-muted-foreground mb-6 leading-relaxed">
-                    Al ver que realmente solventaba un problema real en la industria y que podía ayudar 
-                    a otros emprendedores y profesionales del sector, decidí compartirla con todo el 
-                    mundo. Layer Suite es el resultado de combinar mi experiencia técnica con las 
-                    necesidades reales que descubrí en mi propio día a día.
+                    {t('about.creator.story2')}
                   </p>
                   <div className="flex flex-wrap gap-3 justify-center md:justify-start">
                     <Button 
@@ -223,17 +202,17 @@ const About = () => {
         <div className="text-center max-w-2xl mx-auto">
           <Card className="border-primary/50 bg-gradient-to-br from-primary/5 via-background to-background">
             <CardHeader>
-              <CardTitle className="text-2xl mb-2">¿Listo para comenzar?</CardTitle>
+              <CardTitle className="text-2xl mb-2">{t('about.cta.title')}</CardTitle>
               <CardDescription className="text-base">
-                Únete a nuestra comunidad y comienza a optimizar tu negocio de impresión 3D hoy mismo
+                {t('about.cta.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex gap-4 justify-center">
               <Button size="lg" onClick={() => navigate("/auth")}>
-                Crear Cuenta Gratuita
+                {t('about.cta.createAccount')}
               </Button>
               <Button size="lg" variant="outline" onClick={() => navigate("/pricing")}>
-                Ver Planes
+                {t('about.cta.viewPlans')}
               </Button>
             </CardContent>
           </Card>
