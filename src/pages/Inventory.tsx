@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useTierFeatures } from "@/hooks/useTierFeatures";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -107,6 +108,7 @@ const getMaterialIcon = (type: string | null, materialTypes: ReturnType<typeof g
 const Inventory = () => {
   const { t } = useTranslation();
   const { user, loading } = useAuth();
+  const { isPro, isEnterprise, hasFeature } = useTierFeatures();
   const [tooltipOpen, setTooltipOpen] = useState<{ [key: string]: boolean }>({});
   
   // Get translated constants
@@ -851,8 +853,8 @@ const Inventory = () => {
     const matchesSearch = material.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === "all" || material.type === filterType;
     
-    // Si showLowStock está activo, filtrar solo materiales con stock bajo
-    if (showLowStock) {
+    // Si showLowStock está activo, filtrar solo materiales con stock bajo (solo Pro y Business)
+    if (showLowStock && (isPro || isEnterprise)) {
       const inventoryItem = inventory.find(inv => inv.material_id === material.id);
       if (!inventoryItem) return false; // No mostrar materiales sin stock
       const pending = pendingMaterials[material.id] || 0;
@@ -863,9 +865,9 @@ const Inventory = () => {
     return matchesSearch && matchesType;
   });
 
-  // Filtrar inventario para alertas de stock
+  // Filtrar inventario para alertas de stock (solo Pro y Business)
   const filteredInventory = inventory.filter(item => {
-    if (!showLowStock) return true;
+    if (!showLowStock || (!isPro && !isEnterprise)) return true;
     const pending = pendingMaterials[item.material_id] || 0;
     const realStock = item.quantity_grams - pending;
     return realStock < item.min_stock_alert;
@@ -882,10 +884,14 @@ const Inventory = () => {
   return (
     <div className="container mx-auto p-6">
       <Tabs defaultValue="stock" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className={`grid w-full ${hasFeature('acquisition_history') && hasFeature('movement_history') ? 'grid-cols-3' : hasFeature('acquisition_history') || hasFeature('movement_history') ? 'grid-cols-2' : 'grid-cols-1'}`}>
           <TabsTrigger value="stock">{t('inventory.tabs.materials')}</TabsTrigger>
-          <TabsTrigger value="acquisitions">{t('inventory.tabs.acquisitions')}</TabsTrigger>
-          <TabsTrigger value="history">{t('inventory.tabs.movements')}</TabsTrigger>
+          {hasFeature('acquisition_history') && (
+            <TabsTrigger value="acquisitions">{t('inventory.tabs.acquisitions')}</TabsTrigger>
+          )}
+          {hasFeature('movement_history') && (
+            <TabsTrigger value="history">{t('inventory.tabs.movements')}</TabsTrigger>
+          )}
         </TabsList>
 
         {/* Tab de Stock */}
@@ -905,16 +911,20 @@ const Inventory = () => {
                 <div className="flex justify-between items-center">
                   <CardTitle>{t('inventory.title')}</CardTitle>
                   <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="low-stock-toggle-main"
-                      checked={showLowStock}
-                      onChange={(e) => setShowLowStock(e.target.checked)}
-                      className="w-4 h-4 rounded border-input"
-                    />
-                    <Label htmlFor="low-stock-toggle-main" className="cursor-pointer text-sm">
-                      {t('inventory.lowStockWarning')}
-                    </Label>
+                    {(isPro || isEnterprise) && (
+                      <>
+                        <input
+                          type="checkbox"
+                          id="low-stock-toggle-main"
+                          checked={showLowStock}
+                          onChange={(e) => setShowLowStock(e.target.checked)}
+                          className="w-4 h-4 rounded border-input"
+                        />
+                        <Label htmlFor="low-stock-toggle-main" className="cursor-pointer text-sm">
+                          {t('inventory.lowStockWarning')}
+                        </Label>
+                      </>
+                    )}
                     <Button onClick={() => {
                       setEditingMaterial(null);
                       setMaterialForm({
@@ -931,7 +941,7 @@ const Inventory = () => {
                     </Button>
                   </div>
                 </div>
-                {showLowStock && filteredMaterials.some(m => {
+                {(isPro || isEnterprise) && showLowStock && filteredMaterials.some(m => {
                   const invItem = inventory.find(inv => inv.material_id === m.id);
                   const pending = pendingMaterials[m.id] || 0;
                   const realStock = (invItem?.quantity_grams || 0) - pending;
@@ -997,73 +1007,120 @@ const Inventory = () => {
                         <TableHead>{t('inventory.favorite')}</TableHead>
                         <TableHead>{t('inventory.material')}</TableHead>
                         <TableHead>{t('inventory.type')}</TableHead>
-                        <TableHead>{t('inventory.pricePerKg')}</TableHead>
                         <TableHead>
                           <div className="flex items-center gap-2">
-                            {t('inventory.stockAvailable')}
-                            <Tooltip open={tooltipOpen['stock-disponible']} onOpenChange={(open) => setTooltipOpen(prev => ({ ...prev, 'stock-disponible': open }))}>
+                            {t('inventory.pricePerKg')}
+                            <Tooltip open={tooltipOpen['precio-kg']} onOpenChange={(open) => setTooltipOpen(prev => ({ ...prev, 'precio-kg': open }))}>
                               <TooltipTrigger asChild>
                                 <button
                                   type="button"
                                   className="inline-flex items-center p-0 border-0 bg-transparent cursor-help"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setTooltipOpen(prev => ({ ...prev, 'stock-disponible': !prev['stock-disponible'] }));
+                                    setTooltipOpen(prev => ({ ...prev, 'precio-kg': !prev['precio-kg'] }));
                                   }}
                                 >
                                   <Info className="w-4 h-4 text-muted-foreground" />
                                 </button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>{t('inventory.stockAvailableTooltip')}</p>
+                                <p>Este precio se usa para calcular los costos de materiales en proyectos, calculadora e impresiones</p>
                               </TooltipContent>
                             </Tooltip>
                           </div>
                         </TableHead>
                         <TableHead>
                           <div className="flex items-center gap-2">
-                            {t('inventory.pending')}
-                            <Tooltip open={tooltipOpen['pendiente']} onOpenChange={(open) => setTooltipOpen(prev => ({ ...prev, 'pendiente': open }))}>
+                            Avg Price/kg
+                            <Tooltip open={tooltipOpen['avg-precio-kg']} onOpenChange={(open) => setTooltipOpen(prev => ({ ...prev, 'avg-precio-kg': open }))}>
                               <TooltipTrigger asChild>
                                 <button
                                   type="button"
                                   className="inline-flex items-center p-0 border-0 bg-transparent cursor-help"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setTooltipOpen(prev => ({ ...prev, 'pendiente': !prev['pendiente'] }));
+                                    setTooltipOpen(prev => ({ ...prev, 'avg-precio-kg': !prev['avg-precio-kg'] }));
                                   }}
                                 >
                                   <Info className="w-4 h-4 text-muted-foreground" />
                                 </button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>{t('inventory.pendingTooltip')}</p>
+                                <p>Precio promedio por kg basado en las adquisiciones históricas de este material</p>
                               </TooltipContent>
                             </Tooltip>
                           </div>
                         </TableHead>
-                        <TableHead>
-                          <div className="flex items-center gap-2">
-                            {t('inventory.realStock')}
-                            <Tooltip open={tooltipOpen['stock-real']} onOpenChange={(open) => setTooltipOpen(prev => ({ ...prev, 'stock-real': open }))}>
-                              <TooltipTrigger asChild>
-                                <button
-                                  type="button"
-                                  className="inline-flex items-center p-0 border-0 bg-transparent cursor-help"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setTooltipOpen(prev => ({ ...prev, 'stock-real': !prev['stock-real'] }));
-                                  }}
-                                >
-                                  <Info className="w-4 h-4 text-muted-foreground" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{t('inventory.realStockTooltip')}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </TableHead>
+                        {(isPro || isEnterprise) && (
+                          <>
+                            <TableHead>
+                              <div className="flex items-center gap-2">
+                                {t('inventory.stockAvailable')}
+                                <Tooltip open={tooltipOpen['stock-disponible']} onOpenChange={(open) => setTooltipOpen(prev => ({ ...prev, 'stock-disponible': open }))}>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="inline-flex items-center p-0 border-0 bg-transparent cursor-help"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setTooltipOpen(prev => ({ ...prev, 'stock-disponible': !prev['stock-disponible'] }));
+                                      }}
+                                    >
+                                      <Info className="w-4 h-4 text-muted-foreground" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{t('inventory.stockAvailableTooltip')}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </TableHead>
+                            <TableHead>
+                              <div className="flex items-center gap-2">
+                                {t('inventory.pending')}
+                                <Tooltip open={tooltipOpen['pendiente']} onOpenChange={(open) => setTooltipOpen(prev => ({ ...prev, 'pendiente': open }))}>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="inline-flex items-center p-0 border-0 bg-transparent cursor-help"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setTooltipOpen(prev => ({ ...prev, 'pendiente': !prev['pendiente'] }));
+                                      }}
+                                    >
+                                      <Info className="w-4 h-4 text-muted-foreground" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{t('inventory.pendingTooltip')}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </TableHead>
+                            <TableHead>
+                              <div className="flex items-center gap-2">
+                                {t('inventory.realStock')}
+                                <Tooltip open={tooltipOpen['stock-real']} onOpenChange={(open) => setTooltipOpen(prev => ({ ...prev, 'stock-real': open }))}>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="inline-flex items-center p-0 border-0 bg-transparent cursor-help"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setTooltipOpen(prev => ({ ...prev, 'stock-real': !prev['stock-real'] }));
+                                      }}
+                                    >
+                                      <Info className="w-4 h-4 text-muted-foreground" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{t('inventory.realStockTooltip')}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </TableHead>
+                          </>
+                        )}
                         <TableHead>{t('inventory.actions')}</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1076,9 +1133,23 @@ const Inventory = () => {
                         const stockAvailable = inventoryItem ? inventoryItem.quantity_grams : 0;
                         const realStock = stockAvailable - pending;
                         const isLowStock = inventoryItem && realStock < (inventoryItem.min_stock_alert || 0);
+                        
+                        // Calcular precio promedio de adquisiciones (unit_price ya es precio por kg)
+                        const materialAcquisitions = acquisitions.filter(acq => acq.material_id === material.id);
+                        let avgPricePerKg: number | null = null;
+                        if (materialAcquisitions.length > 0) {
+                          const validPrices = materialAcquisitions
+                            .map(acq => acq.unit_price)
+                            .filter(price => price > 0);
+                          
+                          if (validPrices.length > 0) {
+                            const sum = validPrices.reduce((acc, price) => acc + price, 0);
+                            avgPricePerKg = sum / validPrices.length;
+                          }
+                        }
 
                         return (
-                          <TableRow key={material.id} className={isLowStock ? 'bg-yellow-50 dark:bg-yellow-950/20' : ''}>
+                          <TableRow key={material.id} className={(isPro || isEnterprise) && isLowStock ? 'bg-yellow-50 dark:bg-yellow-950/20' : ''}>
                             <TableCell>
                               <Button
                                 variant="ghost"
@@ -1106,34 +1177,51 @@ const Inventory = () => {
                             <TableCell>
                               {material.type ? MATERIAL_TYPES.find(t => t.value === material.type)?.label || material.type : '-'}
                             </TableCell>
-                            <TableCell>{material.price_per_kg.toFixed(2)}€</TableCell>
                             <TableCell>
-                              {inventoryItem ? (
-                                <span className={isLowStock ? 'text-red-500 font-semibold' : ''}>
-                                  {stockAvailable}g ({(stockAvailable / 1000).toFixed(2)}kg)
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">Sin stock</span>
-                              )}
+                              <div className="flex items-center gap-1">
+                                {material.price_per_kg.toFixed(2)}€
+                              </div>
                             </TableCell>
                             <TableCell>
-                              {pending > 0 ? (
-                                <Badge variant="default">
-                                  {pending}g ({(pending / 1000).toFixed(2)}kg)
-                                </Badge>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {inventoryItem ? (
-                                <span className={isLowStock ? 'text-red-500 font-bold' : ''}>
-                                  {realStock}g ({(realStock / 1000).toFixed(2)}kg)
+                              {avgPricePerKg !== null ? (
+                                <span className={avgPricePerKg < material.price_per_kg ? 'text-green-600 dark:text-green-400' : avgPricePerKg > material.price_per_kg ? 'text-orange-600 dark:text-orange-400' : ''}>
+                                  {avgPricePerKg.toFixed(2)}€
                                 </span>
                               ) : (
                                 <span className="text-muted-foreground">-</span>
                               )}
                             </TableCell>
+                            {(isPro || isEnterprise) && (
+                              <>
+                                <TableCell>
+                                  {inventoryItem ? (
+                                    <span className={isLowStock ? 'text-red-500 font-semibold' : ''}>
+                                      {stockAvailable}g ({(stockAvailable / 1000).toFixed(2)}kg)
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">Sin stock</span>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {pending > 0 ? (
+                                    <Badge variant="default">
+                                      {pending}g ({(pending / 1000).toFixed(2)}kg)
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-muted-foreground">-</span>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {inventoryItem ? (
+                                    <span className={isLowStock ? 'text-red-500 font-bold' : ''}>
+                                      {realStock}g ({(realStock / 1000).toFixed(2)}kg)
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">-</span>
+                                  )}
+                                </TableCell>
+                              </>
+                            )}
                             <TableCell>
                               <div className="flex gap-2">
                                 <TooltipProvider>
@@ -1383,10 +1471,12 @@ const Inventory = () => {
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
+          </TabsContent>
+        )}
 
-        {/* Tab de Historial */}
-        <TabsContent value="history">
+        {/* Tab de Historial - Solo Business */}
+        {hasFeature('movement_history') && (
+          <TabsContent value="history">
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
@@ -1428,7 +1518,8 @@ const Inventory = () => {
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Dialog para añadir/editar material */}
