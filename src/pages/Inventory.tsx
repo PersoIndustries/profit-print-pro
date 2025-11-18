@@ -142,6 +142,10 @@ const Inventory = () => {
   const [selectedMaterialForShoppingList, setSelectedMaterialForShoppingList] = useState<Material | null>(null);
   const [shoppingLists, setShoppingLists] = useState<{ id: string; name: string }[]>([]);
   const [selectedShoppingListId, setSelectedShoppingListId] = useState<string>("");
+  const [newShoppingListName, setNewShoppingListName] = useState("");
+  const [shoppingListItemName, setShoppingListItemName] = useState("");
+  const [shoppingListItemQuantity, setShoppingListItemQuantity] = useState("");
+  const [shoppingListItemEstimatedPrice, setShoppingListItemEstimatedPrice] = useState("");
   
   const [acquisitionForm, setAcquisitionForm] = useState({
     material_id: "",
@@ -502,32 +506,78 @@ const Inventory = () => {
     setSelectedMaterialForShoppingList(material);
     setIsAddToShoppingListDialogOpen(true);
     fetchShoppingLists();
+    
+    // Inicializar valores editables con sugerencias
+    setShoppingListItemName(material.name);
+    
+    // Calcular cantidad sugerida
+    const inventoryItem = inventory.find(inv => inv.material_id === material.id);
+    const suggestedQuantity = inventoryItem && inventoryItem.min_stock_alert 
+      ? `${(inventoryItem.min_stock_alert / 1000).toFixed(2)} kg`
+      : "1 kg";
+    setShoppingListItemQuantity(suggestedQuantity);
+    
+    // Calcular precio estimado
+    const quantityKg = parseFloat(suggestedQuantity.replace(' kg', ''));
+    const estimatedPrice = material.price_per_kg * quantityKg;
+    setShoppingListItemEstimatedPrice(estimatedPrice.toFixed(2));
+    
+    // Resetear selección de lista y nombre de nueva lista
+    setSelectedShoppingListId("");
+    setNewShoppingListName("");
   };
 
   const handleSaveToShoppingList = async () => {
-    if (!selectedMaterialForShoppingList || !selectedShoppingListId) {
-      toast.error("Debes seleccionar una lista");
+    if (!selectedMaterialForShoppingList) {
+      toast.error("Error: material no seleccionado");
+      return;
+    }
+
+    // Validar que haya un nombre para el item
+    if (!shoppingListItemName.trim()) {
+      toast.error("El nombre del material es requerido");
       return;
     }
 
     try {
-      // Calcular cantidad sugerida basada en el stock mínimo
-      const inventoryItem = inventory.find(inv => inv.material_id === selectedMaterialForShoppingList.id);
-      const suggestedQuantity = inventoryItem && inventoryItem.min_stock_alert 
-        ? `${(inventoryItem.min_stock_alert / 1000).toFixed(2)} kg`
-        : "1 kg";
+      let listId = selectedShoppingListId;
 
-      // Calcular precio estimado basado en el precio por kg y cantidad sugerida
-      const quantityKg = parseFloat(suggestedQuantity.replace(' kg', ''));
-      const estimatedPrice = selectedMaterialForShoppingList.price_per_kg * quantityKg;
+      // Si no hay lista seleccionada, crear una nueva
+      if (!listId) {
+        if (!newShoppingListName.trim()) {
+          toast.error("Debes crear una lista o seleccionar una existente");
+          return;
+        }
 
+        // Crear nueva lista
+        const { data: newList, error: createListError } = await supabase
+          .from("shopping_lists")
+          .insert({
+            name: newShoppingListName.trim(),
+          })
+          .select()
+          .single();
+
+        if (createListError) throw createListError;
+        listId = newList.id;
+        
+        // Actualizar la lista de listas disponibles
+        await fetchShoppingLists();
+      }
+
+      // Validar y parsear precio estimado
+      const estimatedPrice = shoppingListItemEstimatedPrice 
+        ? parseFloat(shoppingListItemEstimatedPrice.replace(',', '.')) 
+        : null;
+
+      // Insertar item en la lista
       const { error } = await supabase
         .from("shopping_list")
         .insert({
-          name: selectedMaterialForShoppingList.name,
-          quantity: suggestedQuantity,
-          estimated_price: estimatedPrice,
-          shopping_list_id: selectedShoppingListId,
+          name: shoppingListItemName.trim(),
+          quantity: shoppingListItemQuantity.trim() || null,
+          estimated_price: estimatedPrice && !isNaN(estimatedPrice) ? estimatedPrice : null,
+          shopping_list_id: listId,
           is_completed: false,
         });
 
@@ -536,9 +586,13 @@ const Inventory = () => {
       setIsAddToShoppingListDialogOpen(false);
       setSelectedMaterialForShoppingList(null);
       setSelectedShoppingListId("");
-    } catch (error) {
+      setNewShoppingListName("");
+      setShoppingListItemName("");
+      setShoppingListItemQuantity("");
+      setShoppingListItemEstimatedPrice("");
+    } catch (error: any) {
       console.error("Error adding to shopping list:", error);
-      toast.error("Error al agregar a la lista de compra");
+      toast.error(error.message || "Error al agregar a la lista de compra");
     }
   };
 
@@ -1939,61 +1993,112 @@ const Inventory = () => {
 
       {/* Dialog para agregar a lista de compra */}
       <Dialog open={isAddToShoppingListDialogOpen} onOpenChange={setIsAddToShoppingListDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Agregar a Lista de Compra</DialogTitle>
             <DialogDescription>
-              Agrega "{selectedMaterialForShoppingList?.name}" a una de tus listas de compra
+              Agrega el material a una lista de compra. Puedes editar los detalles antes de agregarlo.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Selecciona una lista *</Label>
-              <Select
-                value={selectedShoppingListId}
-                onValueChange={setSelectedShoppingListId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona una lista" />
-                </SelectTrigger>
-                <SelectContent>
-                  {shoppingLists.map((list) => (
-                    <SelectItem key={list.id} value={list.id}>
-                      {list.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {selectedMaterialForShoppingList && (
-              <div className="space-y-2 p-3 bg-muted rounded-lg">
-                <p className="text-sm font-medium">Información del material:</p>
-                <p className="text-sm text-muted-foreground">
-                  <span className="font-medium">Nombre:</span> {selectedMaterialForShoppingList.name}
+            {/* Selección de lista o creación de nueva */}
+            {shoppingLists.length > 0 ? (
+              <div className="space-y-2">
+                <Label>Selecciona una lista</Label>
+                <Select
+                  value={selectedShoppingListId}
+                  onValueChange={(value) => {
+                    setSelectedShoppingListId(value);
+                    setNewShoppingListName(""); // Limpiar nombre de nueva lista si se selecciona una existente
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona una lista" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {shoppingLists.map((list) => (
+                      <SelectItem key={list.id} value={list.id}>
+                        {list.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="text-center text-sm text-muted-foreground">o</div>
+                <div className="space-y-2">
+                  <Label>Crear nueva lista</Label>
+                  <Input
+                    placeholder="Nombre de la nueva lista"
+                    value={newShoppingListName}
+                    onChange={(e) => {
+                      setNewShoppingListName(e.target.value);
+                      setSelectedShoppingListId(""); // Limpiar selección si se escribe nombre nuevo
+                    }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Crear nueva lista *</Label>
+                <Input
+                  placeholder="Nombre de la nueva lista"
+                  value={newShoppingListName}
+                  onChange={(e) => setNewShoppingListName(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  No tienes listas de compra. Crea una nueva para agregar este material.
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  <span className="font-medium">Precio por kg:</span> {selectedMaterialForShoppingList.price_per_kg.toFixed(2)} €
-                </p>
-                {(() => {
-                  const inventoryItem = inventory.find(inv => inv.material_id === selectedMaterialForShoppingList.id);
-                  const suggestedQuantity = inventoryItem && inventoryItem.min_stock_alert 
-                    ? `${(inventoryItem.min_stock_alert / 1000).toFixed(2)} kg`
-                    : "1 kg";
-                  const quantityKg = parseFloat(suggestedQuantity.replace(' kg', ''));
-                  const estimatedPrice = selectedMaterialForShoppingList.price_per_kg * quantityKg;
-                  return (
-                    <>
-                      <p className="text-sm text-muted-foreground">
-                        <span className="font-medium">Cantidad sugerida:</span> {suggestedQuantity}
-                      </p>
-                      <p className="text-sm font-medium text-primary">
-                        <span className="font-medium">Precio estimado:</span> {estimatedPrice.toFixed(2)} €
-                      </p>
-                    </>
-                  );
-                })()}
               </div>
             )}
+
+            {/* Campos editables del material */}
+            <div className="space-y-4 pt-2 border-t">
+              <div className="space-y-2">
+                <Label>Nombre del material *</Label>
+                <Input
+                  value={shoppingListItemName}
+                  onChange={(e) => setShoppingListItemName(e.target.value)}
+                  placeholder="Nombre del material"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Cantidad</Label>
+                <Input
+                  value={shoppingListItemQuantity}
+                  onChange={(e) => {
+                    setShoppingListItemQuantity(e.target.value);
+                    // Recalcular precio estimado si hay cantidad y precio por kg
+                    if (selectedMaterialForShoppingList && e.target.value) {
+                      const quantityMatch = e.target.value.match(/(\d+\.?\d*)/);
+                      if (quantityMatch) {
+                        const quantityKg = parseFloat(quantityMatch[1]);
+                        if (!isNaN(quantityKg)) {
+                          const newPrice = selectedMaterialForShoppingList.price_per_kg * quantityKg;
+                          setShoppingListItemEstimatedPrice(newPrice.toFixed(2));
+                        }
+                      }
+                    }
+                  }}
+                  placeholder="Ej: 1 kg, 500 g, etc."
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Precio estimado (€)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={shoppingListItemEstimatedPrice}
+                  onChange={(e) => setShoppingListItemEstimatedPrice(e.target.value)}
+                  placeholder="0.00"
+                />
+                {selectedMaterialForShoppingList && (
+                  <p className="text-xs text-muted-foreground">
+                    Precio por kg: {selectedMaterialForShoppingList.price_per_kg.toFixed(2)} €
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -2002,13 +2107,17 @@ const Inventory = () => {
                 setIsAddToShoppingListDialogOpen(false);
                 setSelectedMaterialForShoppingList(null);
                 setSelectedShoppingListId("");
+                setNewShoppingListName("");
+                setShoppingListItemName("");
+                setShoppingListItemQuantity("");
+                setShoppingListItemEstimatedPrice("");
               }}
             >
               Cancelar
             </Button>
             <Button
               onClick={handleSaveToShoppingList}
-              disabled={!selectedShoppingListId || shoppingLists.length === 0}
+              disabled={!shoppingListItemName.trim() || (!selectedShoppingListId && !newShoppingListName.trim())}
             >
               <ListPlus className="w-4 h-4 mr-2" />
               Agregar a Lista
