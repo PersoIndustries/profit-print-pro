@@ -23,6 +23,8 @@ import CatalogProjectDetail from "./pages/CatalogProjectDetail";
 import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 import ShoppingList from "./pages/ShoppingList";
+import Acquisitions from "./pages/Acquisitions";
+import Movements from "./pages/Movements";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +45,8 @@ const App = () => (
           {/* Rutas con navegación persistente */}
           <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
           <Route path="/inventory" element={<AppLayout><Inventory /></AppLayout>} />
+          <Route path="/acquisitions" element={<AppLayout><Acquisitions /></AppLayout>} />
+          <Route path="/movements" element={<AppLayout><Movements /></AppLayout>} />
           <Route path="/shopping-list" element={<AppLayout><ShoppingList /></AppLayout>} />
           <Route path="/projects" element={<AppLayout><Projects /></AppLayout>} />
           <Route path="/orders" element={<AppLayout><Orders /></AppLayout>} />

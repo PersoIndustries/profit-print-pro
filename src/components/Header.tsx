@@ -11,7 +11,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useTierFeatures } from '@/hooks/useTierFeatures';
-import { LogOut, Settings, LayoutDashboard, ChevronDown, Package, FolderKanban, Calculator, FileText, Printer, BookOpen, ShoppingCart } from 'lucide-react';
+import { LogOut, Settings, LayoutDashboard, ChevronDown, Package, FolderKanban, Calculator, FileText, Printer, BookOpen, ShoppingCart, History, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface HeaderProps {
@@ -143,7 +143,7 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
-                variant={isActiveInGroup(['/inventory', '/shopping-list']) ? 'default' : 'ghost'}
+                variant={isActiveInGroup(['/inventory', '/shopping-list', '/acquisitions', '/movements']) ? 'default' : 'ghost'}
               >
                 <Package className="w-4 h-4 mr-2" />
                 {t('nav.materials')}
@@ -155,6 +155,18 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
                 <Package className="w-4 h-4 mr-2" />
                 {t('nav.inventory')}
               </DropdownMenuItem>
+              {(isPro || isEnterprise) && (
+                <DropdownMenuItem onClick={() => navigate('/acquisitions')}>
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  {t('nav.acquisitions')}
+                </DropdownMenuItem>
+              )}
+              {isEnterprise && (
+                <DropdownMenuItem onClick={() => navigate('/movements')}>
+                  <History className="w-4 h-4 mr-2" />
+                  {t('nav.movements')}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => navigate('/shopping-list')}>
                 <ShoppingCart className="w-4 h-4 mr-2" />
                 {t('nav.shoppingList')}

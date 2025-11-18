@@ -42,27 +42,6 @@ interface InventoryItem {
   materials: Material;
 }
 
-interface Acquisition {
-  id: string;
-  material_id: string;
-  quantity_grams: number;
-  unit_price: number;
-  total_price: number;
-  supplier: string | null;
-  purchase_date: string;
-  notes: string | null;
-  materials: Material;
-}
-
-interface Movement {
-  id: string;
-  material_id: string;
-  movement_type: string;
-  quantity_grams: number;
-  notes: string | null;
-  created_at: string;
-  materials: Material;
-}
 
 interface Printer {
   id: string;
@@ -118,11 +97,7 @@ const Inventory = () => {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [pendingMaterials, setPendingMaterials] = useState<Record<string, number>>({});
-  const [acquisitions, setAcquisitions] = useState<Acquisition[]>([]);
-  const [movements, setMovements] = useState<Movement[]>([]);
   const [loadingData, setLoadingData] = useState(true);
-  const [isAcquisitionDialogOpen, setIsAcquisitionDialogOpen] = useState(false);
-  const [isWasteDialogOpen, setIsWasteDialogOpen] = useState(false);
   const [isMaterialDialogOpen, setIsMaterialDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   
@@ -159,20 +134,6 @@ const Inventory = () => {
   const [shoppingListItemQuantity, setShoppingListItemQuantity] = useState("");
   const [shoppingListItemEstimatedPrice, setShoppingListItemEstimatedPrice] = useState("");
   
-  const [acquisitionForm, setAcquisitionForm] = useState({
-    material_id: "",
-    quantity_grams: "",
-    unit_price: "",
-    supplier: "",
-    purchase_date: new Date().toISOString().split('T')[0],
-    notes: ""
-  });
-
-  const [wasteForm, setWasteForm] = useState({
-    material_id: "",
-    quantity_grams: "",
-    notes: ""
-  });
 
   const [materialForm, setMaterialForm] = useState({
     name: "",
@@ -208,8 +169,6 @@ const Inventory = () => {
         fetchMaterials(),
         fetchInventory(),
         fetchPendingMaterials(),
-        fetchAcquisitions(),
-        fetchMovements(),
         fetchStockPrints(),
         fetchOrders(),
         fetchPrinters()
@@ -285,53 +244,6 @@ const Inventory = () => {
       setPendingMaterials(pending);
     } catch (error: any) {
       console.error("Error al cargar materiales pendientes:", error);
-    }
-  };
-
-  const fetchAcquisitions = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("material_acquisitions")
-        .select("*, materials(*)")
-        .eq("user_id", user.id)
-        .order("purchase_date", { ascending: false });
-
-      if (error) throw error;
-      setAcquisitions((data || []).map(acq => ({
-        ...acq,
-        materials: {
-          ...acq.materials,
-          display_mode: (acq.materials.display_mode || 'color') as 'color' | 'icon'
-        }
-      })));
-    } catch (error: any) {
-      toast.error(t('inventory.messages.errorLoadingAcquisitions'));
-    }
-  };
-
-  const fetchMovements = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("inventory_movements")
-        .select("*, materials!fk_material(*)")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-      setMovements((data || []).map(mov => ({
-        ...mov,
-        materials: {
-          ...mov.materials,
-          display_mode: (mov.materials.display_mode || 'color') as 'color' | 'icon'
-        }
-      })));
-    } catch (error: any) {
-      toast.error(t('inventory.messages.errorLoadingMovements'));
     }
   };
 
@@ -717,174 +629,6 @@ const Inventory = () => {
     }
   };
 
-  const handleSaveAcquisition = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    try {
-      const quantityGrams = parseFloat(acquisitionForm.quantity_grams);
-      const unitPrice = parseFloat(acquisitionForm.unit_price);
-      const totalPrice = (quantityGrams / 1000) * unitPrice;
-
-      const { error: acquisitionError } = await supabase
-        .from("material_acquisitions")
-        .insert([
-          {
-            user_id: user.id,
-            material_id: acquisitionForm.material_id,
-            quantity_grams: quantityGrams,
-            unit_price: unitPrice,
-            total_price: totalPrice,
-            supplier: acquisitionForm.supplier || null,
-            purchase_date: acquisitionForm.purchase_date,
-            notes: acquisitionForm.notes || null
-          }
-        ]);
-
-      if (acquisitionError) throw acquisitionError;
-
-      const { data: inventoryData } = await supabase
-        .from("inventory_items")
-        .select("*")
-        .eq("material_id", acquisitionForm.material_id)
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (inventoryData) {
-        const { error: updateError } = await supabase
-          .from("inventory_items")
-          .update({
-            quantity_grams: inventoryData.quantity_grams + quantityGrams
-          })
-          .eq("id", inventoryData.id);
-
-        if (updateError) throw updateError;
-      } else {
-        const { error: insertError } = await supabase
-          .from("inventory_items")
-          .insert([
-            {
-              user_id: user.id,
-              material_id: acquisitionForm.material_id,
-              quantity_grams: quantityGrams
-            }
-          ]);
-
-        if (insertError) throw insertError;
-      }
-
-      const { error: movementError } = await supabase
-        .from("inventory_movements")
-        .insert([
-          {
-            user_id: user.id,
-            material_id: acquisitionForm.material_id,
-            movement_type: "acquisition",
-            quantity_grams: quantityGrams,
-            notes: acquisitionForm.notes || null
-          }
-        ]);
-
-      if (movementError) throw movementError;
-
-      toast.success(t('inventory.messages.acquisitionRegistered'));
-      setIsAcquisitionDialogOpen(false);
-      setAcquisitionForm({
-        material_id: "",
-        quantity_grams: "",
-        unit_price: "",
-        supplier: "",
-        purchase_date: new Date().toISOString().split('T')[0],
-        notes: ""
-      });
-      fetchData();
-    } catch (error: any) {
-      toast.error(t('inventory.messages.errorRegisteringAcquisition'));
-    }
-  };
-
-  const handleSaveWaste = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    try {
-      const quantityGrams = parseFloat(wasteForm.quantity_grams);
-
-      const { data: inventoryData } = await supabase
-        .from("inventory_items")
-        .select("*")
-        .eq("material_id", wasteForm.material_id)
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!inventoryData || inventoryData.quantity_grams < quantityGrams) {
-        toast.error(t('inventory.messages.insufficientStock'));
-        return;
-      }
-
-      const { error: updateError } = await supabase
-        .from("inventory_items")
-        .update({
-          quantity_grams: inventoryData.quantity_grams - quantityGrams
-        })
-        .eq("id", inventoryData.id);
-
-      if (updateError) throw updateError;
-
-      const { error: movementError } = await supabase
-        .from("inventory_movements")
-        .insert([
-          {
-            user_id: user.id,
-            material_id: wasteForm.material_id,
-            movement_type: "waste",
-            quantity_grams: quantityGrams,
-            notes: wasteForm.notes || null
-          }
-        ]);
-
-      if (movementError) throw movementError;
-
-      toast.success(t('inventory.messages.wasteRegistered'));
-      setIsWasteDialogOpen(false);
-      setWasteForm({
-        material_id: "",
-        quantity_grams: "",
-        notes: ""
-      });
-      fetchData();
-    } catch (error: any) {
-      toast.error(t('inventory.messages.errorRegisteringWaste'));
-    }
-  };
-
-  const handleDeleteAcquisition = async (id: string) => {
-    if (!confirm(t('inventory.dialogs.confirmDeleteAcquisition'))) return;
-
-    try {
-      const { error } = await supabase
-        .from("material_acquisitions")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-      toast.success(t('inventory.messages.acquisitionDeleted'));
-      fetchData();
-    } catch (error: any) {
-      toast.error(t('inventory.messages.errorDeletingAcquisition'));
-    }
-  };
-
-  const getMovementTypeLabel = (type: string) => {
-    const types: Record<string, string> = {
-      acquisition: t('inventory.movementTypes.acquisition'),
-      consumption: t('inventory.movementTypes.consumption'),
-      waste: t('inventory.movementTypes.waste'),
-      adjustment: t('inventory.movementTypes.adjustment')
-    };
-    return types[type] || type;
-  };
-
   const handleAssignToPrint = (print: any) => {
     setSelectedPrint(print);
     setSelectedOrderId("");
@@ -1118,19 +862,7 @@ const Inventory = () => {
 
   return (
     <div className="container mx-auto p-6">
-      <Tabs defaultValue="stock" className="space-y-6">
-        <TabsList className={`grid w-full ${hasFeature('acquisition_history') && hasFeature('movement_history') ? 'grid-cols-3' : hasFeature('acquisition_history') || hasFeature('movement_history') ? 'grid-cols-2' : 'grid-cols-1'}`}>
-          <TabsTrigger value="stock">{t('inventory.tabs.materials')}</TabsTrigger>
-          {hasFeature('acquisition_history') && (
-            <TabsTrigger value="acquisitions">{t('inventory.tabs.acquisitions')}</TabsTrigger>
-          )}
-          {hasFeature('movement_history') && (
-            <TabsTrigger value="history">{t('inventory.tabs.movements')}</TabsTrigger>
-          )}
-        </TabsList>
-
-        {/* Tab de Stock */}
-        <TabsContent value="stock">
+      {/* Tab de Stock */}
           <Tabs defaultValue="materials" className="space-y-4">
             <TabsList>
               <TabsTrigger value="materials">{t('inventory.tabs.materials')}</TabsTrigger>
@@ -1425,19 +1157,8 @@ const Inventory = () => {
                         const realStock = stockAvailable - pending;
                         const isLowStock = inventoryItem && realStock < (inventoryItem.min_stock_alert || 0);
                         
-                        // Calcular precio promedio de adquisiciones (unit_price ya es precio por kg)
-                        const materialAcquisitions = acquisitions.filter(acq => acq.material_id === material.id);
-                        let avgPricePerKg: number | null = null;
-                        if (materialAcquisitions.length > 0) {
-                          const validPrices = materialAcquisitions
-                            .map(acq => acq.unit_price)
-                            .filter(price => price > 0);
-                          
-                          if (validPrices.length > 0) {
-                            const sum = validPrices.reduce((acc, price) => acc + price, 0);
-                            avgPricePerKg = sum / validPrices.length;
-                          }
-                        }
+                        // Nota: El precio promedio se calcula en la página de Adquisiciones
+                        const avgPricePerKg: number | null = null;
 
                         return (
                           <TableRow key={material.id} className={(isPro || isEnterprise) && isLowStock ? 'bg-yellow-50 dark:bg-yellow-950/20' : ''}>
@@ -1798,112 +1519,6 @@ const Inventory = () => {
           </Card>
         </TabsContent>
       </Tabs>
-    </TabsContent>
-
-        {/* Tab de Adquisiciones */}
-        {hasFeature('acquisition_history') && (
-          <TabsContent value="acquisitions">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>{t('inventory.tables.recentAcquisitions')}</CardTitle>
-                  <Button onClick={() => setIsAcquisitionDialogOpen(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    {t('inventory.dialogs.newAcquisition')}
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('inventory.tables.date')}</TableHead>
-                      <TableHead>{t('inventory.material')}</TableHead>
-                      <TableHead>{t('inventory.tables.quantity')}</TableHead>
-                      <TableHead>{t('inventory.tables.pricePerKg')}</TableHead>
-                      <TableHead>{t('inventory.tables.total')}</TableHead>
-                      <TableHead>{t('inventory.tables.supplier')}</TableHead>
-                      <TableHead>{t('inventory.actions')}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {acquisitions.map((acquisition) => (
-                      <TableRow key={acquisition.id}>
-                        <TableCell>
-                          {format(new Date(acquisition.purchase_date), "dd/MM/yyyy", { locale: es })}
-                        </TableCell>
-                        <TableCell>{acquisition.materials.name}</TableCell>
-                        <TableCell>
-                          {acquisition.quantity_grams}g ({(acquisition.quantity_grams / 1000).toFixed(2)}kg)
-                        </TableCell>
-                        <TableCell>{acquisition.unit_price.toFixed(2)}€</TableCell>
-                        <TableCell>{acquisition.total_price.toFixed(2)}€</TableCell>
-                        <TableCell>{acquisition.supplier || "-"}</TableCell>
-                        <TableCell>
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            onClick={() => handleDeleteAcquisition(acquisition.id)}
-                          >
-                            <Trash className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
-
-        {/* Tab de Historial - Solo Business */}
-        {hasFeature('movement_history') && (
-          <TabsContent value="history">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>{t('inventory.tables.movementHistory')}</CardTitle>
-                <Button onClick={() => setIsWasteDialogOpen(true)} variant="outline">
-                  <Trash className="w-4 h-4 mr-2" />
-                  {t('inventory.dialogs.registerWaste')}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('inventory.tables.dateAndTime')}</TableHead>
-                    <TableHead>{t('inventory.material')}</TableHead>
-                    <TableHead>{t('inventory.type')}</TableHead>
-                    <TableHead>{t('inventory.tables.quantity')}</TableHead>
-                    <TableHead>{t('inventory.tables.notes')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {movements.map((movement) => (
-                    <TableRow key={movement.id}>
-                      <TableCell>
-                        {format(new Date(movement.created_at), "dd/MM/yyyy HH:mm", { locale: es })}
-                      </TableCell>
-                      <TableCell>{movement.materials.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{getMovementTypeLabel(movement.movement_type)}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {movement.quantity_grams}g ({(movement.quantity_grams / 1000).toFixed(2)}kg)
-                      </TableCell>
-                      <TableCell>{movement.notes || "-"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-          </TabsContent>
-        )}
-      </Tabs>
 
       {/* Dialog para añadir/editar material */}
       <Dialog open={isMaterialDialogOpen} onOpenChange={setIsMaterialDialogOpen}>
@@ -2262,61 +1877,6 @@ const Inventory = () => {
               Asignar a Pedido
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog para registrar desperdicio */}
-      <Dialog open={isWasteDialogOpen} onOpenChange={setIsWasteDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t('inventory.dialogs.registerWaste')}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSaveWaste} className="space-y-4">
-            <div>
-              <Label htmlFor="waste_material">{t('inventory.material')} *</Label>
-              <Select
-                value={wasteForm.material_id}
-                onValueChange={(value) => setWasteForm({ ...wasteForm, material_id: value })}
-              >
-                <SelectTrigger id="waste_material">
-                  <SelectValue placeholder={t('inventory.dialogs.selectMaterial')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {materials.map((mat) => (
-                    <SelectItem key={mat.id} value={mat.id}>
-                      {mat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="waste_quantity">{t('inventory.formLabels.quantity')} *</Label>
-              <Input
-                id="waste_quantity"
-                type="number"
-                step="1"
-                value={wasteForm.quantity_grams}
-                onChange={(e) => setWasteForm({ ...wasteForm, quantity_grams: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="waste_notes">{t('inventory.formLabels.notes')}</Label>
-              <Textarea
-                id="waste_notes"
-                value={wasteForm.notes}
-                onChange={(e) => setWasteForm({ ...wasteForm, notes: e.target.value })}
-                rows={3}
-              />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={() => setIsWasteDialogOpen(false)}>
-                {t('common.cancel')}
-              </Button>
-              <Button type="submit">{t('inventory.dialogs.registerWaste')}</Button>
-            </div>
-          </form>
         </DialogContent>
       </Dialog>
 

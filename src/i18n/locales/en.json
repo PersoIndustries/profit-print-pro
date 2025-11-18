@@ -7,6 +7,8 @@
     "dashboard": "Dashboard",
     "materials": "Materials",
     "inventory": "Inventory",
+    "acquisitions": "Acquisitions",
+    "movements": "Movements",
     "shoppingList": "Shopping List",
     "projects": "Projects",
     "calculator": "Calculator",
