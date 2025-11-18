@@ -965,6 +965,7 @@
       "date": "Date",
       "quantity": "Quantité",
       "pricePerKg": "Prix/kg",
+      "pricePerUnit": "Prix (kg/L/Unité)",
       "total": "Total",
       "supplier": "Fournisseur",
       "dateAndTime": "Date et Heure",
@@ -982,8 +983,9 @@
       "model": "Modèle",
       "usageHours": "Heures d'Utilisation",
       "notes": "Notes",
-      "quantity": "Quantité (g)",
-      "unitPrice": "Prix/kg (€)",
+      "quantity": "Quantité",
+      "quantityWithUnits": "Quantité /(kg, L, unités, etc.)",
+      "unitPrice": "Prix /(par kg, L, unité, etc.) (€)",
       "supplier": "Fournisseur",
       "purchaseDate": "Date d'Achat"
     }

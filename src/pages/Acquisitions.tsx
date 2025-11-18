@@ -46,7 +46,7 @@ const Acquisitions = () => {
   
   const [acquisitionForm, setAcquisitionForm] = useState({
     material_id: "",
-    quantity_grams: "",
+    quantity_kg: "",
     unit_price: "",
     supplier: "",
     purchase_date: new Date().toISOString().split('T')[0],
@@ -117,9 +117,10 @@ const Acquisitions = () => {
     if (!user) return;
 
     try {
-      const quantityGrams = parseFloat(acquisitionForm.quantity_grams);
+      const quantityKg = parseFloat(acquisitionForm.quantity_kg);
+      const quantityGrams = quantityKg * 1000; // Convertir kg a gramos
       const unitPrice = parseFloat(acquisitionForm.unit_price);
-      const totalPrice = (quantityGrams / 1000) * unitPrice;
+      const totalPrice = quantityKg * unitPrice;
 
       const { error: acquisitionError } = await supabase
         .from("material_acquisitions")
@@ -186,7 +187,7 @@ const Acquisitions = () => {
       setIsAcquisitionDialogOpen(false);
       setAcquisitionForm({
         material_id: "",
-        quantity_grams: "",
+        quantity_kg: "",
         unit_price: "",
         supplier: "",
         purchase_date: new Date().toISOString().split('T')[0],
@@ -267,7 +268,7 @@ const Acquisitions = () => {
                 <TableHead>{t('inventory.tables.date')}</TableHead>
                 <TableHead>{t('inventory.material')}</TableHead>
                 <TableHead>{t('inventory.tables.quantity')}</TableHead>
-                <TableHead>{t('inventory.tables.pricePerKg')}</TableHead>
+                <TableHead>{t('inventory.tables.pricePerUnit')}</TableHead>
                 <TableHead>{t('inventory.tables.total')}</TableHead>
                 <TableHead>{t('inventory.tables.supplier')}</TableHead>
                 <TableHead>{t('inventory.actions')}</TableHead>
@@ -288,7 +289,7 @@ const Acquisitions = () => {
                     </TableCell>
                     <TableCell>{acquisition.materials.name}</TableCell>
                     <TableCell>
-                      {acquisition.quantity_grams}g ({(acquisition.quantity_grams / 1000).toFixed(2)}kg)
+                      {(acquisition.quantity_grams / 1000).toFixed(2)} kg
                     </TableCell>
                     <TableCell>{acquisition.unit_price.toFixed(2)}€</TableCell>
                     <TableCell>{acquisition.total_price.toFixed(2)}€</TableCell>
@@ -336,13 +337,15 @@ const Acquisitions = () => {
               </Select>
             </div>
             <div>
-              <Label htmlFor="acq_quantity">{t('inventory.formLabels.quantity')} *</Label>
+              <Label htmlFor="acq_quantity">{t('inventory.formLabels.quantityWithUnits')} *</Label>
               <Input
                 id="acq_quantity"
                 type="number"
-                step="1"
-                value={acquisitionForm.quantity_grams}
-                onChange={(e) => setAcquisitionForm({ ...acquisitionForm, quantity_grams: e.target.value })}
+                step="0.01"
+                min="0"
+                value={acquisitionForm.quantity_kg}
+                onChange={(e) => setAcquisitionForm({ ...acquisitionForm, quantity_kg: e.target.value })}
+                placeholder="Ej: 1.5 kg, 2 L, 10 unidades"
                 required
               />
             </div>
@@ -352,8 +355,10 @@ const Acquisitions = () => {
                 id="acq_price"
                 type="number"
                 step="0.01"
+                min="0"
                 value={acquisitionForm.unit_price}
                 onChange={(e) => setAcquisitionForm({ ...acquisitionForm, unit_price: e.target.value })}
+                placeholder="Ej: 25.50"
                 required
               />
             </div>
