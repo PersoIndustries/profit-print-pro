@@ -136,6 +136,11 @@ export default function ShoppingListPage() {
       return;
     }
 
+    if (!user) {
+      toast.error("Error: usuario no autenticado");
+      return;
+    }
+
     try {
       if (editingList) {
         const { error } = await supabase
@@ -148,7 +153,10 @@ export default function ShoppingListPage() {
       } else {
         const { error } = await supabase
           .from("shopping_lists")
-          .insert({ name: formListName.trim() });
+          .insert({ 
+            user_id: user.id,
+            name: formListName.trim() 
+          });
 
         if (error) throw error;
         toast.success("Lista creada correctamente");
@@ -156,10 +164,11 @@ export default function ShoppingListPage() {
 
       setIsListFormOpen(false);
       setEditingList(null);
+      setFormListName("");
       fetchLists();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving list:", error);
-      toast.error("Error al guardar la lista");
+      toast.error(error.message || "Error al guardar la lista");
     }
   };
 
