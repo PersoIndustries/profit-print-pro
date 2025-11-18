@@ -1379,6 +1379,7 @@ const Inventory = () => {
                       </CardContent>
                     </Card>
                   ))}
+                  </div>
                 </div>
               )}
             </CardContent>
