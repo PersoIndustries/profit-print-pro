@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, ShoppingCart, History, Trash, Edit, Star, Info, Disc, Droplet, KeyRound, Wrench, Paintbrush, FileBox, Package, PackagePlus, Printer } from "lucide-react";
+import { Loader2, Plus, ShoppingCart, History, Trash, Edit, Star, Info, Disc, Droplet, KeyRound, Wrench, Paintbrush, FileBox, Package, PackagePlus, Printer, ListPlus } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -136,6 +136,10 @@ const Inventory = () => {
   const [printers, setPrinters] = useState<Printer[]>([]);
   const [isPrinterDialogOpen, setIsPrinterDialogOpen] = useState(false);
   const [editingPrinter, setEditingPrinter] = useState<Printer | null>(null);
+  const [isAddToShoppingListDialogOpen, setIsAddToShoppingListDialogOpen] = useState(false);
+  const [selectedMaterialForShoppingList, setSelectedMaterialForShoppingList] = useState<Material | null>(null);
+  const [shoppingLists, setShoppingLists] = useState<{ id: string; name: string }[]>([]);
+  const [selectedShoppingListId, setSelectedShoppingListId] = useState<string>("");
   
   const [acquisitionForm, setAcquisitionForm] = useState({
     material_id: "",
@@ -469,6 +473,70 @@ const Inventory = () => {
       fetchData();
     } catch (error: any) {
       toast.error(t('inventory.messages.errorDeletingMaterial'));
+    }
+  };
+
+  const fetchShoppingLists = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("shopping_lists")
+        .select("id, name")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setShoppingLists(data || []);
+      if (data && data.length > 0 && !selectedShoppingListId) {
+        setSelectedShoppingListId(data[0].id);
+      }
+    } catch (error) {
+      console.error("Error fetching shopping lists:", error);
+      toast.error("Error al cargar las listas de compra");
+    }
+  };
+
+  const handleAddToShoppingList = (material: Material) => {
+    setSelectedMaterialForShoppingList(material);
+    setIsAddToShoppingListDialogOpen(true);
+    fetchShoppingLists();
+  };
+
+  const handleSaveToShoppingList = async () => {
+    if (!selectedMaterialForShoppingList || !selectedShoppingListId) {
+      toast.error("Debes seleccionar una lista");
+      return;
+    }
+
+    try {
+      // Calcular cantidad sugerida basada en el stock mínimo
+      const inventoryItem = inventory.find(inv => inv.material_id === selectedMaterialForShoppingList.id);
+      const suggestedQuantity = inventoryItem && inventoryItem.min_stock_alert 
+        ? `${(inventoryItem.min_stock_alert / 1000).toFixed(2)} kg`
+        : "1 kg";
+
+      // Calcular precio estimado basado en el precio por kg y cantidad sugerida
+      const quantityKg = parseFloat(suggestedQuantity.replace(' kg', ''));
+      const estimatedPrice = selectedMaterialForShoppingList.price_per_kg * quantityKg;
+
+      const { error } = await supabase
+        .from("shopping_list")
+        .insert({
+          name: selectedMaterialForShoppingList.name,
+          quantity: suggestedQuantity,
+          estimated_price: estimatedPrice,
+          shopping_list_id: selectedShoppingListId,
+          is_completed: false,
+        });
+
+      if (error) throw error;
+      toast.success("Material agregado a la lista de compra");
+      setIsAddToShoppingListDialogOpen(false);
+      setSelectedMaterialForShoppingList(null);
+      setSelectedShoppingListId("");
+    } catch (error) {
+      console.error("Error adding to shopping list:", error);
+      toast.error("Error al agregar a la lista de compra");
     }
   };
 
@@ -1068,6 +1136,22 @@ const Inventory = () => {
                             </TableCell>
                             <TableCell>
                               <div className="flex gap-2">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={() => handleAddToShoppingList(material)}
+                                      >
+                                        <ListPlus className="w-4 h-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Agregar a lista de compra</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                                 <Button
                                   variant="outline"
                                   size="icon"
@@ -1759,6 +1843,86 @@ const Inventory = () => {
               <Button type="submit">{t('inventory.dialogs.registerWaste')}</Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para agregar a lista de compra */}
+      <Dialog open={isAddToShoppingListDialogOpen} onOpenChange={setIsAddToShoppingListDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Agregar a Lista de Compra</DialogTitle>
+            <DialogDescription>
+              Agrega "{selectedMaterialForShoppingList?.name}" a una de tus listas de compra
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Selecciona una lista *</Label>
+              <Select
+                value={selectedShoppingListId}
+                onValueChange={setSelectedShoppingListId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona una lista" />
+                </SelectTrigger>
+                <SelectContent>
+                  {shoppingLists.map((list) => (
+                    <SelectItem key={list.id} value={list.id}>
+                      {list.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedMaterialForShoppingList && (
+              <div className="space-y-2 p-3 bg-muted rounded-lg">
+                <p className="text-sm font-medium">Información del material:</p>
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium">Nombre:</span> {selectedMaterialForShoppingList.name}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium">Precio por kg:</span> {selectedMaterialForShoppingList.price_per_kg.toFixed(2)} €
+                </p>
+                {(() => {
+                  const inventoryItem = inventory.find(inv => inv.material_id === selectedMaterialForShoppingList.id);
+                  const suggestedQuantity = inventoryItem && inventoryItem.min_stock_alert 
+                    ? `${(inventoryItem.min_stock_alert / 1000).toFixed(2)} kg`
+                    : "1 kg";
+                  const quantityKg = parseFloat(suggestedQuantity.replace(' kg', ''));
+                  const estimatedPrice = selectedMaterialForShoppingList.price_per_kg * quantityKg;
+                  return (
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium">Cantidad sugerida:</span> {suggestedQuantity}
+                      </p>
+                      <p className="text-sm font-medium text-primary">
+                        <span className="font-medium">Precio estimado:</span> {estimatedPrice.toFixed(2)} €
+                      </p>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsAddToShoppingListDialogOpen(false);
+                setSelectedMaterialForShoppingList(null);
+                setSelectedShoppingListId("");
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSaveToShoppingList}
+              disabled={!selectedShoppingListId || shoppingLists.length === 0}
+            >
+              <ListPlus className="w-4 h-4 mr-2" />
+              Agregar a Lista
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
