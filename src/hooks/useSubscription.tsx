@@ -12,6 +12,15 @@ interface SubscriptionLimits {
   metricsHistory: number; // in days
 }
 
+interface GracePeriodInfo {
+  isInGracePeriod: boolean;
+  gracePeriodEnd?: Date;
+  daysUntilDeletion?: number;
+  previousTier?: SubscriptionTier;
+  downgradeDate?: Date;
+  isReadOnly: boolean;
+}
+
 interface SubscriptionInfo {
   tier: SubscriptionTier;
   status: SubscriptionStatus;
@@ -29,6 +38,7 @@ interface SubscriptionInfo {
   trialEndsAt?: Date;
   daysRemaining?: number;
   isTrialActive: boolean;
+  gracePeriod: GracePeriodInfo;
 }
 
 const TIER_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
@@ -68,7 +78,7 @@ export const useSubscription = () => {
         // Fetch subscription tier and status
         const { data: subData, error: subError } = await supabase
           .from('user_subscriptions')
-          .select('tier, status, expires_at')
+          .select('tier, status, expires_at, grace_period_end, previous_tier, downgrade_date, is_read_only')
           .eq('user_id', user.id)
           .single();
 
@@ -83,6 +93,13 @@ export const useSubscription = () => {
         const isTrialActive = status === 'trial' && expiresAt && expiresAt > new Date();
         const daysRemaining = isTrialActive && expiresAt 
           ? Math.ceil((expiresAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+          : undefined;
+
+        // Calculate grace period info
+        const gracePeriodEnd = subData?.grace_period_end ? new Date(subData.grace_period_end) : undefined;
+        const isInGracePeriod = gracePeriodEnd ? gracePeriodEnd > new Date() : false;
+        const daysUntilDeletion = isInGracePeriod && gracePeriodEnd
+          ? Math.ceil((gracePeriodEnd.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
           : undefined;
 
         // Fetch usage counts
@@ -108,13 +125,21 @@ export const useSubscription = () => {
           limits,
           usage,
           canAdd: {
-            materials: usage.materials < limits.materials,
-            projects: usage.projects < limits.projects,
-            orders: usage.monthlyOrders < limits.monthlyOrders
+            materials: usage.materials < limits.materials && !subData?.is_read_only,
+            projects: usage.projects < limits.projects && !subData?.is_read_only,
+            orders: usage.monthlyOrders < limits.monthlyOrders && !subData?.is_read_only
           },
           trialEndsAt: expiresAt,
           daysRemaining,
-          isTrialActive
+          isTrialActive,
+          gracePeriod: {
+            isInGracePeriod,
+            gracePeriodEnd,
+            daysUntilDeletion,
+            previousTier: subData?.previous_tier as SubscriptionTier | undefined,
+            downgradeDate: subData?.downgrade_date ? new Date(subData.downgrade_date) : undefined,
+            isReadOnly: subData?.is_read_only || false
+          }
         });
       } catch (error) {
         console.error('Error fetching subscription:', error);

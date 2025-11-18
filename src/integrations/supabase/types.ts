@@ -252,26 +252,32 @@ export type Database = {
       }
       catalogs: {
         Row: {
+          brand_logo_url: string | null
           created_at: string | null
           description: string | null
           id: string
           name: string
+          show_powered_by: boolean
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          brand_logo_url?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           name: string
+          show_powered_by?: boolean
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          brand_logo_url?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           name?: string
+          show_powered_by?: boolean
           updated_at?: string | null
           user_id?: string
         }
@@ -762,6 +768,7 @@ export type Database = {
           billing_city: string | null
           billing_country: string | null
           billing_postal_code: string | null
+          brand_logo_url: string | null
           company_name: string | null
           created_at: string | null
           email: string
@@ -774,6 +781,7 @@ export type Database = {
           billing_city?: string | null
           billing_country?: string | null
           billing_postal_code?: string | null
+          brand_logo_url?: string | null
           company_name?: string | null
           created_at?: string | null
           email: string
@@ -786,6 +794,7 @@ export type Database = {
           billing_city?: string | null
           billing_country?: string | null
           billing_postal_code?: string | null
+          brand_logo_url?: string | null
           company_name?: string | null
           created_at?: string | null
           email?: string
@@ -1077,10 +1086,14 @@ export type Database = {
         Row: {
           billing_period: string | null
           created_at: string | null
+          downgrade_date: string | null
           expires_at: string | null
+          grace_period_end: string | null
           id: string
+          is_read_only: boolean | null
           last_payment_date: string | null
           next_billing_date: string | null
+          previous_tier: Database["public"]["Enums"]["subscription_tier"] | null
           price_paid: number | null
           starts_at: string
           status: string | null
@@ -1091,10 +1104,16 @@ export type Database = {
         Insert: {
           billing_period?: string | null
           created_at?: string | null
+          downgrade_date?: string | null
           expires_at?: string | null
+          grace_period_end?: string | null
           id?: string
+          is_read_only?: boolean | null
           last_payment_date?: string | null
           next_billing_date?: string | null
+          previous_tier?:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
           price_paid?: number | null
           starts_at?: string
           status?: string | null
@@ -1105,10 +1124,16 @@ export type Database = {
         Update: {
           billing_period?: string | null
           created_at?: string | null
+          downgrade_date?: string | null
           expires_at?: string | null
+          grace_period_end?: string | null
           id?: string
+          is_read_only?: boolean | null
           last_payment_date?: string | null
           next_billing_date?: string | null
+          previous_tier?:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
           price_paid?: number | null
           starts_at?: string
           status?: string | null

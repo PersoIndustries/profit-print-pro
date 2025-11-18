@@ -451,6 +451,7 @@ export default function CatalogProjectDetail() {
 
 // Componente para el header de sección de productos
 function ProductSectionHeader({ section, onEdit, onDelete }: { section: CatalogProductSection; onEdit: (id: string) => void; onDelete: (id: string) => void }) {
+  const { t } = useTranslation();
   const {
     attributes,
     listeners,
@@ -545,6 +546,7 @@ function ProductCard({ product, onEdit, onDelete, viewMode, style, dragHandlePro
   dragHandleProps?: any;
   ref?: React.Ref<HTMLDivElement>;
 }) {
+  const { t } = useTranslation();
   const cardContent = viewMode === 'grid' ? (
     <CardContent className="p-6">
       <div className="space-y-2">
