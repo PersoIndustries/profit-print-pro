@@ -156,12 +156,6 @@ const Inventory = () => {
     }
   }, [user, loading, navigate]);
 
-  useEffect(() => {
-    if (user) {
-      fetchData();
-    }
-  }, [user]);
-
   const fetchData = async () => {
     try {
       setLoadingData(true);
@@ -173,10 +167,19 @@ const Inventory = () => {
         fetchOrders(),
         fetchPrinters()
       ]);
+    } catch (error: any) {
+      console.error("Error fetching data:", error);
+      toast.error(t('inventory.messages.errorLoadingData') || "Error al cargar los datos");
     } finally {
       setLoadingData(false);
     }
   };
+
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
 
   const fetchMaterials = async () => {
     if (!user) return;
@@ -860,10 +863,14 @@ const Inventory = () => {
     );
   }
 
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="container mx-auto p-6">
       {/* Tab de Stock */}
-          <Tabs defaultValue="materials" className="space-y-4">
+      <Tabs defaultValue="materials" className="space-y-4">
             <TabsList>
               <TabsTrigger value="materials">{t('inventory.tabs.materials')}</TabsTrigger>
               <TabsTrigger value="objects">{t('inventory.tabs.assignments')} ({stockPrints.length})</TabsTrigger>
