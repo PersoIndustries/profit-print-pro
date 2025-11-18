@@ -252,26 +252,32 @@ export type Database = {
       }
       catalogs: {
         Row: {
+          brand_logo_url: string | null
           created_at: string | null
           description: string | null
           id: string
           name: string
+          show_powered_by: boolean
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          brand_logo_url?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           name: string
+          show_powered_by?: boolean
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          brand_logo_url?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           name?: string
+          show_powered_by?: boolean
           updated_at?: string | null
           user_id?: string
         }
@@ -762,6 +768,7 @@ export type Database = {
           billing_city: string | null
           billing_country: string | null
           billing_postal_code: string | null
+          brand_logo_url: string | null
           company_name: string | null
           created_at: string | null
           email: string
@@ -774,6 +781,7 @@ export type Database = {
           billing_city?: string | null
           billing_country?: string | null
           billing_postal_code?: string | null
+          brand_logo_url?: string | null
           company_name?: string | null
           created_at?: string | null
           email: string
@@ -786,6 +794,7 @@ export type Database = {
           billing_city?: string | null
           billing_country?: string | null
           billing_postal_code?: string | null
+          brand_logo_url?: string | null
           company_name?: string | null
           created_at?: string | null
           email?: string

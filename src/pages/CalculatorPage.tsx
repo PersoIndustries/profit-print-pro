@@ -63,6 +63,7 @@ interface SortableRowProps {
 }
 
 function SortableRow({ line, materials, updateInvoiceLine, removeInvoiceLine, getLineTypeLabel }: SortableRowProps) {
+  const { t } = useTranslation();
   const {
     attributes,
     listeners,

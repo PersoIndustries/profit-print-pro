@@ -451,6 +451,7 @@ export default function CatalogProjectDetail() {
 
 // Componente para el header de sección de productos
 function ProductSectionHeader({ section, onEdit, onDelete }: { section: CatalogProductSection; onEdit: (id: string) => void; onDelete: (id: string) => void }) {
+  const { t } = useTranslation();
   const {
     attributes,
     listeners,
