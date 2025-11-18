@@ -1473,58 +1473,59 @@ const Inventory = () => {
     </TabsContent>
 
         {/* Tab de Adquisiciones */}
-        <TabsContent value="acquisitions">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>{t('inventory.tables.recentAcquisitions')}</CardTitle>
-                <Button onClick={() => setIsAcquisitionDialogOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  {t('inventory.dialogs.newAcquisition')}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('inventory.tables.date')}</TableHead>
-                    <TableHead>{t('inventory.material')}</TableHead>
-                    <TableHead>{t('inventory.tables.quantity')}</TableHead>
-                    <TableHead>{t('inventory.tables.pricePerKg')}</TableHead>
-                    <TableHead>{t('inventory.tables.total')}</TableHead>
-                    <TableHead>{t('inventory.tables.supplier')}</TableHead>
-                    <TableHead>{t('inventory.actions')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {acquisitions.map((acquisition) => (
-                    <TableRow key={acquisition.id}>
-                      <TableCell>
-                        {format(new Date(acquisition.purchase_date), "dd/MM/yyyy", { locale: es })}
-                      </TableCell>
-                      <TableCell>{acquisition.materials.name}</TableCell>
-                      <TableCell>
-                        {acquisition.quantity_grams}g ({(acquisition.quantity_grams / 1000).toFixed(2)}kg)
-                      </TableCell>
-                      <TableCell>{acquisition.unit_price.toFixed(2)}€</TableCell>
-                      <TableCell>{acquisition.total_price.toFixed(2)}€</TableCell>
-                      <TableCell>{acquisition.supplier || "-"}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          onClick={() => handleDeleteAcquisition(acquisition.id)}
-                        >
-                          <Trash className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
+        {hasFeature('acquisition_history') && (
+          <TabsContent value="acquisitions">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>{t('inventory.tables.recentAcquisitions')}</CardTitle>
+                  <Button onClick={() => setIsAcquisitionDialogOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    {t('inventory.dialogs.newAcquisition')}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('inventory.tables.date')}</TableHead>
+                      <TableHead>{t('inventory.material')}</TableHead>
+                      <TableHead>{t('inventory.tables.quantity')}</TableHead>
+                      <TableHead>{t('inventory.tables.pricePerKg')}</TableHead>
+                      <TableHead>{t('inventory.tables.total')}</TableHead>
+                      <TableHead>{t('inventory.tables.supplier')}</TableHead>
+                      <TableHead>{t('inventory.actions')}</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {acquisitions.map((acquisition) => (
+                      <TableRow key={acquisition.id}>
+                        <TableCell>
+                          {format(new Date(acquisition.purchase_date), "dd/MM/yyyy", { locale: es })}
+                        </TableCell>
+                        <TableCell>{acquisition.materials.name}</TableCell>
+                        <TableCell>
+                          {acquisition.quantity_grams}g ({(acquisition.quantity_grams / 1000).toFixed(2)}kg)
+                        </TableCell>
+                        <TableCell>{acquisition.unit_price.toFixed(2)}€</TableCell>
+                        <TableCell>{acquisition.total_price.toFixed(2)}€</TableCell>
+                        <TableCell>{acquisition.supplier || "-"}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => handleDeleteAcquisition(acquisition.id)}
+                          >
+                            <Trash className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           </TabsContent>
         )}
 
