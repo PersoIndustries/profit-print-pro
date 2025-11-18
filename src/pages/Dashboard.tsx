@@ -37,13 +37,6 @@ const Dashboard = () => {
 
   return (
     <>
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-2">{t('dashboard.title')}</h2>
-        <p className="text-muted-foreground">
-          {t('dashboard.description')}
-        </p>
-      </div>
-
       {user && subscription && (
         <>
           <Tabs defaultValue="overview" className="space-y-6">
