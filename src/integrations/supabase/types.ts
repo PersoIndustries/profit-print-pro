@@ -1086,10 +1086,14 @@ export type Database = {
         Row: {
           billing_period: string | null
           created_at: string | null
+          downgrade_date: string | null
           expires_at: string | null
+          grace_period_end: string | null
           id: string
+          is_read_only: boolean | null
           last_payment_date: string | null
           next_billing_date: string | null
+          previous_tier: Database["public"]["Enums"]["subscription_tier"] | null
           price_paid: number | null
           starts_at: string
           status: string | null
@@ -1100,10 +1104,16 @@ export type Database = {
         Insert: {
           billing_period?: string | null
           created_at?: string | null
+          downgrade_date?: string | null
           expires_at?: string | null
+          grace_period_end?: string | null
           id?: string
+          is_read_only?: boolean | null
           last_payment_date?: string | null
           next_billing_date?: string | null
+          previous_tier?:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
           price_paid?: number | null
           starts_at?: string
           status?: string | null
@@ -1114,10 +1124,16 @@ export type Database = {
         Update: {
           billing_period?: string | null
           created_at?: string | null
+          downgrade_date?: string | null
           expires_at?: string | null
+          grace_period_end?: string | null
           id?: string
+          is_read_only?: boolean | null
           last_payment_date?: string | null
           next_billing_date?: string | null
+          previous_tier?:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
           price_paid?: number | null
           starts_at?: string
           status?: string | null

@@ -853,6 +853,14 @@
     "upgradeMessage": "Actualiza ahora para seguir disfrutando de todas las funcionalidades premium",
     "upgradeNow": "Ver Planes"
   },
+  "gracePeriod": {
+    "lastDay": "Último día: Tus imágenes se eliminarán mañana",
+    "finalWeek": "⚠️ Faltan {{days}} días para que se eliminen tus imágenes",
+    "warning": "Tus imágenes se eliminarán en {{days}} días",
+    "readOnlyMode": "Estás en modo solo lectura. No puedes crear nuevos proyectos ni pedidos.",
+    "preventDeletion": "Reactiva tu suscripción {{tier}} o superior para evitar la eliminación de tus imágenes y recuperar el acceso completo.",
+    "reactivate": "Reactivar Suscripción"
+  },
   "inventory": {
     "title": "Inventario",
     "addMaterial": "Añadir Material",
