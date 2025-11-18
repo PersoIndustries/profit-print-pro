@@ -22,6 +22,7 @@ import CatalogDetail from "./pages/CatalogDetail";
 import CatalogProjectDetail from "./pages/CatalogProjectDetail";
 import About from "./pages/About";
 import NotFound from "./pages/NotFound";
+import ShoppingList from "./pages/ShoppingList";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
           {/* Rutas con navegación persistente */}
           <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
           <Route path="/inventory" element={<AppLayout><Inventory /></AppLayout>} />
+          <Route path="/shopping-list" element={<AppLayout><ShoppingList /></AppLayout>} />
           <Route path="/projects" element={<AppLayout><Projects /></AppLayout>} />
           <Route path="/orders" element={<AppLayout><Orders /></AppLayout>} />
           <Route path="/prints" element={<AppLayout><Prints /></AppLayout>} />

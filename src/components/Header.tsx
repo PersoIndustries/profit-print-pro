@@ -2,10 +2,16 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useTierFeatures } from '@/hooks/useTierFeatures';
-import { LogOut, Settings, LayoutDashboard } from 'lucide-react';
+import { LogOut, Settings, LayoutDashboard, ChevronDown, Package, FolderKanban, Calculator, FileText, Printer, BookOpen, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface HeaderProps {
@@ -21,6 +27,7 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
   const { isPro, isEnterprise } = useTierFeatures();
 
   const isActive = (path: string) => location.pathname === path;
+  const isActiveInGroup = (paths: string[]) => paths.some(path => location.pathname.startsWith(path));
 
   const getTierBadge = () => {
     if (!subscription) return null;
@@ -128,46 +135,84 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
             variant={isActive('/dashboard') ? 'default' : 'ghost'}
             onClick={() => navigate('/dashboard')}
           >
+            <LayoutDashboard className="w-4 h-4 mr-2" />
             {t('nav.dashboard')}
           </Button>
-          <Button 
-            variant={isActive('/inventory') ? 'default' : 'ghost'}
-            onClick={() => navigate('/inventory')}
-          >
-            Inventario
-          </Button>
-          <Button 
-            variant={isActive('/projects') ? 'default' : 'ghost'}
-            onClick={() => navigate('/projects')}
-          >
-            {t('nav.projects')}
-          </Button>
-          <Button 
-            variant={isActive('/calculator') ? 'default' : 'ghost'}
-            onClick={() => navigate('/calculator')}
-          >
-            {t('nav.calculator')}
-          </Button>
-          <Button 
-            variant={isActive('/orders') ? 'default' : 'ghost'}
-            onClick={() => navigate('/orders')}
-          >
-            {t('nav.orders')}
-          </Button>
-          <Button 
-            variant={isActive('/prints') ? 'default' : 'ghost'}
-            onClick={() => navigate('/prints')}
-          >
-            Impresiones
-          </Button>
-          {(isPro || isEnterprise) && (
-            <Button 
-              variant={isActive('/catalogs') ? 'default' : 'ghost'}
-              onClick={() => navigate('/catalogs')}
-            >
-              Catálogos
-            </Button>
-          )}
+          
+          {/* Menú Materiales */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant={isActiveInGroup(['/inventory', '/shopping-list']) ? 'default' : 'ghost'}
+              >
+                <Package className="w-4 h-4 mr-2" />
+                Materiales
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => navigate('/inventory')}>
+                <Package className="w-4 h-4 mr-2" />
+                Inventario
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/shopping-list')}>
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                Lista de la Compra
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Menú Proyectos */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant={isActiveInGroup(['/projects', '/calculator', '/catalogs']) ? 'default' : 'ghost'}
+              >
+                <FolderKanban className="w-4 h-4 mr-2" />
+                Proyectos
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => navigate('/projects')}>
+                <FolderKanban className="w-4 h-4 mr-2" />
+                {t('nav.projects')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/calculator')}>
+                <Calculator className="w-4 h-4 mr-2" />
+                {t('nav.calculator')}
+              </DropdownMenuItem>
+              {(isPro || isEnterprise) && (
+                <DropdownMenuItem onClick={() => navigate('/catalogs')}>
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Catálogos
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Menú Operaciones */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant={isActiveInGroup(['/orders', '/prints']) ? 'default' : 'ghost'}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Operaciones
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => navigate('/orders')}>
+                <FileText className="w-4 h-4 mr-2" />
+                {t('nav.orders')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/prints')}>
+                <Printer className="w-4 h-4 mr-2" />
+                Impresiones
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
