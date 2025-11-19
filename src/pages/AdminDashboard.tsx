@@ -1737,7 +1737,7 @@ const AdminDashboard = () => {
                             id={`${tier}-materials`}
                             type="number"
                             min="0"
-                            value={tierLimits.materials || 0}
+                            value={tierLimits?.materials?.toString() || '0'}
                             onChange={(e) => setEditingLimits({
                               ...editingLimits,
                               [tier]: { ...tierLimits, materials: parseInt(e.target.value) || 0 }
@@ -1750,7 +1750,7 @@ const AdminDashboard = () => {
                             id={`${tier}-projects`}
                             type="number"
                             min="0"
-                            value={tierLimits.projects || 0}
+                            value={tierLimits?.projects?.toString() || '0'}
                             onChange={(e) => setEditingLimits({
                               ...editingLimits,
                               [tier]: { ...tierLimits, projects: parseInt(e.target.value) || 0 }
@@ -1763,7 +1763,7 @@ const AdminDashboard = () => {
                             id={`${tier}-orders`}
                             type="number"
                             min="0"
-                            value={tierLimits.monthlyOrders || 0}
+                            value={tierLimits?.monthlyOrders?.toString() || '0'}
                             onChange={(e) => setEditingLimits({
                               ...editingLimits,
                               [tier]: { ...tierLimits, monthlyOrders: parseInt(e.target.value) || 0 }
@@ -1776,7 +1776,7 @@ const AdminDashboard = () => {
                             id={`${tier}-history`}
                             type="number"
                             min="0"
-                            value={tierLimits.metricsHistory || 0}
+                            value={tierLimits?.metricsHistory?.toString() || '0'}
                             onChange={(e) => setEditingLimits({
                               ...editingLimits,
                               [tier]: { ...tierLimits, metricsHistory: parseInt(e.target.value) || 0 }
@@ -1789,7 +1789,7 @@ const AdminDashboard = () => {
                             id={`${tier}-lists`}
                             type="number"
                             min="0"
-                            value={tierLimits.shoppingLists || 0}
+                            value={tierLimits?.shoppingLists?.toString() || '0'}
                             onChange={(e) => setEditingLimits({
                               ...editingLimits,
                               [tier]: { ...tierLimits, shoppingLists: parseInt(e.target.value) || 0 }
