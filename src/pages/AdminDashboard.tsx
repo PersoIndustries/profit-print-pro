@@ -31,7 +31,7 @@ interface UserStats {
 }
 
 const AdminDashboard = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -177,15 +177,22 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
+    // Esperar a que termine de cargar la autenticación
+    if (authLoading) {
+      console.log('[AdminDashboard] Auth still loading, waiting...');
+      return;
+    }
+    
+    // Si no hay usuario después de cargar, redirigir a auth
     if (!user) {
-      console.log('[AdminDashboard] No user, redirecting to /auth');
+      console.log('[AdminDashboard] No user after loading, redirecting to /auth');
       navigate("/auth");
       return;
     }
     
-    console.log('[AdminDashboard] User:', user.id, 'Admin loading:', adminLoading, 'Is admin:', isAdmin);
+    console.log('[AdminDashboard] User:', user.id, 'Auth loading:', authLoading, 'Admin loading:', adminLoading, 'Is admin:', isAdmin);
     
-    // Esperar a que termine de cargar antes de verificar
+    // Esperar a que termine de cargar el estado de admin
     if (adminLoading) {
       console.log('[AdminDashboard] Still loading admin status, waiting...');
       return;
@@ -208,7 +215,7 @@ const AdminDashboard = () => {
         fetchLimitsHistory();
       }
     }
-  }, [user, isAdmin, adminLoading, navigate, limitsTab]);
+  }, [user, authLoading, isAdmin, adminLoading, navigate, limitsTab]);
 
   const fetchAdminData = async () => {
     try {
@@ -405,13 +412,15 @@ const AdminDashboard = () => {
     return createdDate > thirtyDaysAgo;
   }).length;
 
-  // Mostrar loading mientras se verifica el admin
-  if (adminLoading || !user) {
+  // Mostrar loading mientras se verifica el auth o el admin
+  if (authLoading || adminLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Verificando permisos de administrador...</p>
+          <p className="text-muted-foreground">
+            {authLoading ? 'Verificando autenticación...' : 'Verificando permisos de administrador...'}
+          </p>
         </div>
       </div>
     );
