@@ -120,6 +120,9 @@ const AdminDashboard = () => {
   const [deleteUserReason, setDeleteUserReason] = useState('');
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   
+  // Fetch pending refund requests count for alert
+  const [pendingRefundCount, setPendingRefundCount] = useState(0);
+  
   // Ref para evitar múltiples redirecciones
   const hasRedirected = useRef(false);
 
@@ -591,6 +594,23 @@ const AdminDashboard = () => {
     setCurrentPage(1);
   }, [searchQuery, users]);
 
+  // Fetch pending refund requests count for alert
+  useEffect(() => {
+    if (isAdmin && !adminLoading) {
+      const fetchPendingRefunds = async () => {
+        const { count } = await supabase
+          .from('refund_requests')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending');
+        setPendingRefundCount(count || 0);
+      };
+      fetchPendingRefunds();
+      // Refresh every 30 seconds
+      const interval = setInterval(fetchPendingRefunds, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isAdmin, adminLoading]);
+
   // Calculate pagination
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
   const startIndex = (currentPage - 1) * usersPerPage;
@@ -879,25 +899,6 @@ const AdminDashboard = () => {
   if (!isAdmin && !adminLoading && !authLoading) {
     return null; // El useEffect ya redirigió o está por redirigir
   }
-
-  // Fetch pending refund requests count for alert
-  const [pendingRefundCount, setPendingRefundCount] = useState(0);
-  
-  useEffect(() => {
-    if (isAdmin && !adminLoading) {
-      const fetchPendingRefunds = async () => {
-        const { count } = await supabase
-          .from('refund_requests')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending');
-        setPendingRefundCount(count || 0);
-      };
-      fetchPendingRefunds();
-      // Refresh every 30 seconds
-      const interval = setInterval(fetchPendingRefunds, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [isAdmin, adminLoading]);
 
   return (
     <>
@@ -1725,7 +1726,7 @@ const AdminDashboard = () => {
               <div className="space-y-6">
                 {(['free', 'tier_1', 'tier_2'] as const).map((tier) => {
                   const tierName = tier === 'free' ? 'Free' : tier === 'tier_1' ? 'Professional' : 'Business';
-                  const tierLimits = editingLimits[tier] || { materials: 0, projects: 0, monthlyOrders: 0, metricsHistory: 0, shoppingLists: 0 };
+                  const tierLimits = editingLimits?.[tier] || { materials: 0, projects: 0, monthlyOrders: 0, metricsHistory: 0, shoppingLists: 0 };
                   
                   return (
                     <div key={tier} className="border rounded-lg p-4 space-y-4">
