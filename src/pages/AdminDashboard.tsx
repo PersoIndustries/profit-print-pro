@@ -14,8 +14,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Users, Package, FolderOpen, ShoppingCart, Edit, DollarSign, Settings, Save, History, Clock, BarChart3, Search, X, Tag } from "lucide-react";
+import { Users, Package, FolderOpen, ShoppingCart, Edit, DollarSign, Settings, Save, History, Clock, BarChart3, Search, X, Tag, RefreshCw } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface UserStats {
@@ -57,6 +58,7 @@ const AdminDashboard = () => {
   const [limitsTab, setLimitsTab] = useState(false);
   const [promoCodesTab, setPromoCodesTab] = useState(false);
   const [creatorCodesTab, setCreatorCodesTab] = useState(false);
+  const [refundRequestsTab, setRefundRequestsTab] = useState(false);
   const [limits, setLimits] = useState<{
     free: { materials: number; projects: number; monthlyOrders: number; metricsHistory: number; shoppingLists: number };
     tier_1: { materials: number; projects: number; monthlyOrders: number; metricsHistory: number; shoppingLists: number };
@@ -101,6 +103,16 @@ const AdminDashboard = () => {
     max_uses: '',
     is_active: true,
   });
+
+  // Refund requests management
+  const [refundRequests, setRefundRequests] = useState<any[]>([]);
+  const [loadingRefundRequests, setLoadingRefundRequests] = useState(false);
+  const [refundRequestDialogOpen, setRefundRequestDialogOpen] = useState(false);
+  const [selectedRefundRequest, setSelectedRefundRequest] = useState<any | null>(null);
+  const [refundAdminNotes, setRefundAdminNotes] = useState<string>('');
+  const [refundAction, setRefundAction] = useState<'approve' | 'reject'>('approve');
+  const [userAnalysisData, setUserAnalysisData] = useState<any>(null);
+  const [loadingUserAnalysis, setLoadingUserAnalysis] = useState(false);
   
   // Ref para evitar múltiples redirecciones
   const hasRedirected = useRef(false);
@@ -499,7 +511,7 @@ const AdminDashboard = () => {
       console.log('[AdminDashboard] No user after loading, redirecting to /auth');
       if (!hasRedirected.current) {
         hasRedirected.current = true;
-        navigate("/auth");
+      navigate("/auth");
       }
       return;
     }
@@ -525,7 +537,7 @@ const AdminDashboard = () => {
         // Usar un pequeño delay para dar tiempo a que el estado se actualice
         const timeoutId = setTimeout(() => {
           toast.error('No tienes permisos de administrador');
-          navigate("/dashboard");
+      navigate("/dashboard");
         }, 300);
         
         return () => clearTimeout(timeoutId);
@@ -545,11 +557,14 @@ const AdminDashboard = () => {
       if (promoCodesTab) {
         fetchPromoCodes();
       }
-      if (creatorCodesTab) {
-        fetchCreatorCodes();
+        if (creatorCodesTab) {
+          fetchCreatorCodes();
+        }
+        if (refundRequestsTab) {
+          fetchRefundRequests();
+        }
       }
-    }
-  }, [user, authLoading, isAdmin, adminLoading, navigate, limitsTab, promoCodesTab, creatorCodesTab]);
+    }, [user, authLoading, isAdmin, adminLoading, navigate, limitsTab, promoCodesTab, creatorCodesTab, refundRequestsTab]);
 
   // Filter users based on search query
   useEffect(() => {
@@ -849,14 +864,45 @@ const AdminDashboard = () => {
     return null; // El useEffect ya redirigió o está por redirigir
   }
 
+  // Fetch pending refund requests count for alert
+  const [pendingRefundCount, setPendingRefundCount] = useState(0);
+  
+  useEffect(() => {
+    if (isAdmin && !adminLoading) {
+      const fetchPendingRefunds = async () => {
+        const { count } = await supabase
+          .from('refund_requests')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending');
+        setPendingRefundCount(count || 0);
+      };
+      fetchPendingRefunds();
+      // Refresh every 30 seconds
+      const interval = setInterval(fetchPendingRefunds, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isAdmin, adminLoading]);
+
   return (
     <>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold">{t('admin.title')}</h2>
-        <div className="flex gap-2">
+      {/* Improved Navigation Menu */}
+      <div className="mb-6 space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-3xl font-bold">{t('admin.title')}</h2>
+          <LanguageSwitcher />
+        </div>
+        
+        {/* Main Navigation - First Row */}
+        <div className="flex flex-wrap gap-2">
           <Button
-            variant={!limitsTab && !promoCodesTab ? "default" : "outline"}
-            onClick={() => setLimitsTab(false)}
+            variant={!limitsTab && !promoCodesTab && !creatorCodesTab && !refundRequestsTab ? "default" : "outline"}
+            onClick={() => {
+              setLimitsTab(false);
+              setPromoCodesTab(false);
+              setCreatorCodesTab(false);
+              setRefundRequestsTab(false);
+            }}
+            className="flex-1 min-w-[120px]"
           >
             <Users className="h-4 w-4 mr-2" />
             Users
@@ -866,25 +912,14 @@ const AdminDashboard = () => {
             onClick={() => {
               setLimitsTab(true);
               setPromoCodesTab(false);
+              setCreatorCodesTab(false);
+              setRefundRequestsTab(false);
               fetchLimitsHistory();
             }}
+            className="flex-1 min-w-[120px]"
           >
             <Settings className="h-4 w-4 mr-2" />
-            Subscription Limits
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/admin/grace-period')}
-          >
-            <Clock className="h-4 w-4 mr-2" />
-            Grace Period
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/admin/metrics')}
-          >
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Metrics
+            Limits
           </Button>
           <Button
             variant={promoCodesTab ? "default" : "outline"}
@@ -892,8 +927,10 @@ const AdminDashboard = () => {
               setPromoCodesTab(true);
               setLimitsTab(false);
               setCreatorCodesTab(false);
+              setRefundRequestsTab(false);
               fetchPromoCodes();
             }}
+            className="flex-1 min-w-[120px]"
           >
             <Tag className="h-4 w-4 mr-2" />
             Promo Codes
@@ -904,16 +941,204 @@ const AdminDashboard = () => {
               setCreatorCodesTab(true);
               setLimitsTab(false);
               setPromoCodesTab(false);
+              setRefundRequestsTab(false);
               fetchCreatorCodes();
             }}
+            className="flex-1 min-w-[120px]"
           >
             <Users className="h-4 w-4 mr-2" />
             Creator Codes
           </Button>
+          <Button
+            variant={refundRequestsTab ? "default" : "outline"}
+            onClick={() => {
+              setRefundRequestsTab(true);
+              setLimitsTab(false);
+              setPromoCodesTab(false);
+              setCreatorCodesTab(false);
+              fetchRefundRequests();
+            }}
+            className="flex-1 min-w-[120px] relative"
+          >
+            <DollarSign className="h-4 w-4 mr-2" />
+            Refunds
+            {pendingRefundCount > 0 && (
+              <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                {pendingRefundCount}
+              </Badge>
+            )}
+          </Button>
         </div>
+
+        {/* Secondary Actions - Second Row */}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/admin/grace-period')}
+            className="flex-1 min-w-[120px]"
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            Grace Period
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/admin/metrics')}
+            className="flex-1 min-w-[120px]"
+          >
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Metrics
+          </Button>
+        </div>
+
+        {/* Alert for Pending Refund Requests */}
+        {pendingRefundCount > 0 && !refundRequestsTab && (
+          <Card className="border-orange-500/50 bg-orange-500/10">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <DollarSign className="h-5 w-5 text-orange-600" />
+                  <div>
+                    <p className="font-semibold text-orange-600">
+                      {pendingRefundCount} solicitud{pendingRefundCount > 1 ? 'es' : ''} de refund pendiente{pendingRefundCount > 1 ? 's' : ''}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Hay solicitudes de refund esperando revisión
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="default"
+                  onClick={() => {
+                    setRefundRequestsTab(true);
+                    setLimitsTab(false);
+                    setPromoCodesTab(false);
+                    setCreatorCodesTab(false);
+                    fetchRefundRequests();
+                  }}
+                >
+                  Ver Solicitudes
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
-      {creatorCodesTab ? (
+      {refundRequestsTab ? (
+        <>
+          {/* Action Menu - Two Rows */}
+          <div className="mb-4 space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={fetchRefundRequests} disabled={loadingRefundRequests}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${loadingRefundRequests ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button variant="outline" onClick={() => {
+                const pendingOnly = refundRequests.filter(r => r.status === 'pending');
+                setRefundRequests(pendingOnly.length === refundRequests.length ? refundRequests : pendingOnly);
+              }}>
+                <Search className="h-4 w-4 mr-2" />
+                Filter Pending
+              </Button>
+            </div>
+          </div>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Refund Requests Management</CardTitle>
+            </CardHeader>
+          <CardContent>
+            {loadingRefundRequests ? (
+              <div className="text-center py-8">Loading...</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Invoice</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Reason</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {refundRequests.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        No refund requests found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    refundRequests.map((request) => (
+                      <TableRow key={request.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{request.user?.email || 'Unknown'}</p>
+                            {request.user?.full_name && (
+                              <p className="text-sm text-muted-foreground">{request.user.full_name}</p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {request.invoice?.invoice_number || 'N/A'}
+                        </TableCell>
+                        <TableCell className="font-semibold">€{request.amount.toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {request.refund_type === 'monthly_payment' ? 'Monthly' :
+                             request.refund_type === 'annual_payment_error' ? 'Annual Error' :
+                             request.refund_type === 'application_issue' ? 'App Issue' : 'Other'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate">{request.reason}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={
+                              request.status === 'approved' || request.status === 'processed' ? 'default' :
+                              request.status === 'rejected' ? 'destructive' : 'secondary'
+                            }
+                          >
+                            {request.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{new Date(request.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          {request.status === 'pending' && (
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="default" 
+                                onClick={() => openRefundRequestDialog(request, 'approve')}
+                              >
+                                Approve
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="destructive" 
+                                onClick={() => openRefundRequestDialog(request, 'reject')}
+                              >
+                                Reject
+                              </Button>
+                            </div>
+                          )}
+                          {request.status !== 'pending' && request.admin_notes && (
+                            <p className="text-xs text-muted-foreground max-w-xs truncate" title={request.admin_notes}>
+                              {request.admin_notes}
+                            </p>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      ) : creatorCodesTab ? (
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
@@ -994,17 +1219,203 @@ const AdminDashboard = () => {
             )}
           </CardContent>
         </Card>
+      ) : creatorCodesTab ? (
+        <>
+          {/* Action Menu - Two Rows */}
+          <div className="mb-4 space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => openCreatorCodeDialog()}>
+                <Tag className="h-4 w-4 mr-2" />
+                Create Creator Code
+              </Button>
+              <Button variant="outline" onClick={fetchCreatorCodes} disabled={loadingCreatorCodes}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${loadingCreatorCodes ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
+          </div>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Creator Codes Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingCreatorCodes ? (
+                <div className="text-center py-8">Loading...</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Code</TableHead>
+                      <TableHead>Creator</TableHead>
+                      <TableHead>Trial Days</TableHead>
+                      <TableHead>Tier</TableHead>
+                      <TableHead>Discount %</TableHead>
+                      <TableHead>Commission %</TableHead>
+                      <TableHead>Uses</TableHead>
+                      <TableHead>Max Uses</TableHead>
+                      <TableHead>Expires</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {creatorCodes.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                          No creator codes found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      creatorCodes.map((code) => (
+                        <TableRow key={code.id}>
+                          <TableCell className="font-mono font-semibold">{code.code}</TableCell>
+                          <TableCell>
+                            {code.creator_user?.full_name || code.creator_user?.email || 'Unknown'}
+                          </TableCell>
+                          <TableCell>{code.trial_days || 0}</TableCell>
+                          <TableCell>
+                            <Badge variant={code.tier_granted === 'tier_2' ? 'default' : code.tier_granted === 'tier_1' ? 'secondary' : 'outline'}>
+                              {code.tier_granted === 'tier_2' ? 'Business' : code.tier_granted === 'tier_1' ? 'Professional' : 'Free'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{code.discount_percentage || 0}%</TableCell>
+                          <TableCell>{code.creator_commission_percentage || 0}%</TableCell>
+                          <TableCell>{code.current_uses || 0}</TableCell>
+                          <TableCell>{code.max_uses || '∞'}</TableCell>
+                          <TableCell>
+                            {code.expires_at ? new Date(code.expires_at).toLocaleDateString() : 'Never'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={code.is_active ? 'default' : 'secondary'}>
+                              {code.is_active ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" onClick={() => openCreatorCodeDialog(code)}>
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button size="sm" variant="destructive" onClick={() => handleDeleteCreatorCode(code.id)}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </>
       ) : promoCodesTab ? (
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Promo Codes Management</CardTitle>
+        <>
+          {/* Action Menu - Two Rows */}
+          <div className="mb-4 space-y-2">
+            <div className="flex flex-wrap gap-2">
               <Button onClick={() => openPromoCodeDialog()}>
                 <Tag className="h-4 w-4 mr-2" />
                 Create Promo Code
               </Button>
+              <Button variant="outline" onClick={fetchPromoCodes} disabled={loadingPromoCodes}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${loadingPromoCodes ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
             </div>
-          </CardHeader>
+          </div>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Promo Codes Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingPromoCodes ? (
+                <div className="text-center py-8">Loading...</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Code</TableHead>
+                      <TableHead>Tier</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Uses</TableHead>
+                      <TableHead>Max Uses</TableHead>
+                      <TableHead>Expires</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {promoCodes.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          No promo codes found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      promoCodes.map((promo) => (
+                        <TableRow key={promo.id}>
+                          <TableCell className="font-mono font-semibold">{promo.code}</TableCell>
+                          <TableCell>
+                            <Badge variant={promo.tier === 'tier_2' ? 'default' : promo.tier === 'tier_1' ? 'secondary' : 'outline'}>
+                              {promo.tier === 'tier_2' ? 'Business' : promo.tier === 'tier_1' ? 'Professional' : 'Free'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{promo.description || '-'}</TableCell>
+                          <TableCell>{promo.current_uses || 0}</TableCell>
+                          <TableCell>{promo.max_uses || '∞'}</TableCell>
+                          <TableCell>
+                            {promo.expires_at ? new Date(promo.expires_at).toLocaleDateString() : 'Never'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={promo.is_active ? 'default' : 'secondary'}>
+                              {promo.is_active ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" onClick={() => openPromoCodeDialog(promo)}>
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button size="sm" variant="destructive" onClick={() => handleDeletePromoCode(promo.id)}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      ) : limitsTab ? (
+        <>
+          {/* Action Menu - Two Rows */}
+          <div className="mb-4 space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={fetchSubscriptionLimits}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Limits
+              </Button>
+              <Button variant="outline" onClick={fetchLimitsHistory}>
+                <History className="h-4 w-4 mr-2" />
+                View History
+              </Button>
+            </div>
+          </div>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Manage Subscription Limits</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Configure the limits for each subscription tier. Changes will apply immediately to all users.
+              </p>
+            </CardHeader>
           <CardContent>
             {loadingPromoCodes ? (
               <div className="text-center py-8">Loading...</div>
@@ -1069,6 +1480,26 @@ const AdminDashboard = () => {
         </Card>
       ) : !limitsTab ? (
         <>
+          {/* Action Menu - Two Rows */}
+          <div className="mb-4 space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={fetchAdminData}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Users
+              </Button>
+              <div className="flex-1 min-w-[200px]">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search users..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
 
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           <Card>
@@ -1834,7 +2265,63 @@ const AdminDashboard = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+
+      {/* Refund Request Processing Dialog */}
+      <Dialog open={refundRequestDialogOpen} onOpenChange={setRefundRequestDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {refundAction === 'approve' ? 'Approve' : 'Reject'} Refund Request
+            </DialogTitle>
+            <DialogDescription>
+              {refundAction === 'approve' 
+                ? 'Are you sure you want to approve this refund request? A refund invoice will be created.'
+                : 'Are you sure you want to reject this refund request?'}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedRefundRequest && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <p><strong>User:</strong> {selectedRefundRequest.user?.email}</p>
+                <p><strong>Amount:</strong> €{selectedRefundRequest.amount.toFixed(2)}</p>
+                <p><strong>Type:</strong> {selectedRefundRequest.refund_type}</p>
+                <p><strong>Reason:</strong> {selectedRefundRequest.reason}</p>
+                {selectedRefundRequest.description && (
+                  <p><strong>Description:</strong> {selectedRefundRequest.description}</p>
+                )}
+                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground pt-2 border-t">
+                  <p>Within time limit: {selectedRefundRequest.is_within_time_limit ? '✓' : '✗'}</p>
+                  <p>Not exceeded limits: {selectedRefundRequest.has_not_exceeded_limits ? '✓' : '✗'}</p>
+                  <p>Current month: {selectedRefundRequest.is_current_month ? '✓' : '✗'}</p>
+                  <p>Demonstrable issue: {selectedRefundRequest.has_demonstrable_issue ? '✓' : '✗'}</p>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="refund-admin-notes">Admin Notes</Label>
+                <Textarea
+                  id="refund-admin-notes"
+                  value={refundAdminNotes}
+                  onChange={(e) => setRefundAdminNotes(e.target.value)}
+                  placeholder="Add notes about this decision..."
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRefundRequestDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant={refundAction === 'approve' ? 'default' : 'destructive'}
+              onClick={handleProcessRefundRequest}
+            >
+              {refundAction === 'approve' ? 'Approve & Process Refund' : 'Reject Request'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      </>
   );
 };
 
