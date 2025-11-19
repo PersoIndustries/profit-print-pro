@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Users, Package, FolderOpen, ShoppingCart, Edit, DollarSign, Settings, Save, History, Clock } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -148,7 +149,7 @@ const AdminDashboard = () => {
 
       // Fetch user info for changed_by
       if (historyData && historyData.length > 0) {
-        const userIds = [...new Set(historyData.map((h: any) => h.changed_by).filter(Boolean))];
+        const userIds = [...new Set(historyData.map((h: any) => h.changed_by).filter(Boolean))] as string[];
         if (userIds.length > 0) {
           const { data: usersData } = await supabase
             .from('profiles')
@@ -590,6 +591,7 @@ const AdminDashboard = () => {
         </Card>
         </>
       ) : (
+        <>
         <Card>
           <CardHeader>
             <CardTitle>Manage Subscription Limits</CardTitle>
@@ -850,6 +852,7 @@ const AdminDashboard = () => {
             )}
           </CardContent>
         </Card>
+        </>
       )}
     </>
   );

@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.cleanup-grace-period-images]
 verify_jwt = false
+
+[functions.send-grace-period-notifications]
+verify_jwt = false

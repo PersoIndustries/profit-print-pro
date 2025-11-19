@@ -43,7 +43,7 @@ export function CatalogSectionFormModal({ open, onOpenChange, catalogId, section
 
       if (error) throw error;
       setTitle(data.title);
-      setDisplayType(data.display_type || 'list');
+      setDisplayType((data.display_type || 'list') as 'full_page' | 'grid' | 'list');
     } catch (error) {
       console.error("Error fetching section:", error);
       toast.error(t('catalog.sectionForm.messages.errorLoading'));

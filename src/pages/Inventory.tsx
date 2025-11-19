@@ -1280,7 +1280,6 @@ const Inventory = () => {
                       })}
                     </TableBody>
                   </Table>
-                </TooltipProvider>
                 {needsPagination && (
                   <div className="mt-4 flex items-center justify-center">
                     <Pagination>
@@ -1315,6 +1314,7 @@ const Inventory = () => {
                     </div>
                   </div>
                 )}
+              </TooltipProvider>
               )}
             </CardContent>
           </Card>
