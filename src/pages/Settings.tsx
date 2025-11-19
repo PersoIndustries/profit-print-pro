@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, CreditCard, Receipt, User, TrendingUp, AlertCircle, Calendar, BarChart3, Shield } from "lucide-react";
+import { Settings as SettingsIcon, CreditCard, Receipt, User, TrendingUp, AlertCircle, Calendar, BarChart3, Shield, Clock } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface Profile {
@@ -633,6 +633,55 @@ const Settings = () => {
                         </p>
                       </div>
                     </div>
+
+                    {/* Trial Days Remaining Alert */}
+                    {subscription?.isTrialActive && subscription?.daysRemaining !== undefined && subscription.daysRemaining <= 7 && (
+                      <Card className={`mt-4 ${
+                        subscription.daysRemaining <= 1 
+                          ? 'border-destructive/50 bg-destructive/5' 
+                          : subscription.daysRemaining <= 3
+                          ? 'border-orange-500/50 bg-orange-500/5'
+                          : 'border-primary/50 bg-primary/5'
+                      }`}>
+                        <CardContent className="pt-6">
+                          <div className="flex items-start gap-3">
+                            <Clock className={`h-5 w-5 flex-shrink-0 mt-0.5 ${
+                              subscription.daysRemaining <= 1 
+                                ? 'text-destructive' 
+                                : subscription.daysRemaining <= 3
+                                ? 'text-orange-500'
+                                : 'text-primary'
+                            }`} />
+                            <div className="flex-1">
+                              <h4 className={`font-semibold mb-1 ${
+                                subscription.daysRemaining <= 1 
+                                  ? 'text-destructive' 
+                                  : subscription.daysRemaining <= 3
+                                  ? 'text-orange-500'
+                                  : 'text-primary'
+                              }`}>
+                                {subscription.daysRemaining === 0 
+                                  ? 'Tu prueba gratuita termina hoy'
+                                  : subscription.daysRemaining === 1
+                                  ? 'Te queda 1 día de prueba gratuita'
+                                  : `Te quedan ${subscription.daysRemaining} días de prueba gratuita`}
+                              </h4>
+                              <p className="text-sm text-muted-foreground mb-3">
+                                Tu suscripción de prueba expira el {subscriptionInfo.expires_at ? new Date(subscriptionInfo.expires_at).toLocaleDateString() : 'pronto'}. 
+                                Actualiza ahora para seguir disfrutando de todas las funcionalidades premium.
+                              </p>
+                              <Button 
+                                size="sm" 
+                                onClick={() => navigate('/pricing')}
+                                variant="default"
+                              >
+                                Ver Planes
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
 
                     {/* Grace Period Alert */}
                     {subscription?.gracePeriod.isInGracePeriod && (

@@ -56,6 +56,7 @@ const AdminDashboard = () => {
   // Subscription limits management
   const [limitsTab, setLimitsTab] = useState(false);
   const [promoCodesTab, setPromoCodesTab] = useState(false);
+  const [creatorCodesTab, setCreatorCodesTab] = useState(false);
   const [limits, setLimits] = useState<{
     free: { materials: number; projects: number; monthlyOrders: number; metricsHistory: number; shoppingLists: number };
     tier_1: { materials: number; projects: number; monthlyOrders: number; metricsHistory: number; shoppingLists: number };
@@ -76,6 +77,25 @@ const AdminDashboard = () => {
   const [promoCodeForm, setPromoCodeForm] = useState({
     code: '',
     tier: 'tier_1',
+    description: '',
+    expires_at: '',
+    max_uses: '',
+    is_active: true,
+  });
+
+  // Creator codes management
+  const [creatorCodes, setCreatorCodes] = useState<any[]>([]);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [loadingCreatorCodes, setLoadingCreatorCodes] = useState(false);
+  const [creatorCodeDialogOpen, setCreatorCodeDialogOpen] = useState(false);
+  const [editingCreatorCode, setEditingCreatorCode] = useState<any | null>(null);
+  const [creatorCodeForm, setCreatorCodeForm] = useState({
+    code: '',
+    creator_user_id: '',
+    trial_days: '30',
+    tier_granted: 'tier_2',
+    discount_percentage: '0',
+    creator_commission_percentage: '10',
     description: '',
     expires_at: '',
     max_uses: '',
@@ -274,6 +294,156 @@ const AdminDashboard = () => {
     setPromoCodeDialogOpen(true);
   };
 
+  const fetchCreatorCodes = async () => {
+    try {
+      setLoadingCreatorCodes(true);
+      const { data, error } = await supabase
+        .from('creator_codes')
+        .select(`
+          *,
+          creator_user:profiles!creator_codes_creator_user_id_fkey(id, email, full_name),
+          uses:creator_code_uses(count)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setCreatorCodes(data || []);
+    } catch (error: any) {
+      console.error('Error fetching creator codes:', error);
+      toast.error('Error loading creator codes');
+    } finally {
+      setLoadingCreatorCodes(false);
+    }
+  };
+
+  const fetchAllUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .order('email');
+
+      if (error) throw error;
+      setAllUsers(data || []);
+    } catch (error: any) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
+  const handleSaveCreatorCode = async () => {
+    try {
+      if (!creatorCodeForm.code.trim()) {
+        toast.error('Code is required');
+        return;
+      }
+      if (!creatorCodeForm.creator_user_id) {
+        toast.error('Creator user is required');
+        return;
+      }
+
+      const creatorCodeData: any = {
+        code: creatorCodeForm.code.trim().toUpperCase(),
+        creator_user_id: creatorCodeForm.creator_user_id,
+        trial_days: parseInt(creatorCodeForm.trial_days) || 0,
+        tier_granted: creatorCodeForm.tier_granted,
+        discount_percentage: parseFloat(creatorCodeForm.discount_percentage) || 0,
+        creator_commission_percentage: parseFloat(creatorCodeForm.creator_commission_percentage) || 0,
+        description: creatorCodeForm.description || null,
+        expires_at: creatorCodeForm.expires_at || null,
+        max_uses: creatorCodeForm.max_uses ? parseInt(creatorCodeForm.max_uses) : null,
+        is_active: creatorCodeForm.is_active,
+        created_by: user?.id,
+      };
+
+      if (editingCreatorCode) {
+        const { error } = await supabase
+          .from('creator_codes')
+          .update(creatorCodeData)
+          .eq('id', editingCreatorCode.id);
+
+        if (error) throw error;
+        toast.success('Creator code updated successfully');
+      } else {
+        const { error } = await supabase
+          .from('creator_codes')
+          .insert([creatorCodeData]);
+
+        if (error) throw error;
+        toast.success('Creator code created successfully');
+      }
+
+      setCreatorCodeDialogOpen(false);
+      setEditingCreatorCode(null);
+      setCreatorCodeForm({
+        code: '',
+        creator_user_id: '',
+        trial_days: '30',
+        tier_granted: 'tier_2',
+        discount_percentage: '0',
+        creator_commission_percentage: '10',
+        description: '',
+        expires_at: '',
+        max_uses: '',
+        is_active: true,
+      });
+      fetchCreatorCodes();
+    } catch (error: any) {
+      console.error('Error saving creator code:', error);
+      toast.error(error.message || 'Error saving creator code');
+    }
+  };
+
+  const handleDeleteCreatorCode = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this creator code?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('creator_codes')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      toast.success('Creator code deleted successfully');
+      fetchCreatorCodes();
+    } catch (error: any) {
+      console.error('Error deleting creator code:', error);
+      toast.error(error.message || 'Error deleting creator code');
+    }
+  };
+
+  const openCreatorCodeDialog = (creatorCode?: any) => {
+    if (creatorCode) {
+      setEditingCreatorCode(creatorCode);
+      setCreatorCodeForm({
+        code: creatorCode.code,
+        creator_user_id: creatorCode.creator_user_id,
+        trial_days: creatorCode.trial_days?.toString() || '30',
+        tier_granted: creatorCode.tier_granted,
+        discount_percentage: creatorCode.discount_percentage?.toString() || '0',
+        creator_commission_percentage: creatorCode.creator_commission_percentage?.toString() || '10',
+        description: creatorCode.description || '',
+        expires_at: creatorCode.expires_at ? new Date(creatorCode.expires_at).toISOString().split('T')[0] : '',
+        max_uses: creatorCode.max_uses?.toString() || '',
+        is_active: creatorCode.is_active,
+      });
+    } else {
+      setEditingCreatorCode(null);
+      setCreatorCodeForm({
+        code: '',
+        creator_user_id: '',
+        trial_days: '30',
+        tier_granted: 'tier_2',
+        discount_percentage: '0',
+        creator_commission_percentage: '10',
+        description: '',
+        expires_at: '',
+        max_uses: '',
+        is_active: true,
+      });
+    }
+    setCreatorCodeDialogOpen(true);
+  };
+
   const fetchLimitsHistory = async () => {
     setLoadingHistory(true);
     try {
@@ -368,11 +538,18 @@ const AdminDashboard = () => {
       console.log('[AdminDashboard] ✅ User is admin, loading data');
       fetchAdminData();
       fetchSubscriptionLimits();
+      fetchAllUsers();
       if (limitsTab) {
         fetchLimitsHistory();
       }
+      if (promoCodesTab) {
+        fetchPromoCodes();
+      }
+      if (creatorCodesTab) {
+        fetchCreatorCodes();
+      }
     }
-  }, [user, authLoading, isAdmin, adminLoading, navigate, limitsTab, promoCodesTab]);
+  }, [user, authLoading, isAdmin, adminLoading, navigate, limitsTab, promoCodesTab, creatorCodesTab]);
 
   // Filter users based on search query
   useEffect(() => {
@@ -714,16 +891,110 @@ const AdminDashboard = () => {
             onClick={() => {
               setPromoCodesTab(true);
               setLimitsTab(false);
+              setCreatorCodesTab(false);
               fetchPromoCodes();
             }}
           >
             <Tag className="h-4 w-4 mr-2" />
             Promo Codes
           </Button>
+          <Button
+            variant={creatorCodesTab ? "default" : "outline"}
+            onClick={() => {
+              setCreatorCodesTab(true);
+              setLimitsTab(false);
+              setPromoCodesTab(false);
+              fetchCreatorCodes();
+            }}
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Creator Codes
+          </Button>
         </div>
       </div>
 
-      {promoCodesTab ? (
+      {creatorCodesTab ? (
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Creator Codes Management</CardTitle>
+              <Button onClick={() => openCreatorCodeDialog()}>
+                <Tag className="h-4 w-4 mr-2" />
+                Create Creator Code
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loadingCreatorCodes ? (
+              <div className="text-center py-8">Loading...</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Creator</TableHead>
+                    <TableHead>Trial Days</TableHead>
+                    <TableHead>Tier</TableHead>
+                    <TableHead>Discount %</TableHead>
+                    <TableHead>Commission %</TableHead>
+                    <TableHead>Uses</TableHead>
+                    <TableHead>Max Uses</TableHead>
+                    <TableHead>Expires</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {creatorCodes.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                        No creator codes found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    creatorCodes.map((code) => (
+                      <TableRow key={code.id}>
+                        <TableCell className="font-mono font-semibold">{code.code}</TableCell>
+                        <TableCell>
+                          {code.creator_user?.full_name || code.creator_user?.email || 'Unknown'}
+                        </TableCell>
+                        <TableCell>{code.trial_days || 0}</TableCell>
+                        <TableCell>
+                          <Badge variant={code.tier_granted === 'tier_2' ? 'default' : code.tier_granted === 'tier_1' ? 'secondary' : 'outline'}>
+                            {code.tier_granted === 'tier_2' ? 'Business' : code.tier_granted === 'tier_1' ? 'Professional' : 'Free'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{code.discount_percentage || 0}%</TableCell>
+                        <TableCell>{code.creator_commission_percentage || 0}%</TableCell>
+                        <TableCell>{code.current_uses || 0}</TableCell>
+                        <TableCell>{code.max_uses || '∞'}</TableCell>
+                        <TableCell>
+                          {code.expires_at ? new Date(code.expires_at).toLocaleDateString() : 'Never'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={code.is_active ? 'default' : 'secondary'}>
+                            {code.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline" onClick={() => openCreatorCodeDialog(code)}>
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleDeleteCreatorCode(code.id)}>
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      ) : promoCodesTab ? (
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
@@ -1411,6 +1682,154 @@ const AdminDashboard = () => {
             <Button onClick={handleSavePromoCode}>
               <Save className="h-4 w-4 mr-2" />
               {editingPromoCode ? 'Update' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Creator Code Dialog */}
+      <Dialog open={creatorCodeDialogOpen} onOpenChange={setCreatorCodeDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingCreatorCode ? 'Edit Creator Code' : 'Create Creator Code'}</DialogTitle>
+            <DialogDescription>
+              {editingCreatorCode ? 'Update the creator code details' : 'Create a new creator code for affiliates/influencers'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="creator-code">Code *</Label>
+              <Input
+                id="creator-code"
+                value={creatorCodeForm.code}
+                onChange={(e) => setCreatorCodeForm({ ...creatorCodeForm, code: e.target.value.toUpperCase() })}
+                placeholder="CREATOR2024"
+                className="font-mono"
+              />
+            </div>
+            <div>
+              <Label htmlFor="creator-user">Creator User *</Label>
+              <Select 
+                value={creatorCodeForm.creator_user_id} 
+                onValueChange={(value) => setCreatorCodeForm({ ...creatorCodeForm, creator_user_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select creator user" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allUsers.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.full_name || u.email} ({u.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="creator-trial-days">Trial Days</Label>
+                <Input
+                  id="creator-trial-days"
+                  type="number"
+                  min="0"
+                  value={creatorCodeForm.trial_days}
+                  onChange={(e) => setCreatorCodeForm({ ...creatorCodeForm, trial_days: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="creator-tier">Tier Granted</Label>
+                <Select 
+                  value={creatorCodeForm.tier_granted} 
+                  onValueChange={(value) => setCreatorCodeForm({ ...creatorCodeForm, tier_granted: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="free">Free</SelectItem>
+                    <SelectItem value="tier_1">Professional</SelectItem>
+                    <SelectItem value="tier_2">Business</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="creator-discount">Discount Percentage</Label>
+                <Input
+                  id="creator-discount"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={creatorCodeForm.discount_percentage}
+                  onChange={(e) => setCreatorCodeForm({ ...creatorCodeForm, discount_percentage: e.target.value })}
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <Label htmlFor="creator-commission">Creator Commission %</Label>
+                <Input
+                  id="creator-commission"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={creatorCodeForm.creator_commission_percentage}
+                  onChange={(e) => setCreatorCodeForm({ ...creatorCodeForm, creator_commission_percentage: e.target.value })}
+                  placeholder="10"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="creator-description">Description</Label>
+              <Textarea
+                id="creator-description"
+                value={creatorCodeForm.description}
+                onChange={(e) => setCreatorCodeForm({ ...creatorCodeForm, description: e.target.value })}
+                placeholder="Optional description"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="creator-expires">Expires At</Label>
+                <Input
+                  id="creator-expires"
+                  type="date"
+                  value={creatorCodeForm.expires_at}
+                  onChange={(e) => setCreatorCodeForm({ ...creatorCodeForm, expires_at: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="creator-max-uses">Max Uses</Label>
+                <Input
+                  id="creator-max-uses"
+                  type="number"
+                  min="1"
+                  value={creatorCodeForm.max_uses}
+                  onChange={(e) => setCreatorCodeForm({ ...creatorCodeForm, max_uses: e.target.value })}
+                  placeholder="Leave empty for unlimited"
+                />
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="creator-active"
+                checked={creatorCodeForm.is_active}
+                onChange={(e) => setCreatorCodeForm({ ...creatorCodeForm, is_active: e.target.checked })}
+                className="rounded"
+              />
+              <Label htmlFor="creator-active">Active</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreatorCodeDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveCreatorCode}>
+              <Save className="h-4 w-4 mr-2" />
+              {editingCreatorCode ? 'Update' : 'Create'}
             </Button>
           </DialogFooter>
         </DialogContent>
