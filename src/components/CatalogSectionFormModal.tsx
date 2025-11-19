@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -20,6 +21,7 @@ export function CatalogSectionFormModal({ open, onOpenChange, catalogId, section
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
+  const [displayType, setDisplayType] = useState<'list' | 'grid' | 'full_page'>('list');
 
   useEffect(() => {
     if (open) {
@@ -41,6 +43,7 @@ export function CatalogSectionFormModal({ open, onOpenChange, catalogId, section
 
       if (error) throw error;
       setTitle(data.title);
+      setDisplayType(data.display_type || 'list');
     } catch (error) {
       console.error("Error fetching section:", error);
       toast.error(t('catalog.sectionForm.messages.errorLoading'));
@@ -49,6 +52,7 @@ export function CatalogSectionFormModal({ open, onOpenChange, catalogId, section
 
   const resetForm = () => {
     setTitle("");
+    setDisplayType('list');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,7 +63,7 @@ export function CatalogSectionFormModal({ open, onOpenChange, catalogId, section
       if (sectionId) {
         const { error } = await supabase
           .from("catalog_sections")
-          .update({ title })
+          .update({ title, display_type: displayType })
           .eq("id", sectionId);
 
         if (error) throw error;
@@ -81,6 +85,7 @@ export function CatalogSectionFormModal({ open, onOpenChange, catalogId, section
           .insert({
             catalog_id: catalogId,
             title,
+            display_type: displayType,
             position: maxPosition + 1,
           });
 
@@ -115,6 +120,23 @@ export function CatalogSectionFormModal({ open, onOpenChange, catalogId, section
               placeholder={t('catalog.sectionForm.titlePlaceholder')}
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="display-type">{t('catalog.sectionForm.displayType')}</Label>
+            <Select value={displayType} onValueChange={(value: 'list' | 'grid' | 'full_page') => setDisplayType(value)}>
+              <SelectTrigger id="display-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="list">{t('catalog.sectionForm.displayTypeList')}</SelectItem>
+                <SelectItem value="grid">{t('catalog.sectionForm.displayTypeGrid')}</SelectItem>
+                <SelectItem value="full_page" disabled>{t('catalog.sectionForm.displayTypeFullPage')} ({t('common.comingSoon')})</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {t('catalog.sectionForm.displayTypeDesc')}
+            </p>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

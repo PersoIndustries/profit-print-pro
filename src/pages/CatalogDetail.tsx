@@ -37,6 +37,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { getTheme, applyTheme } from '@/utils/catalogThemes';
 
 interface CatalogProject {
   id: string;
@@ -64,6 +65,7 @@ interface CatalogSection {
   id: string;
   title: string;
   position: number;
+  display_type?: 'list' | 'grid' | 'full_page';
   projects?: CatalogProject[];
 }
 
@@ -135,14 +137,37 @@ export default function CatalogDetail() {
       // Fetch catalog info
       const { data: catalogData, error: catalogError } = await supabase
         .from("catalogs")
-        .select("name, show_powered_by, brand_logo_url")
+        .select("name, description, season, show_powered_by, brand_logo_url, theme")
         .eq("id", catalogId)
         .single();
 
-      if (catalogError) throw catalogError;
-      setCatalogName(catalogData.name);
-      setShowPoweredBy(catalogData.show_powered_by ?? true);
-      setCatalogBrandLogoUrl(catalogData.brand_logo_url || null);
+      if (catalogError) {
+        // Si hay error por columnas faltantes, intentar sin ellas
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from("catalogs")
+          .select("name, show_powered_by, brand_logo_url")
+          .eq("id", catalogId)
+          .single();
+        
+        if (fallbackError) throw fallbackError;
+        
+        setCatalogName(fallbackData?.name || '');
+        setShowPoweredBy(fallbackData?.show_powered_by ?? true);
+        setCatalogBrandLogoUrl(fallbackData?.brand_logo_url || null);
+        
+        // Aplicar tema por defecto
+        const theme = getTheme('default');
+        applyTheme(theme);
+      } else {
+        const data = catalogData as any;
+        setCatalogName(data.name || '');
+        setShowPoweredBy(data.show_powered_by ?? true);
+        setCatalogBrandLogoUrl(data.brand_logo_url || null);
+        
+        // Aplicar tema del catálogo
+        const theme = getTheme(data.theme || 'default');
+        applyTheme(theme);
+      }
 
       // Fetch sections
       const { data: sectionsData, error: sectionsError } = await supabase
@@ -232,8 +257,9 @@ export default function CatalogDetail() {
       setProjects(projectsWithProducts);
 
       // Organize sections with their projects
-      const sectionsWithProjects = (sectionsData || []).map(section => ({
+      const sectionsWithProjects = (sectionsData || []).map((section: any) => ({
         ...section,
+        display_type: (section.display_type || 'list') as 'list' | 'grid' | 'full_page',
         projects: projectsWithProducts
           .filter(p => p.catalog_section_id === section.id)
           .sort((a, b) => a.position - b.position),
@@ -297,45 +323,8 @@ export default function CatalogDetail() {
       const activeProject = projects.find(p => p.id === activeId);
       const overProject = projects.find(p => p.id === overId);
 
-      // Mover proyecto a sección (arrastrar proyecto sobre sección)
-      if (activeProject && overSection) {
-        // Obtener proyectos actuales de la sección para calcular nueva posición
-        const sectionProjects = projects.filter(p => p.catalog_section_id === overSection.id).sort((a, b) => a.position - b.position);
-        const newPosition = sectionProjects.length;
-        
-        await supabase
-          .from("catalog_projects")
-          .update({ 
-            catalog_section_id: overSection.id,
-            position: newPosition
-          })
-          .eq("id", activeProject.id);
-      }
-      // Mover proyecto fuera de sección (arrastrar proyecto sobre otro proyecto sin sección)
-      else if (activeProject && overProject && activeProject.catalog_section_id && !overProject.catalog_section_id) {
-        const projectsWithoutSection = projects.filter(p => !p.catalog_section_id).sort((a, b) => a.position - b.position);
-        const newIndex = projectsWithoutSection.indexOf(overProject);
-        
-        // Actualizar posición de proyectos sin sección
-        await Promise.all(
-          projectsWithoutSection.map((project, index) =>
-            supabase
-              .from("catalog_projects")
-              .update({ position: index >= newIndex ? index + 1 : index })
-              .eq("id", project.id)
-          )
-        );
-        
-        await supabase
-          .from("catalog_projects")
-          .update({ 
-            catalog_section_id: null,
-            position: newIndex
-          })
-          .eq("id", activeProject.id);
-      }
       // Reordenar secciones
-      else if (activeSection && overSection) {
+      if (activeSection && overSection) {
         const oldIndex = sections.indexOf(activeSection);
         const newIndex = sections.indexOf(overSection);
         const newSections = arrayMove(sections, oldIndex, newIndex);
@@ -350,6 +339,66 @@ export default function CatalogDetail() {
           )
         );
       }
+      // Mover proyecto a sección (arrastrar proyecto sobre sección)
+      else if (activeProject && overSection) {
+        // Obtener proyectos actuales de la sección para calcular nueva posición
+        const sectionProjects = projects.filter(p => p.catalog_section_id === overSection.id).sort((a, b) => a.position - b.position);
+        const newPosition = sectionProjects.length;
+        
+        await supabase
+          .from("catalog_projects")
+          .update({ 
+            catalog_section_id: overSection.id,
+            position: newPosition
+          })
+          .eq("id", activeProject.id);
+      }
+      // Mover proyecto entre secciones (arrastrar proyecto sobre otro proyecto de otra sección)
+      else if (activeProject && overProject && activeProject.catalog_section_id !== overProject.catalog_section_id) {
+        const targetSectionId = overProject.catalog_section_id;
+        if (!targetSectionId) return; // No debería pasar, pero por seguridad
+        
+        // Obtener proyectos de la sección destino
+        const targetSectionProjects = projects
+          .filter(p => p.catalog_section_id === targetSectionId)
+          .sort((a, b) => a.position - b.position);
+        const newIndex = targetSectionProjects.indexOf(overProject);
+        
+        // Actualizar posiciones de proyectos en la sección destino
+        await Promise.all(
+          targetSectionProjects.map((project, index) =>
+            supabase
+              .from("catalog_projects")
+              .update({ position: index >= newIndex ? index + 1 : index })
+              .eq("id", project.id)
+          )
+        );
+        
+        // Si el proyecto viene de otra sección, actualizar posiciones en la sección origen
+        if (activeProject.catalog_section_id) {
+          const originSectionProjects = projects
+            .filter(p => p.catalog_section_id === activeProject.catalog_section_id && p.id !== activeProject.id)
+            .sort((a, b) => a.position - b.position);
+          
+          await Promise.all(
+            originSectionProjects.map((project, index) =>
+              supabase
+                .from("catalog_projects")
+                .update({ position: index })
+                .eq("id", project.id)
+            )
+          );
+        }
+        
+        // Mover el proyecto a la nueva sección
+        await supabase
+          .from("catalog_projects")
+          .update({ 
+            catalog_section_id: targetSectionId,
+            position: newIndex
+          })
+          .eq("id", activeProject.id);
+      }
       // Reordenar proyectos dentro de la misma sección
       else if (activeProject && overProject && activeProject.catalog_section_id === overProject.catalog_section_id && activeProject.catalog_section_id) {
         const sectionProjects = projects
@@ -359,23 +408,6 @@ export default function CatalogDetail() {
         const newIndex = sectionProjects.indexOf(overProject);
         const newProjects = arrayMove(sectionProjects, oldIndex, newIndex);
         
-        await Promise.all(
-          newProjects.map((project, index) =>
-            supabase
-              .from("catalog_projects")
-              .update({ position: index })
-              .eq("id", project.id)
-          )
-        );
-      }
-      // Reordenar proyectos (solo los que no están en secciones)
-      else if (activeProject && overProject && !activeProject.catalog_section_id && !overProject.catalog_section_id) {
-        const projectsWithoutSection = projects.filter(p => !p.catalog_section_id).sort((a, b) => a.position - b.position);
-        const oldIndex = projectsWithoutSection.indexOf(activeProject);
-        const newIndex = projectsWithoutSection.indexOf(overProject);
-        const newProjects = arrayMove(projectsWithoutSection, oldIndex, newIndex);
-        
-        // Actualizar posiciones en BD
         await Promise.all(
           newProjects.map((project, index) =>
             supabase
@@ -520,8 +552,6 @@ export default function CatalogDetail() {
     );
   }
 
-  const projectsWithoutSection = projects.filter(p => !p.catalog_section_id).sort((a, b) => a.position - b.position);
-
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
@@ -545,7 +575,11 @@ export default function CatalogDetail() {
             <Plus className="w-4 h-4 mr-2" />
             {t('catalog.detail.newSection')}
           </Button>
-          <Button onClick={() => handleNewProject()}>
+          <Button 
+            onClick={() => handleNewProject()} 
+            disabled={sections.length === 0}
+            title={sections.length === 0 ? t('catalog.detail.newProjectRequiresSection') : undefined}
+          >
             <Plus className="w-4 h-4 mr-2" />
             {t('catalog.detail.newProject')}
           </Button>
@@ -564,8 +598,8 @@ export default function CatalogDetail() {
         onDragEnd={handleDragEnd}
       >
         <div className="space-y-3">
-          {/* Secciones con proyectos */}
-          <SortableContext items={[...sections.map(s => s.id), ...projects.map(p => p.id)]} strategy={verticalListSortingStrategy}>
+          {/* Solo secciones en el nivel superior */}
+          <SortableContext items={sections.map(s => s.id)} strategy={verticalListSortingStrategy}>
             {sections.map((section) => (
               <DroppableSectionCard
                 key={section.id}
@@ -587,30 +621,14 @@ export default function CatalogDetail() {
             ))}
           </SortableContext>
 
-          {/* Proyectos sin sección */}
-            {projectsWithoutSection.map((project) => (
-              <SortableProjectCard
-                key={project.id}
-                project={project}
-                isExpanded={expandedProjects.has(project.id)}
-                onToggle={() => toggleProject(project.id)}
-                onEdit={handleEditProject}
-                onDelete={handleDeleteProject}
-                onNewProduct={handleNewProduct}
-                onEditProduct={handleEditProduct}
-                onDeleteProduct={handleDeleteProduct}
-                onNewProductSection={handleNewProductSection}
-              />
-            ))}
-
-          {sections.length === 0 && projectsWithoutSection.length === 0 && (
+          {sections.length === 0 && (
             <Card>
               <CardContent className="py-12 text-center text-muted-foreground">
                 <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>{t('catalog.detail.empty.title')}</p>
-                <Button onClick={() => handleNewProject()} variant="outline" className="mt-4">
+                <Button onClick={handleNewSection} variant="outline" className="mt-4">
                   <Plus className="w-4 h-4 mr-2" />
-                  {t('catalog.detail.empty.createFirst')}
+                  {t('catalog.detail.newSection')}
                 </Button>
               </CardContent>
             </Card>
@@ -899,21 +917,46 @@ function SectionCard({
         </div>
       </CardHeader>
       {isExpanded && section.projects && section.projects.length > 0 && (
-        <CardContent className="pt-0 pl-8 space-y-2">
-          {section.projects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              isExpanded={expandedProjects.has(project.id)}
-              onToggle={() => onToggleProject(project.id)}
-              onEdit={onEditProject}
-              onDelete={onDeleteProject}
-              onNewProduct={onNewProduct}
-              onEditProduct={onEditProduct}
-              onDeleteProduct={onDeleteProduct}
-              onNewProductSection={onNewProductSection}
-            />
-          ))}
+        <CardContent className="pt-0 pl-8">
+          <SortableContext items={section.projects.map(p => p.id)} strategy={verticalListSortingStrategy}>
+            {section.display_type === 'grid' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {section.projects.map((project) => (
+                  <SortableProjectCard
+                    key={project.id}
+                    project={project}
+                    isExpanded={expandedProjects.has(project.id)}
+                    onToggle={() => onToggleProject(project.id)}
+                    onEdit={onEditProject}
+                    onDelete={onDeleteProject}
+                    onNewProduct={onNewProduct}
+                    onEditProduct={onEditProduct}
+                    onDeleteProduct={onDeleteProduct}
+                    onNewProductSection={onNewProductSection}
+                    viewMode="grid"
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {section.projects.map((project) => (
+                  <SortableProjectCard
+                    key={project.id}
+                    project={project}
+                    isExpanded={expandedProjects.has(project.id)}
+                    onToggle={() => onToggleProject(project.id)}
+                    onEdit={onEditProject}
+                    onDelete={onDeleteProject}
+                    onNewProduct={onNewProduct}
+                    onEditProduct={onEditProduct}
+                    onDeleteProduct={onDeleteProduct}
+                    onNewProductSection={onNewProductSection}
+                    viewMode="list"
+                  />
+                ))}
+              </div>
+            )}
+          </SortableContext>
         </CardContent>
       )}
     </Card>
@@ -931,6 +974,7 @@ function SortableProjectCard({
   onEditProduct,
   onDeleteProduct,
   onNewProductSection,
+  viewMode,
 }: {
   project: CatalogProject;
   isExpanded: boolean;
@@ -941,6 +985,7 @@ function SortableProjectCard({
   onEditProduct: (productId: string, projectId: string) => void;
   onDeleteProduct: (productId: string) => void;
   onNewProductSection: (projectId: string) => void;
+  viewMode?: 'list' | 'grid';
 }) {
   const {
     attributes,
@@ -971,6 +1016,7 @@ function SortableProjectCard({
         onDeleteProduct={onDeleteProduct}
         onNewProductSection={onNewProductSection}
         dragHandleProps={{ ...attributes, ...listeners }}
+        viewMode={viewMode}
       />
     </div>
   );
@@ -988,6 +1034,7 @@ function ProjectCard({
   onDeleteProduct,
   onNewProductSection,
   dragHandleProps,
+  viewMode = 'list',
 }: {
   project: CatalogProject;
   isExpanded: boolean;
@@ -999,32 +1046,19 @@ function ProjectCard({
   onDeleteProduct: (productId: string) => void;
   onNewProductSection: (projectId: string) => void;
   dragHandleProps?: any;
+  viewMode?: 'list' | 'grid';
 }) {
   const { t } = useTranslation();
   const hasProducts = project.products && project.products.length > 0;
+  const isGrid = viewMode === 'grid';
 
   return (
-    <Card className="border-l-4 border-l-primary">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 flex-shrink-0"
-              onClick={onToggle}
-              disabled={!hasProducts}
-            >
-              {hasProducts ? (
-                isExpanded ? (
-                  <ChevronDown className="w-4 h-4" />
-                ) : (
-                  <ChevronRight className="w-4 h-4" />
-                )
-              ) : null}
-            </Button>
+    <Card className={isGrid ? "h-full flex flex-col" : "border-l-4 border-l-primary"}>
+      <CardHeader className={isGrid ? "pb-3 flex-1" : "pb-3"}>
+        {isGrid ? (
+          <div className="flex flex-col gap-3">
             {project.image_url && (
-              <div className="w-12 h-12 flex-shrink-0 overflow-hidden rounded-lg">
+              <div className="w-full aspect-square overflow-hidden rounded-lg">
                 <img
                   src={project.image_url}
                   alt={project.name}
@@ -1032,13 +1066,11 @@ function ProjectCard({
                 />
               </div>
             )}
-            <div {...(dragHandleProps || {})} className="cursor-grab active:cursor-grabbing flex items-center gap-2 flex-1 min-w-0">
-              <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <CardTitle className="text-base truncate">{project.name}</CardTitle>
-              <div className="flex items-center gap-3 mt-1.5">
+                <CardTitle className="text-base mb-2">{project.name}</CardTitle>
                 {project.colors && project.colors.length > 0 && (
-                  <div className="flex gap-1 items-center">
+                  <div className="flex gap-1 items-center mb-2">
                     {project.colors.map((color, idx) => (
                       <div
                         key={idx}
@@ -1055,25 +1087,86 @@ function ProjectCard({
                   </span>
                 )}
               </div>
+              <div className="flex gap-1 flex-shrink-0">
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(project.id)}>
+                  <Edit className="w-3 h-3" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onDelete(project.id)}>
+                  <Trash2 className="w-3 h-3" />
+                </Button>
               </div>
             </div>
           </div>
-          <div className="flex gap-2 flex-shrink-0">
-            <Button variant="outline" size="sm" onClick={() => onNewProduct(project.id)}>
-              <Plus className="w-4 h-4 mr-1" />
-              {t('catalog.detail.project.addProduct')}
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => onEdit(project.id)}>
-              <Edit className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => onDelete(project.id)}>
-              <Trash2 className="w-4 h-4" />
-            </Button>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 flex-shrink-0"
+                onClick={onToggle}
+                disabled={!hasProducts}
+              >
+                {hasProducts ? (
+                  isExpanded ? (
+                    <ChevronDown className="w-4 h-4" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4" />
+                  )
+                ) : null}
+              </Button>
+              {project.image_url && (
+                <div className="w-12 h-12 flex-shrink-0 overflow-hidden rounded-lg">
+                  <img
+                    src={project.image_url}
+                    alt={project.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <div {...(dragHandleProps || {})} className="cursor-grab active:cursor-grabbing flex items-center gap-2 flex-1 min-w-0">
+                <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-base truncate">{project.name}</CardTitle>
+                  <div className="flex items-center gap-3 mt-1.5">
+                    {project.colors && project.colors.length > 0 && (
+                      <div className="flex gap-1 items-center">
+                        {project.colors.map((color, idx) => (
+                          <div
+                            key={idx}
+                            className="w-4 h-4 rounded border border-border flex-shrink-0"
+                            style={{ backgroundColor: color }}
+                            title={color}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    {hasProducts && (
+                      <span className="text-xs text-muted-foreground">
+                        {project.products!.length} {t('catalog.detail.project.products')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => onNewProduct(project.id)}>
+                <Plus className="w-4 h-4 mr-1" />
+                {t('catalog.detail.project.addProduct')}
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => onEdit(project.id)}>
+                <Edit className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => onDelete(project.id)}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </CardHeader>
       {isExpanded && hasProducts && (
-        <CardContent className="pt-0 pl-12 space-y-2">
+        <CardContent className="pt-0 pl-16 space-y-2">
           {project.products!.map((product) => (
             <Card key={product.id} className="bg-background">
               <CardContent className="p-3">
