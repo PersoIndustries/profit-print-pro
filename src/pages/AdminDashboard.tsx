@@ -1410,6 +1410,7 @@ const AdminDashboard = () => {
             )}
           </CardContent>
         </Card>
+        </>
       ) : !limitsTab ? (
         <>
           {/* Action Menu - Two Rows */}
