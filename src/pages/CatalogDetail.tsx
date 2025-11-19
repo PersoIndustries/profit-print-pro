@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -552,6 +552,23 @@ export default function CatalogDetail() {
     );
   }
 
+  // Calcular el elemento activo una sola vez para optimizar el DragOverlay
+  const activeItem = useMemo(() => {
+    if (!activeId) return null;
+    
+    const activeSection = sections.find(s => s.id === activeId);
+    if (activeSection) {
+      return { type: 'section' as const, data: activeSection };
+    }
+    
+    const activeProject = projects.find(p => p.id === activeId);
+    if (activeProject) {
+      return { type: 'project' as const, data: activeProject };
+    }
+    
+    return null;
+  }, [activeId, sections, projects]);
+
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
@@ -635,21 +652,21 @@ export default function CatalogDetail() {
           )}
         </div>
         <DragOverlay>
-          {activeId ? (
+          {activeItem ? (
             <div className="opacity-50">
-              {sections.find(s => s.id === activeId) ? (
+              {activeItem.type === 'section' ? (
                 <Card className="bg-muted/30">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg">
-                      {sections.find(s => s.id === activeId)?.title}
+                      {activeItem.data.title}
                     </CardTitle>
                   </CardHeader>
                 </Card>
-              ) : projects.find(p => p.id === activeId) ? (
+              ) : activeItem.type === 'project' ? (
                 <Card className="border-l-4 border-l-primary">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base">
-                      {projects.find(p => p.id === activeId)?.name}
+                      {activeItem.data.name}
                     </CardTitle>
                   </CardHeader>
                 </Card>
