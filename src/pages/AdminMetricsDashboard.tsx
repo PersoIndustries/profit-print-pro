@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
   Users, 
@@ -20,7 +22,9 @@ import {
   BarChart3,
   Calendar,
   Settings,
-  RefreshCw
+  RefreshCw,
+  Download,
+  Table as TableIcon
 } from "lucide-react";
 
 interface MetricsData {
@@ -93,7 +97,9 @@ const AdminMetricsDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<MetricsData | null>(null);
+  const [dailyMetrics, setDailyMetrics] = useState<any[]>([]);
   const [dateRange, setDateRange] = useState<'today' | 'week' | 'month' | 'all'>('today');
+  const [showTable, setShowTable] = useState(false);
   const hasRedirected = useRef(false);
 
   useEffect(() => {
@@ -272,7 +278,8 @@ const AdminMetricsDashboard = () => {
         new Date(p.created_at) >= todayStart
       ).length || 0;
       
-      // Revenue (if total_amount exists)
+      // Revenue (from orders - this is revenue from users' orders, not subscription revenue)
+      // Note: This represents revenue from user orders (e.g., print orders), not subscription payments
       const totalRevenue = allOrders?.reduce((sum, o) => 
         sum + (parseFloat(o.total_amount?.toString() || '0') || 0), 0
       ) || 0;
@@ -360,37 +367,85 @@ const AdminMetricsDashboard = () => {
         ? Math.round((cancelledUsers / totalUsers) * 100)
         : 0;
       
-      // Estimate session time (based on activity)
-      // This is a simplified calculation - in production you'd track actual sessions
-      const userActivityCount = new Map<string, number>();
-      [...(allMaterials || []), ...(allProjects || []), ...(allOrders || [])].forEach(item => {
-        const count = userActivityCount.get(item.user_id) || 0;
-        userActivityCount.set(item.user_id, count + 1);
-      });
-      
-      const averageActivityPerUser = activeUsers > 0 
-        ? Array.from(userActivityCount.values()).reduce((a, b) => a + b, 0) / activeUsers 
-        : 0;
-      
-      // Estimate: each activity item = ~5 minutes of usage
-      const averageSessionTime = Math.round(averageActivityPerUser * 5);
-      const totalActiveTime = Math.round(
-        Array.from(userActivityCount.values()).reduce((a, b) => a + b, 0) * 5 / 60
-      );
-      
-      // New users average time (users created this month)
-      const newUsersActivity = new Map<string, number>();
-      newUsersThisMonthList.forEach(profile => {
-        const activity = [...(allMaterials || []), ...(allProjects || []), ...(allOrders || [])]
-          .filter(item => item.user_id === profile.id).length;
-        newUsersActivity.set(profile.id, activity);
-      });
-      
-      const newUsersAverageTime = newUsersThisMonthList.length > 0
-        ? Math.round(
-            Array.from(newUsersActivity.values()).reduce((a, b) => a + b, 0) / newUsersThisMonthList.length * 5
-          )
-        : 0;
+      // Get actual session time from user_activity_summary if available
+      // Otherwise fall back to estimation
+      let averageSessionTime = 0;
+      let totalActiveTime = 0;
+      let newUsersAverageTime = 0;
+
+      try {
+        const { data: activitySummary } = await supabase
+          .from('user_activity_summary')
+          .select('user_id, total_minutes, activity_date')
+          .gte('activity_date', monthStart.toISOString().split('T')[0]);
+
+        if (activitySummary && activitySummary.length > 0) {
+          // Calculate from actual data
+          const totalMinutes = activitySummary.reduce((sum, a) => sum + (a.total_minutes || 0), 0);
+          const uniqueUsers = new Set(activitySummary.map(a => a.user_id)).size;
+          
+          averageSessionTime = uniqueUsers > 0 ? Math.round(totalMinutes / uniqueUsers) : 0;
+          totalActiveTime = Math.round(totalMinutes / 60);
+
+          // New users average time
+          const newUsersActivityData = activitySummary.filter(a => 
+            newUsersThisMonthList.some(u => u.id === a.user_id)
+          );
+          const newUsersTotalMinutes = newUsersActivityData.reduce((sum, a) => sum + (a.total_minutes || 0), 0);
+          newUsersAverageTime = newUsersThisMonthList.length > 0
+            ? Math.round(newUsersTotalMinutes / newUsersThisMonthList.length)
+            : 0;
+        } else {
+          // Fallback to estimation if no activity data
+          const userActivityCount = new Map<string, number>();
+          [...(allMaterials || []), ...(allProjects || []), ...(allOrders || [])].forEach(item => {
+            const count = userActivityCount.get(item.user_id) || 0;
+            userActivityCount.set(item.user_id, count + 1);
+          });
+          
+          const averageActivityPerUser = activeUsers > 0 
+            ? Array.from(userActivityCount.values()).reduce((a, b) => a + b, 0) / activeUsers 
+            : 0;
+          
+          // Estimate: each activity item = ~5 minutes of usage
+          averageSessionTime = Math.round(averageActivityPerUser * 5);
+          totalActiveTime = Math.round(
+            Array.from(userActivityCount.values()).reduce((a, b) => a + b, 0) * 5 / 60
+          );
+          
+          // New users average time
+          const newUsersActivity = new Map<string, number>();
+          newUsersThisMonthList.forEach(profile => {
+            const activity = [...(allMaterials || []), ...(allProjects || []), ...(allOrders || [])]
+              .filter(item => item.user_id === profile.id).length;
+            newUsersActivity.set(profile.id, activity);
+          });
+          
+          newUsersAverageTime = newUsersThisMonthList.length > 0
+            ? Math.round(
+                Array.from(newUsersActivity.values()).reduce((a, b) => a + b, 0) / newUsersThisMonthList.length * 5
+              )
+            : 0;
+        }
+      } catch (error) {
+        console.error('Error fetching activity summary, using estimation:', error);
+        // Use estimation as fallback
+        const userActivityCount = new Map<string, number>();
+        [...(allMaterials || []), ...(allProjects || []), ...(allOrders || [])].forEach(item => {
+          const count = userActivityCount.get(item.user_id) || 0;
+          userActivityCount.set(item.user_id, count + 1);
+        });
+        
+        const averageActivityPerUser = activeUsers > 0 
+          ? Array.from(userActivityCount.values()).reduce((a, b) => a + b, 0) / activeUsers 
+          : 0;
+        
+        averageSessionTime = Math.round(averageActivityPerUser * 5);
+        totalActiveTime = Math.round(
+          Array.from(userActivityCount.values()).reduce((a, b) => a + b, 0) * 5 / 60
+        );
+        newUsersAverageTime = 0;
+      }
       
       setMetrics({
         totalUsers,
@@ -426,6 +481,9 @@ const AdminMetricsDashboard = () => {
         newUserRetentionRate,
         churnRate,
       });
+
+      // Fetch daily metrics for table and charts
+      await fetchDailyMetrics();
       
     } catch (error) {
       console.error("Error fetching metrics:", error);
@@ -433,6 +491,158 @@ const AdminMetricsDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchDailyMetrics = async () => {
+    try {
+      const days = dateRange === 'today' ? 1 : dateRange === 'week' ? 7 : dateRange === 'month' ? 30 : 90;
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      
+      // Fetch daily aggregated data
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, created_at')
+        .gte('created_at', startDate.toISOString());
+
+      const { data: subscriptions } = await supabase
+        .from('user_subscriptions')
+        .select('user_id, tier, status, created_at, previous_tier, downgrade_date')
+        .gte('created_at', startDate.toISOString());
+
+      const { data: materials } = await supabase
+        .from('materials')
+        .select('id, created_at')
+        .gte('created_at', startDate.toISOString());
+
+      const { data: projects } = await supabase
+        .from('projects')
+        .select('id, created_at')
+        .gte('created_at', startDate.toISOString());
+
+      const { data: orders } = await supabase
+        .from('orders')
+        .select('id, created_at, total_amount')
+        .gte('created_at', startDate.toISOString());
+
+      // Group by date
+      const dailyData = new Map<string, any>();
+
+      for (let i = 0; i < days; i++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        const dateStr = date.toISOString().split('T')[0];
+        dailyData.set(dateStr, {
+          date: dateStr,
+          newUsers: 0,
+          newSubscriptions: { free: 0, tier_1: 0, tier_2: 0 },
+          cancellations: 0,
+          downgrades: 0,
+          materials: 0,
+          projects: 0,
+          orders: 0,
+          revenue: 0,
+        });
+      }
+
+      // Aggregate data
+      profiles?.forEach(p => {
+        const dateStr = new Date(p.created_at).toISOString().split('T')[0];
+        const day = dailyData.get(dateStr);
+        if (day) day.newUsers++;
+      });
+
+      subscriptions?.forEach(s => {
+        const dateStr = new Date(s.created_at).toISOString().split('T')[0];
+        const day = dailyData.get(dateStr);
+        if (day) {
+          day.newSubscriptions[s.tier as 'free' | 'tier_1' | 'tier_2']++;
+          if (s.previous_tier === 'tier_1' && s.tier === 'free' && s.downgrade_date) {
+            day.cancellations++;
+          }
+          if (s.previous_tier === 'tier_2' && s.tier === 'tier_1' && s.downgrade_date) {
+            day.downgrades++;
+          }
+        }
+      });
+
+      materials?.forEach(m => {
+        const dateStr = new Date(m.created_at).toISOString().split('T')[0];
+        const day = dailyData.get(dateStr);
+        if (day) day.materials++;
+      });
+
+      projects?.forEach(p => {
+        const dateStr = new Date(p.created_at).toISOString().split('T')[0];
+        const day = dailyData.get(dateStr);
+        if (day) day.projects++;
+      });
+
+      orders?.forEach(o => {
+        const dateStr = new Date(o.created_at).toISOString().split('T')[0];
+        const day = dailyData.get(dateStr);
+        if (day) {
+          day.orders++;
+          day.revenue += parseFloat(o.total_amount?.toString() || '0') || 0;
+        }
+      });
+
+      setDailyMetrics(Array.from(dailyData.values()).sort((a, b) => a.date.localeCompare(b.date)));
+    } catch (error) {
+      console.error('Error fetching daily metrics:', error);
+    }
+  };
+
+  const exportMetrics = () => {
+    if (!metrics || !dailyMetrics.length) {
+      toast.error('No metrics to export');
+      return;
+    }
+
+    // Create CSV content
+    const csvRows = [];
+    
+    // Summary metrics
+    csvRows.push('Metric,Value');
+    csvRows.push(`Total Users,${metrics.totalUsers}`);
+    csvRows.push(`New Users Today,${metrics.newUsersToday}`);
+    csvRows.push(`New Users This Week,${metrics.newUsersThisWeek}`);
+    csvRows.push(`New Users This Month,${metrics.newUsersThisMonth}`);
+    csvRows.push(`Active Users,${metrics.activeUsers}`);
+    csvRows.push(`Total Revenue,${metrics.totalRevenue}`);
+    csvRows.push(`Revenue This Month,${metrics.revenueThisMonth}`);
+    csvRows.push('');
+    
+    // Daily metrics
+    csvRows.push('Date,New Users,New Subscriptions Free,New Subscriptions Pro,New Subscriptions Business,Cancellations,Downgrades,Materials,Projects,Orders,Revenue');
+    dailyMetrics.forEach(day => {
+      csvRows.push([
+        day.date,
+        day.newUsers,
+        day.newSubscriptions.free,
+        day.newSubscriptions.tier_1,
+        day.newSubscriptions.tier_2,
+        day.cancellations,
+        day.downgrades,
+        day.materials,
+        day.projects,
+        day.orders,
+        day.revenue.toFixed(2)
+      ].join(','));
+    });
+
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `metrics-export-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success('Metrics exported successfully');
   };
 
   if (authLoading || adminLoading) {
@@ -495,12 +705,136 @@ const AdminMetricsDashboard = () => {
             <BarChart3 className="h-4 w-4 mr-2" />
             Metrics
           </Button>
+          <Select value={dateRange} onValueChange={(value: any) => setDateRange(value)}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">Last 7 Days</SelectItem>
+              <SelectItem value="month">Last 30 Days</SelectItem>
+              <SelectItem value="all">Last 90 Days</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" onClick={() => setShowTable(!showTable)}>
+            <TableIcon className="h-4 w-4 mr-2" />
+            {showTable ? 'Hide' : 'Show'} Table
+          </Button>
+          <Button variant="outline" onClick={exportMetrics} disabled={!metrics || !dailyMetrics.length}>
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
           <Button variant="outline" onClick={fetchMetrics} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
       </div>
+
+      {/* Daily Metrics Table */}
+      {showTable && dailyMetrics.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Daily Metrics Table</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>New Users</TableHead>
+                    <TableHead>New Subs (Free)</TableHead>
+                    <TableHead>New Subs (Pro)</TableHead>
+                    <TableHead>New Subs (Business)</TableHead>
+                    <TableHead>Cancellations</TableHead>
+                    <TableHead>Downgrades</TableHead>
+                    <TableHead>Materials</TableHead>
+                    <TableHead>Projects</TableHead>
+                    <TableHead>Orders</TableHead>
+                    <TableHead>Revenue</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {dailyMetrics.map((day) => (
+                    <TableRow key={day.date}>
+                      <TableCell>{new Date(day.date).toLocaleDateString()}</TableCell>
+                      <TableCell>{day.newUsers}</TableCell>
+                      <TableCell>{day.newSubscriptions.free}</TableCell>
+                      <TableCell>{day.newSubscriptions.tier_1}</TableCell>
+                      <TableCell>{day.newSubscriptions.tier_2}</TableCell>
+                      <TableCell>{day.cancellations}</TableCell>
+                      <TableCell>{day.downgrades}</TableCell>
+                      <TableCell>{day.materials}</TableCell>
+                      <TableCell>{day.projects}</TableCell>
+                      <TableCell>{day.orders}</TableCell>
+                      <TableCell>€{day.revenue.toFixed(2)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Simple Charts using CSS bars */}
+      {dailyMetrics.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>New Users Over Time</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {dailyMetrics.slice(-14).map((day) => {
+                  const max = Math.max(...dailyMetrics.map(d => d.newUsers), 1);
+                  const height = (day.newUsers / max) * 100;
+                  return (
+                    <div key={day.date} className="flex items-end gap-2">
+                      <div className="text-xs w-16 text-right">{new Date(day.date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}</div>
+                      <div className="flex-1 bg-muted rounded h-8 relative">
+                        <div 
+                          className="bg-primary rounded h-full transition-all"
+                          style={{ height: `${Math.max(height, 5)}%` }}
+                        />
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-semibold">{day.newUsers}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>New Subscriptions Over Time</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {dailyMetrics.slice(-14).map((day) => {
+                  const total = day.newSubscriptions.free + day.newSubscriptions.tier_1 + day.newSubscriptions.tier_2;
+                  const max = Math.max(...dailyMetrics.map(d => d.newSubscriptions.free + d.newSubscriptions.tier_1 + d.newSubscriptions.tier_2), 1);
+                  const height = (total / max) * 100;
+                  return (
+                    <div key={day.date} className="flex items-end gap-2">
+                      <div className="text-xs w-16 text-right">{new Date(day.date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}</div>
+                      <div className="flex-1 bg-muted rounded h-8 relative">
+                        <div 
+                          className="bg-primary rounded h-full transition-all"
+                          style={{ height: `${Math.max(height, 5)}%` }}
+                        />
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-semibold">{total}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -704,7 +1038,7 @@ const AdminMetricsDashboard = () => {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <DollarSign className="h-5 w-5" />
-              Revenue
+              Revenue (Orders)
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -716,6 +1050,9 @@ const AdminMetricsDashboard = () => {
               <span>Este Mes</span>
               <Badge variant="default">€{metrics.revenueThisMonth.toFixed(2)}</Badge>
             </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              * Revenue from user orders (e.g., print orders), not subscription payments
+            </p>
           </CardContent>
         </Card>
       </div>

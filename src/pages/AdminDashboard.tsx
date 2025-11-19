@@ -7,14 +7,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { toast } from "sonner";
-import { Users, Package, FolderOpen, ShoppingCart, Edit, DollarSign, Settings, Save, History, Clock, BarChart3 } from "lucide-react";
+import { Users, Package, FolderOpen, ShoppingCart, Edit, DollarSign, Settings, Save, History, Clock, BarChart3, Search, X, Tag } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface UserStats {
@@ -37,9 +38,13 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserStats[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<UserStats[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [selectedUser, setSelectedUser] = useState<UserStats | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 20;
   
   // Form states for user management
   const [newTier, setNewTier] = useState<string>('');
@@ -50,6 +55,7 @@ const AdminDashboard = () => {
   
   // Subscription limits management
   const [limitsTab, setLimitsTab] = useState(false);
+  const [promoCodesTab, setPromoCodesTab] = useState(false);
   const [limits, setLimits] = useState<{
     free: { materials: number; projects: number; monthlyOrders: number; metricsHistory: number; shoppingLists: number };
     tier_1: { materials: number; projects: number; monthlyOrders: number; metricsHistory: number; shoppingLists: number };
@@ -61,6 +67,20 @@ const AdminDashboard = () => {
   // Limits history
   const [limitsHistory, setLimitsHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  
+  // Promo codes management
+  const [promoCodes, setPromoCodes] = useState<any[]>([]);
+  const [loadingPromoCodes, setLoadingPromoCodes] = useState(false);
+  const [promoCodeDialogOpen, setPromoCodeDialogOpen] = useState(false);
+  const [editingPromoCode, setEditingPromoCode] = useState<any | null>(null);
+  const [promoCodeForm, setPromoCodeForm] = useState({
+    code: '',
+    tier: 'tier_1',
+    description: '',
+    expires_at: '',
+    max_uses: '',
+    is_active: true,
+  });
   
   // Ref para evitar múltiples redirecciones
   const hasRedirected = useRef(false);
@@ -140,6 +160,118 @@ const AdminDashboard = () => {
     } finally {
       setSavingLimits(false);
     }
+  };
+
+  const fetchPromoCodes = async () => {
+    try {
+      setLoadingPromoCodes(true);
+      const { data, error } = await supabase
+        .from('promo_codes')
+        .select('*, user_promo_codes(count)')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPromoCodes(data || []);
+    } catch (error: any) {
+      console.error('Error fetching promo codes:', error);
+      toast.error('Error loading promo codes');
+    } finally {
+      setLoadingPromoCodes(false);
+    }
+  };
+
+  const handleSavePromoCode = async () => {
+    try {
+      if (!promoCodeForm.code.trim()) {
+        toast.error('Code is required');
+        return;
+      }
+
+      const promoCodeData: any = {
+        code: promoCodeForm.code.trim().toUpperCase(),
+        tier: promoCodeForm.tier,
+        description: promoCodeForm.description || null,
+        expires_at: promoCodeForm.expires_at || null,
+        max_uses: promoCodeForm.max_uses ? parseInt(promoCodeForm.max_uses) : null,
+        is_active: promoCodeForm.is_active,
+        created_by: user?.id,
+      };
+
+      if (editingPromoCode) {
+        const { error } = await supabase
+          .from('promo_codes')
+          .update(promoCodeData)
+          .eq('id', editingPromoCode.id);
+
+        if (error) throw error;
+        toast.success('Promo code updated successfully');
+      } else {
+        const { error } = await supabase
+          .from('promo_codes')
+          .insert([promoCodeData]);
+
+        if (error) throw error;
+        toast.success('Promo code created successfully');
+      }
+
+      setPromoCodeDialogOpen(false);
+      setEditingPromoCode(null);
+      setPromoCodeForm({
+        code: '',
+        tier: 'tier_1',
+        description: '',
+        expires_at: '',
+        max_uses: '',
+        is_active: true,
+      });
+      fetchPromoCodes();
+    } catch (error: any) {
+      console.error('Error saving promo code:', error);
+      toast.error(error.message || 'Error saving promo code');
+    }
+  };
+
+  const handleDeletePromoCode = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this promo code?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('promo_codes')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      toast.success('Promo code deleted successfully');
+      fetchPromoCodes();
+    } catch (error: any) {
+      console.error('Error deleting promo code:', error);
+      toast.error(error.message || 'Error deleting promo code');
+    }
+  };
+
+  const openPromoCodeDialog = (promoCode?: any) => {
+    if (promoCode) {
+      setEditingPromoCode(promoCode);
+      setPromoCodeForm({
+        code: promoCode.code,
+        tier: promoCode.tier,
+        description: promoCode.description || '',
+        expires_at: promoCode.expires_at ? new Date(promoCode.expires_at).toISOString().split('T')[0] : '',
+        max_uses: promoCode.max_uses?.toString() || '',
+        is_active: promoCode.is_active,
+      });
+    } else {
+      setEditingPromoCode(null);
+      setPromoCodeForm({
+        code: '',
+        tier: 'tier_1',
+        description: '',
+        expires_at: '',
+        max_uses: '',
+        is_active: true,
+      });
+    }
+    setPromoCodeDialogOpen(true);
   };
 
   const fetchLimitsHistory = async () => {
@@ -240,7 +372,32 @@ const AdminDashboard = () => {
         fetchLimitsHistory();
       }
     }
-  }, [user, authLoading, isAdmin, adminLoading, navigate, limitsTab]);
+  }, [user, authLoading, isAdmin, adminLoading, navigate, limitsTab, promoCodesTab]);
+
+  // Filter users based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredUsers(users);
+      setCurrentPage(1);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    const filtered = users.filter(user => 
+      user.email.toLowerCase().includes(query) ||
+      (user.full_name && user.full_name.toLowerCase().includes(query)) ||
+      user.tier.toLowerCase().includes(query) ||
+      user.subscription_status.toLowerCase().includes(query)
+    );
+    setFilteredUsers(filtered);
+    setCurrentPage(1);
+  }, [searchQuery, users]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+  const startIndex = (currentPage - 1) * usersPerPage;
+  const endIndex = startIndex + usersPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
   const fetchAdminData = async () => {
     try {
@@ -273,6 +430,7 @@ const AdminDashboard = () => {
       const userStats = await Promise.all(userStatsPromises);
       setUsers(userStats);
       setTotalUsers(userStats.length);
+      setFilteredUsers(userStats);
     } catch (error) {
       console.error("Error fetching admin data:", error);
       toast.error("Error loading admin data");
@@ -520,7 +678,7 @@ const AdminDashboard = () => {
         <h2 className="text-3xl font-bold">{t('admin.title')}</h2>
         <div className="flex gap-2">
           <Button
-            variant={!limitsTab ? "default" : "outline"}
+            variant={!limitsTab && !promoCodesTab ? "default" : "outline"}
             onClick={() => setLimitsTab(false)}
           >
             <Users className="h-4 w-4 mr-2" />
@@ -530,6 +688,7 @@ const AdminDashboard = () => {
             variant={limitsTab ? "default" : "outline"}
             onClick={() => {
               setLimitsTab(true);
+              setPromoCodesTab(false);
               fetchLimitsHistory();
             }}
           >
@@ -550,10 +709,94 @@ const AdminDashboard = () => {
             <BarChart3 className="h-4 w-4 mr-2" />
             Metrics
           </Button>
+          <Button
+            variant={promoCodesTab ? "default" : "outline"}
+            onClick={() => {
+              setPromoCodesTab(true);
+              setLimitsTab(false);
+              fetchPromoCodes();
+            }}
+          >
+            <Tag className="h-4 w-4 mr-2" />
+            Promo Codes
+          </Button>
         </div>
       </div>
 
-      {!limitsTab ? (
+      {promoCodesTab ? (
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Promo Codes Management</CardTitle>
+              <Button onClick={() => openPromoCodeDialog()}>
+                <Tag className="h-4 w-4 mr-2" />
+                Create Promo Code
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loadingPromoCodes ? (
+              <div className="text-center py-8">Loading...</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Tier</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Uses</TableHead>
+                    <TableHead>Max Uses</TableHead>
+                    <TableHead>Expires</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {promoCodes.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        No promo codes found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    promoCodes.map((promo) => (
+                      <TableRow key={promo.id}>
+                        <TableCell className="font-mono font-semibold">{promo.code}</TableCell>
+                        <TableCell>
+                          <Badge variant={promo.tier === 'tier_2' ? 'default' : promo.tier === 'tier_1' ? 'secondary' : 'outline'}>
+                            {promo.tier === 'tier_2' ? 'Business' : promo.tier === 'tier_1' ? 'Professional' : 'Free'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{promo.description || '-'}</TableCell>
+                        <TableCell>{promo.current_uses || 0}</TableCell>
+                        <TableCell>{promo.max_uses || '∞'}</TableCell>
+                        <TableCell>
+                          {promo.expires_at ? new Date(promo.expires_at).toLocaleDateString() : 'Never'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={promo.is_active ? 'default' : 'secondary'}>
+                            {promo.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline" onClick={() => openPromoCodeDialog(promo)}>
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleDeletePromoCode(promo.id)}>
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      ) : !limitsTab ? (
         <>
 
         <div className="grid md:grid-cols-2 gap-6 mb-8">
@@ -581,7 +824,30 @@ const AdminDashboard = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t('admin.userList')}</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>{t('admin.userList')} ({filteredUsers.length})</CardTitle>
+              <div className="flex gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por email, nombre, tier..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8 w-64"
+                  />
+                  {searchQuery && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-1 top-1 h-6 w-6 p-0"
+                      onClick={() => setSearchQuery('')}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <Table>
@@ -604,7 +870,7 @@ const AdminDashboard = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((userStat) => (
+                {paginatedUsers.map((userStat) => (
                   <TableRow key={userStat.id}>
                     <TableCell>
                       <div>
@@ -752,6 +1018,49 @@ const AdminDashboard = () => {
                 ))}
               </TableBody>
             </Table>
+            {totalPages > 1 && (
+              <div className="mt-4">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
+                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 10) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 4) {
+                        pageNum = totalPages - 9 + i;
+                      } else {
+                        pageNum = currentPage - 5 + i;
+                      }
+                      return (
+                        <PaginationItem key={pageNum}>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(pageNum)}
+                            isActive={currentPage === pageNum}
+                            className="cursor-pointer"
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} 
+                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </CardContent>
         </Card>
         </>
@@ -1019,7 +1328,94 @@ const AdminDashboard = () => {
         </Card>
         </>
       )}
-    </>
+
+      {/* Promo Code Dialog */}
+      <Dialog open={promoCodeDialogOpen} onOpenChange={setPromoCodeDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingPromoCode ? 'Edit Promo Code' : 'Create Promo Code'}</DialogTitle>
+            <DialogDescription>
+              {editingPromoCode ? 'Update the promo code details' : 'Create a new promo code for subscriptions'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="promo-code">Code *</Label>
+              <Input
+                id="promo-code"
+                value={promoCodeForm.code}
+                onChange={(e) => setPromoCodeForm({ ...promoCodeForm, code: e.target.value.toUpperCase() })}
+                placeholder="SUMMER2024"
+                className="font-mono"
+              />
+            </div>
+            <div>
+              <Label htmlFor="promo-tier">Tier *</Label>
+              <Select value={promoCodeForm.tier} onValueChange={(value) => setPromoCodeForm({ ...promoCodeForm, tier: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="free">Free</SelectItem>
+                  <SelectItem value="tier_1">Professional</SelectItem>
+                  <SelectItem value="tier_2">Business</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="promo-description">Description</Label>
+              <Textarea
+                id="promo-description"
+                value={promoCodeForm.description}
+                onChange={(e) => setPromoCodeForm({ ...promoCodeForm, description: e.target.value })}
+                placeholder="Optional description"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="promo-expires">Expires At</Label>
+                <Input
+                  id="promo-expires"
+                  type="date"
+                  value={promoCodeForm.expires_at}
+                  onChange={(e) => setPromoCodeForm({ ...promoCodeForm, expires_at: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="promo-max-uses">Max Uses</Label>
+                <Input
+                  id="promo-max-uses"
+                  type="number"
+                  min="1"
+                  value={promoCodeForm.max_uses}
+                  onChange={(e) => setPromoCodeForm({ ...promoCodeForm, max_uses: e.target.value })}
+                  placeholder="Leave empty for unlimited"
+                />
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="promo-active"
+                checked={promoCodeForm.is_active}
+                onChange={(e) => setPromoCodeForm({ ...promoCodeForm, is_active: e.target.checked })}
+                className="rounded"
+              />
+              <Label htmlFor="promo-active">Active</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPromoCodeDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSavePromoCode}>
+              <Save className="h-4 w-4 mr-2" />
+              {editingPromoCode ? 'Update' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 
