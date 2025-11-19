@@ -178,14 +178,30 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (!user) {
+      console.log('[AdminDashboard] No user, redirecting to /auth');
       navigate("/auth");
       return;
     }
-    if (!adminLoading && !isAdmin) {
+    
+    console.log('[AdminDashboard] User:', user.id, 'Admin loading:', adminLoading, 'Is admin:', isAdmin);
+    
+    // Esperar a que termine de cargar antes de verificar
+    if (adminLoading) {
+      console.log('[AdminDashboard] Still loading admin status, waiting...');
+      return;
+    }
+    
+    // Solo redirigir si definitivamente no es admin
+    if (!isAdmin) {
+      console.log('[AdminDashboard] User is not admin, redirecting to /dashboard');
+      toast.error('No tienes permisos de administrador');
       navigate("/dashboard");
       return;
     }
+    
+    // Si es admin, cargar datos
     if (isAdmin) {
+      console.log('[AdminDashboard] User is admin, loading data');
       fetchAdminData();
       fetchSubscriptionLimits();
       if (limitsTab) {
@@ -388,6 +404,23 @@ const AdminDashboard = () => {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     return createdDate > thirtyDaysAgo;
   }).length;
+
+  // Mostrar loading mientras se verifica el admin
+  if (adminLoading || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Verificando permisos de administrador...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si no es admin, no debería llegar aquí (el useEffect redirige), pero por seguridad:
+  if (!isAdmin) {
+    return null; // El useEffect ya redirigió
+  }
 
   return (
     <>

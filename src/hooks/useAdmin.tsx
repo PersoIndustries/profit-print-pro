@@ -16,6 +16,7 @@ export const useAdmin = () => {
 
     const checkAdmin = async () => {
       try {
+        console.log('[useAdmin] Checking admin status for user:', user.id);
         const { data, error } = await supabase
           .from('user_roles')
           .select('role')
@@ -23,10 +24,28 @@ export const useAdmin = () => {
           .eq('role', 'admin')
           .maybeSingle();
 
-        if (error) throw error;
-        setIsAdmin(!!data);
-      } catch (error) {
-        console.error('Error checking admin status:', error);
+        if (error) {
+          console.error('[useAdmin] Error checking admin status:', error);
+          console.error('[useAdmin] Error details:', {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint
+          });
+          // No lanzar error, solo establecer como no admin
+          setIsAdmin(false);
+          setLoading(false);
+          return;
+        }
+        
+        const isAdminUser = !!data;
+        console.log('[useAdmin] Admin check result:', isAdminUser ? 'IS ADMIN' : 'NOT ADMIN');
+        if (data) {
+          console.log('[useAdmin] Admin role found:', data);
+        }
+        setIsAdmin(isAdminUser);
+      } catch (error: any) {
+        console.error('[useAdmin] Exception checking admin status:', error);
         setIsAdmin(false);
       } finally {
         setLoading(false);
