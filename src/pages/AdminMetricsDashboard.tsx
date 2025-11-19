@@ -548,7 +548,6 @@ const AdminMetricsDashboard = () => {
     
     // Fallback to calculating on the fly if no stored data
     try {
-    try {
       const days = dateRange === 'today' ? 1 : dateRange === 'week' ? 7 : dateRange === 'month' ? 30 : 90;
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
