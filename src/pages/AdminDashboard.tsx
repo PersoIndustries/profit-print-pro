@@ -351,6 +351,121 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchRefundRequests = async () => {
+    try {
+      setLoadingRefundRequests(true);
+      const { data, error } = await supabase
+        .from('refund_requests')
+        .select(`
+          *,
+          user:profiles!refund_requests_user_id_fkey(id, email, full_name),
+          invoice:invoices!refund_requests_invoice_id_fkey(id, invoice_number, amount)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setRefundRequests(data || []);
+    } catch (error: any) {
+      console.error('Error fetching refund requests:', error);
+      toast.error('Error loading refund requests');
+    } finally {
+      setLoadingRefundRequests(false);
+    }
+  };
+
+  const openRefundRequestDialog = (request: any, action: 'approve' | 'reject') => {
+    setSelectedRefundRequest(request);
+    setRefundAction(action);
+    setRefundAdminNotes('');
+    setRefundRequestDialogOpen(true);
+  };
+
+  const handleProcessRefundRequest = async () => {
+    if (!selectedRefundRequest || !user) return;
+
+    try {
+      const updateData: any = {
+        status: refundAction === 'approve' ? 'approved' : 'rejected',
+        admin_id: user.id,
+        admin_notes: refundAdminNotes || null,
+        processed_at: new Date().toISOString()
+      };
+
+      if (refundAction === 'approve') {
+        // Create refund invoice
+        const { error: invoiceError } = await supabase
+          .from('invoices')
+          .insert([{
+            user_id: selectedRefundRequest.user_id,
+            invoice_number: `REF-${Date.now()}`,
+            amount: -Math.abs(selectedRefundRequest.amount),
+            status: 'refunded',
+            tier: selectedRefundRequest.user?.tier || 'free',
+            notes: `Refund for request: ${selectedRefundRequest.reason}`
+          }]);
+
+        if (invoiceError) throw invoiceError;
+        updateData.status = 'processed';
+      }
+
+      const { error: updateError } = await supabase
+        .from('refund_requests')
+        .update(updateData)
+        .eq('id', selectedRefundRequest.id);
+
+      if (updateError) throw updateError;
+
+      toast.success(`Refund request ${refundAction === 'approve' ? 'approved and processed' : 'rejected'} successfully`);
+      setRefundRequestDialogOpen(false);
+      setSelectedRefundRequest(null);
+      setRefundAdminNotes('');
+      fetchRefundRequests();
+    } catch (error: any) {
+      console.error('Error processing refund request:', error);
+      toast.error(error.message || `Error ${refundAction === 'approve' ? 'approving' : 'rejecting'} refund request`);
+    }
+  };
+
+  const openDeleteUserDialog = (userStat: UserStats) => {
+    setSelectedUser(userStat);
+    setDeleteUserReason('');
+    setDeleteConfirmText('');
+    setDeleteUserDialogOpen(true);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser || !deleteUserReason.trim()) {
+      toast.error('Please provide a reason for deletion');
+      return;
+    }
+
+    if (deleteConfirmText !== 'DELETE') {
+      toast.error('Please type DELETE to confirm');
+      return;
+    }
+
+    try {
+      // Soft delete: update deleted_at instead of actually deleting
+      const { error } = await supabase
+        .from('profiles')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', selectedUser.id);
+
+      if (error) throw error;
+
+      toast.success('User deleted successfully');
+      setDeleteUserConfirmDialogOpen(false);
+      setDeleteUserDialogOpen(false);
+      setSelectedUser(null);
+      setDeleteUserReason('');
+      setDeleteConfirmText('');
+      fetchAdminData();
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast.error(error.message || 'Error deleting user');
+    }
+  };
+
   const handleSaveCreatorCode = async () => {
     try {
       if (!creatorCodeForm.code.trim()) {
