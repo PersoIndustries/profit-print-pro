@@ -122,6 +122,8 @@ export default function CatalogDetail() {
   useEffect(() => {
     if (user && catalogId) {
       fetchCatalogData();
+    } else if (!user) {
+      setLoading(false);
     }
   }, [user, catalogId]);
 
@@ -312,6 +314,7 @@ export default function CatalogDetail() {
       }
       // Reordenar proyectos (solo los que no están en secciones)
       else if (activeProject && overProject && !activeProject.catalog_section_id && !overProject.catalog_section_id) {
+        const projectsWithoutSection = projects.filter(p => !p.catalog_section_id).sort((a, b) => a.position - b.position);
         const oldIndex = projectsWithoutSection.indexOf(activeProject);
         const newIndex = projectsWithoutSection.indexOf(overProject);
         const newProjects = arrayMove(projectsWithoutSection, oldIndex, newIndex);
@@ -435,10 +438,28 @@ export default function CatalogDetail() {
     setProductSectionModalOpen(true);
   };
 
+  if (!user) {
+    return null;
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!catalogId) {
+    return (
+      <div className="container mx-auto p-6">
+        <Button variant="ghost" onClick={() => navigate("/catalogs")}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          {t('catalog.detail.back')}
+        </Button>
+        <div className="mt-6 text-center">
+          <p className="text-muted-foreground">{t('catalog.detail.messages.errorLoading')}</p>
+        </div>
       </div>
     );
   }
@@ -711,6 +732,7 @@ function SectionCard({
   onNewProductSection,
   expandedProjects,
   onToggleProject,
+  dragHandleProps,
 }: {
   section: CatalogSection;
   isExpanded: boolean;
@@ -746,7 +768,7 @@ function SectionCard({
                 <ChevronRight className="w-4 h-4" />
               )}
             </Button>
-            <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing flex items-center gap-2">
+            <div {...(dragHandleProps || {})} className="cursor-grab active:cursor-grabbing flex items-center gap-2">
               <GripVertical className="w-4 h-4 text-muted-foreground" />
               <CardTitle className="text-lg">{section.title}</CardTitle>
             </div>
@@ -857,6 +879,7 @@ function ProjectCard({
   onEditProduct,
   onDeleteProduct,
   onNewProductSection,
+  dragHandleProps,
 }: {
   project: CatalogProject;
   isExpanded: boolean;
@@ -901,7 +924,7 @@ function ProjectCard({
                 />
               </div>
             )}
-            <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing flex items-center gap-2 flex-1 min-w-0">
+            <div {...(dragHandleProps || {})} className="cursor-grab active:cursor-grabbing flex items-center gap-2 flex-1 min-w-0">
               <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <CardTitle className="text-base truncate">{project.name}</CardTitle>
