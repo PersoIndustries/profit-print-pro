@@ -941,6 +941,7 @@
     "actions": "Actions",
     "noMaterialsFound": "No materials found with applied filters",
     "lowStockWarning": "There are materials with low stock (marked in yellow)",
+    "onlyLowStock": "Only low stock",
     "materialTypes": {
       "filament": "Filament",
       "resin": "Resin",

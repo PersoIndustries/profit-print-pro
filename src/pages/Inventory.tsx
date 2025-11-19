@@ -881,116 +881,86 @@ const Inventory = () => {
             <TabsContent value="materials">
           <Card>
             <CardHeader>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <CardTitle>{t('inventory.title')}</CardTitle>
-                  <div className="flex items-center gap-3">
-                    {(isPro || isEnterprise) && (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-md border">
-                        <input
-                          type="checkbox"
-                          id="low-stock-toggle-main"
-                          checked={showLowStock}
-                          onChange={(e) => setShowLowStock(e.target.checked)}
-                          className="w-4 h-4 rounded border-input cursor-pointer"
-                        />
-                        <Label htmlFor="low-stock-toggle-main" className="cursor-pointer text-sm font-medium">
-                          {t('inventory.lowStockWarning')}
-                        </Label>
-                      </div>
-                    )}
-                    <Button 
-                      onClick={() => {
-                        setEditingMaterial(null);
-                        setMaterialForm({
-                          name: "",
-                          price_per_kg: "",
-                          color: "",
-                          type: "",
-                          display_mode: "color",
-                        });
-                        setIsMaterialDialogOpen(true);
-                      }}
-                      className="shadow-sm"
+              <div className="flex items-center gap-4 flex-wrap">
+                <CardTitle className="flex-shrink-0">{t('inventory.title')}</CardTitle>
+                
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder={t('inventory.searchMaterial')}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
-                      <Plus className="w-4 h-4 mr-2" />
-                      {t('inventory.addMaterial')}
-                    </Button>
-                  </div>
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
-                {(isPro || isEnterprise) && showLowStock && filteredMaterials.some(m => {
-                  const invItem = inventory.find(inv => inv.material_id === m.id);
-                  const pending = pendingMaterials[m.id] || 0;
-                  const realStock = (invItem?.quantity_grams || 0) - pending;
-                  return invItem && realStock < (invItem.min_stock_alert || 0);
-                }) && (
-                  <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                    <Info className="w-5 h-5 text-yellow-500" />
-                    <span className="text-sm font-medium">
-                      {t('inventory.lowStockWarning')}
-                    </span>
+                
+                <Select value={filterType} onValueChange={setFilterType}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('inventory.allTypes')}</SelectItem>
+                    {MATERIAL_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {(isPro || isEnterprise) && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="low-stock-toggle-main"
+                      checked={showLowStock}
+                      onChange={(e) => setShowLowStock(e.target.checked)}
+                      className="w-4 h-4 rounded border-input cursor-pointer"
+                    />
+                    <Label htmlFor="low-stock-toggle-main" className="cursor-pointer text-sm whitespace-nowrap">
+                      {t('inventory.onlyLowStock')}
+                    </Label>
                   </div>
                 )}
-              </div>
-              
-              {/* Filtros Mejorados */}
-              <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
-                <div className="flex items-center gap-2 mb-2">
-                  <Filter className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">Filtros</span>
-                </div>
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="search" className="text-xs text-muted-foreground">Buscar material</Label>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        id="search"
-                        placeholder={t('inventory.searchMaterial')}
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9"
-                      />
-                      {searchTerm && (
-                        <button
-                          onClick={() => setSearchTerm("")}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="filter-type" className="text-xs text-muted-foreground">Tipo de material</Label>
-                    <Select value={filterType} onValueChange={setFilterType}>
-                      <SelectTrigger id="filter-type" className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">{t('inventory.allTypes')}</SelectItem>
-                        {MATERIAL_TYPES.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-end">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setSearchTerm("");
-                        setFilterType("all");
-                      }}
-                      className="w-full"
-                    >
-                      <X className="w-4 h-4 mr-2" />
-                      {t('inventory.clearFilters')}
-                    </Button>
-                  </div>
-                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setFilterType("all");
+                  }}
+                  className="flex-shrink-0"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  {t('inventory.clearFilters')}
+                </Button>
+                
+                <Button 
+                  onClick={() => {
+                    setEditingMaterial(null);
+                    setMaterialForm({
+                      name: "",
+                      price_per_kg: "",
+                      color: "",
+                      type: "",
+                      display_mode: "color",
+                    });
+                    setIsMaterialDialogOpen(true);
+                  }}
+                  className="flex-shrink-0"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t('inventory.addMaterial')}
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
