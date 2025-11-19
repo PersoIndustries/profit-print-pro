@@ -11,7 +11,8 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useTierFeatures } from '@/hooks/useTierFeatures';
-import { LogOut, Settings, LayoutDashboard, ChevronDown, Package, FolderKanban, Calculator, FileText, Printer, BookOpen, ShoppingCart, History, TrendingUp } from 'lucide-react';
+import { useAdmin } from '@/hooks/useAdmin';
+import { LogOut, Settings, LayoutDashboard, ChevronDown, Package, FolderKanban, Calculator, FileText, Printer, BookOpen, ShoppingCart, History, TrendingUp, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface HeaderProps {
@@ -25,6 +26,7 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
   const { user, signOut } = useAuth();
   const { subscription } = useSubscription();
   const { isPro, isEnterprise } = useTierFeatures();
+  const { isAdmin } = useAdmin();
 
   const isActive = (path: string) => location.pathname === path;
   const isActiveInGroup = (paths: string[]) => paths.some(path => location.pathname.startsWith(path));
@@ -227,6 +229,16 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
           </DropdownMenu>
         </div>
         <div className="flex items-center gap-4">
+          {isAdmin && (
+            <Button 
+              variant={isActive('/admin') ? 'default' : 'ghost'} 
+              onClick={() => navigate('/admin')}
+              title="Admin Panel"
+            >
+              <Shield className="w-4 h-4 mr-2" />
+              Admin
+            </Button>
+          )}
           <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
             <Settings className="w-4 h-4" />
           </Button>

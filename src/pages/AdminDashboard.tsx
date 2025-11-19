@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Users, Package, FolderOpen, ShoppingCart, Edit, DollarSign } from "lucide-react";
+import { Users, Package, FolderOpen, ShoppingCart, Edit, DollarSign, Settings, Save, History, Clock } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface UserStats {
@@ -45,6 +45,135 @@ const AdminDashboard = () => {
   const [refundAmount, setRefundAmount] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [actionType, setActionType] = useState<'changeTier' | 'cancel' | 'refund'>('changeTier');
+  
+  // Subscription limits management
+  const [limitsTab, setLimitsTab] = useState(false);
+  const [limits, setLimits] = useState<{
+    free: { materials: number; projects: number; monthlyOrders: number; metricsHistory: number; shoppingLists: number };
+    tier_1: { materials: number; projects: number; monthlyOrders: number; metricsHistory: number; shoppingLists: number };
+    tier_2: { materials: number; projects: number; monthlyOrders: number; metricsHistory: number; shoppingLists: number };
+  } | null>(null);
+  const [editingLimits, setEditingLimits] = useState<typeof limits>(null);
+  const [savingLimits, setSavingLimits] = useState(false);
+  
+  // Limits history
+  const [limitsHistory, setLimitsHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const fetchSubscriptionLimits = async () => {
+    try {
+      const { data: limitsData, error: limitsError } = await (supabase
+        .from('subscription_limits' as any)
+        .select('tier, materials, projects, monthly_orders, metrics_history, shopping_lists')
+        .in('tier', ['free', 'tier_1', 'tier_2'])
+        .order('tier') as any);
+
+      if (limitsError) throw limitsError;
+
+      if (limitsData && limitsData.length > 0) {
+        const limitsMap = limitsData.reduce((acc: any, limit: any) => {
+          acc[limit.tier] = {
+            materials: limit.materials,
+            projects: limit.projects,
+            monthlyOrders: limit.monthly_orders,
+            metricsHistory: limit.metrics_history,
+            shoppingLists: limit.shopping_lists
+          };
+          return acc;
+        }, {});
+
+        setLimits({
+          free: limitsMap.free || { materials: 10, projects: 15, monthlyOrders: 15, metricsHistory: 0, shoppingLists: 5 },
+          tier_1: limitsMap.tier_1 || { materials: 50, projects: 100, monthlyOrders: 50, metricsHistory: 60, shoppingLists: 5 },
+          tier_2: limitsMap.tier_2 || { materials: 999999, projects: 999999, monthlyOrders: 999999, metricsHistory: 730, shoppingLists: 5 }
+        });
+        setEditingLimits({
+          free: limitsMap.free || { materials: 10, projects: 15, monthlyOrders: 15, metricsHistory: 0, shoppingLists: 5 },
+          tier_1: limitsMap.tier_1 || { materials: 50, projects: 100, monthlyOrders: 50, metricsHistory: 60, shoppingLists: 5 },
+          tier_2: limitsMap.tier_2 || { materials: 999999, projects: 999999, monthlyOrders: 999999, metricsHistory: 730, shoppingLists: 5 }
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching subscription limits:', error);
+      toast.error('Error loading subscription limits');
+    }
+  };
+
+  const handleSaveLimits = async () => {
+    if (!editingLimits) return;
+
+    setSavingLimits(true);
+    try {
+      const updates = [
+        { tier: 'free', ...editingLimits.free },
+        { tier: 'tier_1', ...editingLimits.tier_1 },
+        { tier: 'tier_2', ...editingLimits.tier_2 }
+      ];
+
+      for (const update of updates) {
+        const { error } = await (supabase
+          .from('subscription_limits' as any)
+          .update({
+            materials: update.materials,
+            projects: update.projects,
+            monthly_orders: update.monthlyOrders,
+            metrics_history: update.metricsHistory,
+            shopping_lists: update.shoppingLists
+          })
+          .eq('tier', update.tier) as any);
+
+        if (error) throw error;
+      }
+
+      setLimits(editingLimits);
+      toast.success('Subscription limits updated successfully');
+      // Refresh history after saving
+      fetchLimitsHistory();
+    } catch (error: any) {
+      console.error('Error saving subscription limits:', error);
+      toast.error(error.message || 'Error saving subscription limits');
+    } finally {
+      setSavingLimits(false);
+    }
+  };
+
+  const fetchLimitsHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const { data: historyData, error: historyError } = await (supabase
+        .from('subscription_limits_history' as any)
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100) as any);
+
+      // Fetch user info for changed_by
+      if (historyData && historyData.length > 0) {
+        const userIds = [...new Set(historyData.map((h: any) => h.changed_by).filter(Boolean))];
+        if (userIds.length > 0) {
+          const { data: usersData } = await supabase
+            .from('profiles')
+            .select('id, email, full_name')
+            .in('id', userIds);
+          
+          const usersMap = new Map((usersData || []).map((u: any) => [u.id, u]));
+          
+          historyData.forEach((entry: any) => {
+            if (entry.changed_by && usersMap.has(entry.changed_by)) {
+              entry.changed_by_user = usersMap.get(entry.changed_by);
+            }
+          });
+        }
+      }
+
+      if (historyError) throw historyError;
+      setLimitsHistory(historyData || []);
+    } catch (error) {
+      console.error('Error fetching limits history:', error);
+      toast.error('Error loading limits history');
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   useEffect(() => {
     if (!user) {
@@ -57,8 +186,12 @@ const AdminDashboard = () => {
     }
     if (isAdmin) {
       fetchAdminData();
+      fetchSubscriptionLimits();
+      if (limitsTab) {
+        fetchLimitsHistory();
+      }
     }
-  }, [user, isAdmin, adminLoading, navigate]);
+  }, [user, isAdmin, adminLoading, navigate, limitsTab]);
 
   const fetchAdminData = async () => {
     try {
@@ -257,7 +390,31 @@ const AdminDashboard = () => {
 
   return (
     <>
-      <h2 className="text-3xl font-bold mb-6">{t('admin.title')}</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold">{t('admin.title')}</h2>
+        <div className="flex gap-2">
+          <Button
+            variant={!limitsTab ? "default" : "outline"}
+            onClick={() => setLimitsTab(false)}
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Users
+          </Button>
+          <Button
+            variant={limitsTab ? "default" : "outline"}
+            onClick={() => {
+              setLimitsTab(true);
+              fetchLimitsHistory();
+            }}
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Subscription Limits
+          </Button>
+        </div>
+      </div>
+
+      {!limitsTab ? (
+        <>
 
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           <Card>
@@ -431,7 +588,270 @@ const AdminDashboard = () => {
             </Table>
           </CardContent>
         </Card>
-      </>
+        </>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Manage Subscription Limits</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Configure the limits for each subscription tier. Changes will apply immediately to all users.
+            </p>
+          </CardHeader>
+          <CardContent>
+            {editingLimits ? (
+              <div className="space-y-6">
+                {(['free', 'tier_1', 'tier_2'] as const).map((tier) => {
+                  const tierName = tier === 'free' ? 'Free' : tier === 'tier_1' ? 'Professional' : 'Business';
+                  const tierLimits = editingLimits[tier];
+                  
+                  return (
+                    <div key={tier} className="border rounded-lg p-4 space-y-4">
+                      <h3 className="text-lg font-semibold mb-4">{tierName} Tier</h3>
+                      <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <div>
+                          <Label htmlFor={`${tier}-materials`}>Materials</Label>
+                          <Input
+                            id={`${tier}-materials`}
+                            type="number"
+                            min="0"
+                            value={tierLimits.materials}
+                            onChange={(e) => setEditingLimits({
+                              ...editingLimits,
+                              [tier]: { ...tierLimits, materials: parseInt(e.target.value) || 0 }
+                            })}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`${tier}-projects`}>Projects</Label>
+                          <Input
+                            id={`${tier}-projects`}
+                            type="number"
+                            min="0"
+                            value={tierLimits.projects}
+                            onChange={(e) => setEditingLimits({
+                              ...editingLimits,
+                              [tier]: { ...tierLimits, projects: parseInt(e.target.value) || 0 }
+                            })}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`${tier}-orders`}>Monthly Orders</Label>
+                          <Input
+                            id={`${tier}-orders`}
+                            type="number"
+                            min="0"
+                            value={tierLimits.monthlyOrders}
+                            onChange={(e) => setEditingLimits({
+                              ...editingLimits,
+                              [tier]: { ...tierLimits, monthlyOrders: parseInt(e.target.value) || 0 }
+                            })}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`${tier}-history`}>Metrics History (days)</Label>
+                          <Input
+                            id={`${tier}-history`}
+                            type="number"
+                            min="0"
+                            value={tierLimits.metricsHistory}
+                            onChange={(e) => setEditingLimits({
+                              ...editingLimits,
+                              [tier]: { ...tierLimits, metricsHistory: parseInt(e.target.value) || 0 }
+                            })}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`${tier}-lists`}>Shopping Lists</Label>
+                          <Input
+                            id={`${tier}-lists`}
+                            type="number"
+                            min="0"
+                            value={tierLimits.shoppingLists}
+                            onChange={(e) => setEditingLimits({
+                              ...editingLimits,
+                              [tier]: { ...tierLimits, shoppingLists: parseInt(e.target.value) || 0 }
+                            })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEditingLimits(limits);
+                      toast.info('Changes discarded');
+                    }}
+                    disabled={savingLimits}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSaveLimits}
+                    disabled={savingLimits}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {savingLimits ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                Loading subscription limits...
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        
+        {/* Limits History */}
+        <Card className="mt-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <History className="h-5 w-5" />
+                  Limits Change History
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-2">
+                  View all changes made to subscription limits for audit purposes
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchLimitsHistory}
+                disabled={loadingHistory}
+              >
+                <Clock className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loadingHistory ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Loading history...
+              </div>
+            ) : limitsHistory.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No changes recorded yet
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date & Time</TableHead>
+                      <TableHead>Tier</TableHead>
+                      <TableHead>Changed By</TableHead>
+                      <TableHead>Change Type</TableHead>
+                      <TableHead>Materials</TableHead>
+                      <TableHead>Projects</TableHead>
+                      <TableHead>Monthly Orders</TableHead>
+                      <TableHead>Metrics History</TableHead>
+                      <TableHead>Shopping Lists</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {limitsHistory.map((entry) => {
+                      const tierName = entry.tier === 'free' ? 'Free' : entry.tier === 'tier_1' ? 'Professional' : 'Business';
+                      const changedBy = entry.changed_by_user?.email || entry.changed_by_user?.full_name || 'System';
+                      const changeTypeColor = entry.change_type === 'created' ? 'bg-green-100 text-green-800' :
+                                             entry.change_type === 'updated' ? 'bg-blue-100 text-blue-800' :
+                                             'bg-red-100 text-red-800';
+                      
+                      return (
+                        <TableRow key={entry.id}>
+                          <TableCell>
+                            {new Date(entry.created_at).toLocaleString()}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{tierName}</Badge>
+                          </TableCell>
+                          <TableCell className="text-sm">{changedBy}</TableCell>
+                          <TableCell>
+                            <Badge className={changeTypeColor}>
+                              {entry.change_type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {entry.old_materials !== null && entry.new_materials !== null ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground line-through">{entry.old_materials}</span>
+                                <span>→</span>
+                                <span className="font-semibold">{entry.new_materials}</span>
+                              </div>
+                            ) : entry.new_materials !== null ? (
+                              <span className="font-semibold text-green-600">{entry.new_materials}</span>
+                            ) : (
+                              <span className="text-muted-foreground line-through">{entry.old_materials}</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {entry.old_projects !== null && entry.new_projects !== null ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground line-through">{entry.old_projects}</span>
+                                <span>→</span>
+                                <span className="font-semibold">{entry.new_projects}</span>
+                              </div>
+                            ) : entry.new_projects !== null ? (
+                              <span className="font-semibold text-green-600">{entry.new_projects}</span>
+                            ) : (
+                              <span className="text-muted-foreground line-through">{entry.old_projects}</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {entry.old_monthly_orders !== null && entry.new_monthly_orders !== null ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground line-through">{entry.old_monthly_orders}</span>
+                                <span>→</span>
+                                <span className="font-semibold">{entry.new_monthly_orders}</span>
+                              </div>
+                            ) : entry.new_monthly_orders !== null ? (
+                              <span className="font-semibold text-green-600">{entry.new_monthly_orders}</span>
+                            ) : (
+                              <span className="text-muted-foreground line-through">{entry.old_monthly_orders}</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {entry.old_metrics_history !== null && entry.new_metrics_history !== null ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground line-through">{entry.old_metrics_history}</span>
+                                <span>→</span>
+                                <span className="font-semibold">{entry.new_metrics_history}</span>
+                              </div>
+                            ) : entry.new_metrics_history !== null ? (
+                              <span className="font-semibold text-green-600">{entry.new_metrics_history}</span>
+                            ) : (
+                              <span className="text-muted-foreground line-through">{entry.old_metrics_history}</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {entry.old_shopping_lists !== null && entry.new_shopping_lists !== null ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground line-through">{entry.old_shopping_lists}</span>
+                                <span>→</span>
+                                <span className="font-semibold">{entry.new_shopping_lists}</span>
+                              </div>
+                            ) : entry.new_shopping_lists !== null ? (
+                              <span className="font-semibold text-green-600">{entry.new_shopping_lists}</span>
+                            ) : (
+                              <span className="text-muted-foreground line-through">{entry.old_shopping_lists}</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </>
   );
 };
 
