@@ -53,6 +53,15 @@ interface AppliedPromoCode {
   is_permanent: boolean;
 }
 
+interface AppliedCreatorCode {
+  code: string;
+  applied_at: string;
+  tier_granted: string;
+  trial_days_granted: number;
+  discount_percentage: number;
+  creator_name: string | null;
+}
+
 const Settings = () => {
   const { user, loading: authLoading } = useAuth();
   const { subscription } = useSubscription();
@@ -76,6 +85,10 @@ const Settings = () => {
   const [promoCode, setPromoCode] = useState("");
   const [applyingCode, setApplyingCode] = useState(false);
   const [appliedPromoCode, setAppliedPromoCode] = useState<AppliedPromoCode | null>(null);
+  
+  const [creatorCode, setCreatorCode] = useState("");
+  const [applyingCreatorCode, setApplyingCreatorCode] = useState(false);
+  const [appliedCreatorCode, setAppliedCreatorCode] = useState<AppliedCreatorCode | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -91,7 +104,7 @@ const Settings = () => {
     try {
       if (!user) return;
       
-      const [profileRes, subRes, invoicesRes, promoCodeRes] = await Promise.all([
+      const [profileRes, subRes, invoicesRes, promoCodeRes, creatorCodeRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
         supabase.from("user_subscriptions").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("invoices").select("*").eq("user_id", user.id).order("issued_date", { ascending: false }),
@@ -102,6 +115,24 @@ const Settings = () => {
             applied_at,
             tier_granted,
             promo_codes!inner(code, description)
+          `)
+          .eq("user_id", user.id)
+          .order("applied_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("creator_code_uses")
+          .select(`
+            creator_code_id,
+            applied_at,
+            tier_granted,
+            trial_days_granted,
+            discount_percentage,
+            creator_codes!inner(
+              code,
+              creator_user_id,
+              profiles!creator_codes_creator_user_id_fkey(full_name, email)
+            )
           `)
           .eq("user_id", user.id)
           .order("applied_at", { ascending: false })
@@ -142,6 +173,22 @@ const Settings = () => {
           });
         } else {
           setAppliedPromoCode(null);
+        }
+
+        // Check for applied creator code
+        if (creatorCodeRes.data && creatorCodeRes.data.creator_codes) {
+          const creatorCodeData = creatorCodeRes.data.creator_codes as any;
+          const creatorProfile = creatorCodeData.profiles || {};
+          setAppliedCreatorCode({
+            code: creatorCodeData.code,
+            applied_at: creatorCodeRes.data.applied_at,
+            tier_granted: creatorCodeRes.data.tier_granted,
+            trial_days_granted: creatorCodeRes.data.trial_days_granted || 0,
+            discount_percentage: creatorCodeRes.data.discount_percentage || 0,
+            creator_name: creatorProfile.full_name || creatorProfile.email || null,
+          });
+        } else {
+          setAppliedCreatorCode(null);
         }
       }
 
@@ -397,6 +444,47 @@ const Settings = () => {
       toast.error(error.message || t('settings.promoCode.error'));
     } finally {
       setApplyingCode(false);
+    }
+  };
+
+  const handleApplyCreatorCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!creatorCode.trim()) {
+      toast.error('Por favor ingresa un código de creador');
+      return;
+    }
+
+    setApplyingCreatorCode(true);
+    try {
+      const { data, error } = await supabase.rpc('apply_creator_code', {
+        _code: creatorCode.trim().toUpperCase(),
+        _user_id: user?.id
+      });
+
+      if (error) throw error;
+
+      const result = data as { success: boolean; message: string; tier?: string; trial_days?: number; discount_percentage?: number };
+      
+      if (result.success) {
+        let message = result.message;
+        if (result.trial_days) {
+          message += ` Trial de ${result.trial_days} días activado.`;
+        }
+        if (result.discount_percentage) {
+          message += ` Descuento del ${result.discount_percentage}% aplicado.`;
+        }
+        toast.success(message);
+        setCreatorCode("");
+        await fetchData();
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error: any) {
+      console.error("Error applying creator code:", error);
+      toast.error(error.message || 'Error al aplicar código de creador');
+    } finally {
+      setApplyingCreatorCode(false);
     }
   };
 
@@ -900,6 +988,87 @@ const Settings = () => {
                                 </div>
                               ) : null}
                             </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    )}
+
+                    {/* Applied Creator Code Section */}
+                    {appliedCreatorCode && (
+                      <div className="border-t pt-4 max-w-2xl">
+                        <Card className="border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-background">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs bg-purple-500/10 text-purple-600 border-purple-500/20">CREATOR</Badge>
+                              <span>Código de Creador Activo</span>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-lg font-bold">{appliedCreatorCode.code}</p>
+                                {appliedCreatorCode.creator_name && (
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    Creador: {appliedCreatorCode.creator_name}
+                                  </p>
+                                )}
+                              </div>
+                              <Badge className={getTierBadgeColor(appliedCreatorCode.tier_granted)}>
+                                {appliedCreatorCode.tier_granted === 'tier_1' ? 'PRO' : appliedCreatorCode.tier_granted === 'tier_2' ? 'BUSINESS' : 'FREE'}
+                              </Badge>
+                            </div>
+                            <div className="space-y-2">
+                              {appliedCreatorCode.trial_days_granted > 0 && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Clock className="w-4 h-4 text-primary" />
+                                  <span>Trial de {appliedCreatorCode.trial_days_granted} días</span>
+                                </div>
+                              )}
+                              {appliedCreatorCode.discount_percentage > 0 && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/20">
+                                    {appliedCreatorCode.discount_percentage}% descuento
+                                  </Badge>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2 border-t">
+                              <div className="flex items-center gap-1.5">
+                                <Calendar className="w-4 h-4" />
+                                <span>Aplicado el {new Date(appliedCreatorCode.applied_at).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    )}
+
+                    {/* Creator Code Section */}
+                    {!appliedCreatorCode && (
+                      <div className="border-t pt-4 max-w-2xl">
+                        <Card className="border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-background">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs bg-purple-500/10 text-purple-600 border-purple-500/20">CREATOR</Badge>
+                              Código de Creador
+                            </CardTitle>
+                            <CardDescription className="text-sm">
+                              Ingresa un código de creador para obtener beneficios especiales como días de trial, descuentos y más
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <form onSubmit={handleApplyCreatorCode} className="flex gap-2">
+                              <Input
+                                value={creatorCode}
+                                onChange={(e) => setCreatorCode(e.target.value.toUpperCase())}
+                                placeholder="CREATOR2024"
+                                className="uppercase font-mono"
+                                disabled={applyingCreatorCode}
+                              />
+                              <Button type="submit" disabled={applyingCreatorCode || !creatorCode.trim()}>
+                                {applyingCreatorCode ? t('common.loading') : 'Aplicar Código'}
+                              </Button>
+                            </form>
                           </CardContent>
                         </Card>
                       </div>
