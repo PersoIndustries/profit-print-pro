@@ -12,8 +12,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, CreditCard, Receipt, User, TrendingUp, AlertCircle, Calendar, BarChart3, Shield, Clock } from "lucide-react";
+import { Settings as SettingsIcon, CreditCard, Receipt, User, TrendingUp, AlertCircle, Calendar, BarChart3, Shield, Clock, DollarSign, FileText } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface Profile {
@@ -89,6 +92,17 @@ const Settings = () => {
   const [creatorCode, setCreatorCode] = useState("");
   const [applyingCreatorCode, setApplyingCreatorCode] = useState(false);
   const [appliedCreatorCode, setAppliedCreatorCode] = useState<AppliedCreatorCode | null>(null);
+  
+  // Refund request states
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [refundInvoiceId, setRefundInvoiceId] = useState<string>("");
+  const [refundType, setRefundType] = useState<string>("monthly_payment");
+  const [refundReason, setRefundReason] = useState<string>("");
+  const [refundDescription, setRefundDescription] = useState<string>("");
+  const [refundValidating, setRefundValidating] = useState(false);
+  const [refundValidation, setRefundValidation] = useState<any>(null);
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
+  const [recentInvoices, setRecentInvoices] = useState<any[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -137,7 +151,13 @@ const Settings = () => {
           .eq("user_id", user.id)
           .order("applied_at", { ascending: false })
           .limit(1)
-          .maybeSingle()
+          .maybeSingle(),
+        supabase
+          .from("refund_requests")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(5)
       ]);
 
       if (profileRes.data) {
@@ -194,6 +214,11 @@ const Settings = () => {
 
       if (invoicesRes.data) {
         setInvoices(invoicesRes.data);
+        // Set recent invoices for refund requests
+        const paidInvoices = invoicesRes.data
+          .filter((inv: any) => inv.status === 'paid' && inv.amount > 0)
+          .slice(0, 5);
+        setRecentInvoices(paidInvoices);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -1167,7 +1192,165 @@ const Settings = () => {
             </Card>
           </TabsContent>
         </Tabs>
-      </>
+      </div>
+
+      {/* Refund Request Dialog */}
+      <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Solicitar Refund
+            </DialogTitle>
+            <DialogDescription>
+              Completa el formulario para solicitar un refund. Tu solicitud será revisada por un administrador.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Refund Policy */}
+            <Card className="border-orange-500/30 bg-orange-500/5">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Política de Refunds
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  <li>Máximo 1 semana (7 días) desde el pago para solicitar refund</li>
+                  <li>Máximo 15 días para errores de pago (anual en vez de mensual)</li>
+                  <li>No haber utilizado los límites máximos del plan</li>
+                  <li>Solo se puede hacer refund del mes actual (para pagos mensuales)</li>
+                  <li>Debe haber un problema grave demostrable por la aplicación</li>
+                  <li>El refund solo aplica al período de facturación actual</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            {/* Invoice Selection */}
+            <div>
+              <Label htmlFor="refund-invoice">Factura a Reembolsar *</Label>
+              <Select value={refundInvoiceId} onValueChange={setRefundInvoiceId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona una factura" />
+                </SelectTrigger>
+                <SelectContent>
+                  {recentInvoices.map((invoice) => (
+                    <SelectItem key={invoice.id} value={invoice.id}>
+                      {invoice.invoice_number} - €{invoice.amount.toFixed(2)} - {new Date(invoice.paid_date || invoice.issued_date).toLocaleDateString()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Refund Type */}
+            <div>
+              <Label htmlFor="refund-type">Tipo de Refund *</Label>
+              <Select value={refundType} onValueChange={setRefundType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly_payment">Pago Mensual</SelectItem>
+                  <SelectItem value="annual_payment_error">Error de Pago (Anual en vez de Mensual)</SelectItem>
+                  <SelectItem value="application_issue">Problema Grave de la Aplicación</SelectItem>
+                  <SelectItem value="other">Otro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Reason */}
+            <div>
+              <Label htmlFor="refund-reason">Motivo *</Label>
+              <Input
+                id="refund-reason"
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+                placeholder="Breve descripción del motivo"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <Label htmlFor="refund-description">Descripción Detallada</Label>
+              <Textarea
+                id="refund-description"
+                value={refundDescription}
+                onChange={(e) => setRefundDescription(e.target.value)}
+                placeholder="Describe el problema o situación en detalle..."
+                rows={4}
+              />
+            </div>
+
+            {/* Validation Button */}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleValidateRefund}
+              disabled={!refundInvoiceId || !refundType || refundValidating}
+              className="w-full"
+            >
+              {refundValidating ? 'Validando...' : 'Validar Solicitud'}
+            </Button>
+
+            {/* Validation Results */}
+            {refundValidation && (
+              <Card className={refundValidation.eligible ? "border-green-500/30 bg-green-500/5" : "border-red-500/30 bg-red-500/5"}>
+                <CardContent className="pt-6">
+                  {refundValidation.eligible ? (
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-green-600">✓ La solicitud cumple con todos los requisitos</p>
+                      {refundValidation.validation && (
+                        <div className="text-xs text-muted-foreground space-y-1">
+                          <p>Días desde el pago: {refundValidation.validation.days_since_payment}</p>
+                          <p>Uso: {refundValidation.validation.usage.materials} materiales, {refundValidation.validation.usage.projects} proyectos, {refundValidation.validation.usage.orders} pedidos</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-red-600">✗ La solicitud no cumple con los requisitos:</p>
+                      <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
+                        {refundValidation.errors?.map((error: string, idx: number) => (
+                          <li key={idx}>{error}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Submit Button */}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setRefundDialogOpen(false);
+                  setRefundInvoiceId("");
+                  setRefundType("monthly_payment");
+                  setRefundReason("");
+                  setRefundDescription("");
+                  setRefundValidation(null);
+                }}
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSubmitRefundRequest}
+                disabled={!refundValidation?.eligible || !refundReason.trim() || refundSubmitting}
+                className="flex-1"
+              >
+                {refundSubmitting ? 'Enviando...' : 'Enviar Solicitud'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
