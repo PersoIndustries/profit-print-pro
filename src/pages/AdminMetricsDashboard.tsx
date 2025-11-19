@@ -126,6 +126,20 @@ const AdminMetricsDashboard = () => {
     }
   }, [user, authLoading, isAdmin, adminLoading, navigate, dateRange]);
 
+  const calculateTodayMetrics = async () => {
+    try {
+      // Calculate and store today's metrics
+      const { error } = await supabase.rpc('calculate_daily_metrics', {
+        p_date: new Date().toISOString().split('T')[0]
+      });
+      if (error) {
+        console.error('Error calculating today metrics:', error);
+      }
+    } catch (error) {
+      console.error('Error calculating today metrics:', error);
+    }
+  };
+
   const fetchMetrics = async () => {
     try {
       setLoading(true);
@@ -494,6 +508,46 @@ const AdminMetricsDashboard = () => {
   };
 
   const fetchDailyMetrics = async () => {
+    // First, try to get from daily_metrics table
+    try {
+      const days = dateRange === 'today' ? 1 : dateRange === 'week' ? 7 : dateRange === 'month' ? 30 : 90;
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      
+      // Fetch from daily_metrics table
+      const { data: storedMetrics, error: storedError } = await supabase
+        .from('daily_metrics')
+        .select('*')
+        .gte('metric_date', startDate.toISOString().split('T')[0])
+        .order('metric_date', { ascending: false });
+      
+      if (!storedError && storedMetrics && storedMetrics.length > 0) {
+        // Convert stored metrics to the format expected by the component
+        const formattedMetrics = storedMetrics.map(m => ({
+          date: m.metric_date,
+          newUsers: m.new_users,
+          newSubscriptions: {
+            free: m.new_subscriptions_free,
+            tier_1: m.new_subscriptions_tier_1,
+            tier_2: m.new_subscriptions_tier_2
+          },
+          cancellations: m.cancellations,
+          downgrades: m.downgrades,
+          materials: m.materials_created,
+          projects: m.projects_created,
+          orders: m.orders_created,
+          revenue: parseFloat(m.revenue?.toString() || '0')
+        }));
+        
+        setDailyMetrics(formattedMetrics);
+        return;
+      }
+    } catch (error) {
+      console.error('Error fetching stored daily metrics:', error);
+    }
+    
+    // Fallback to calculating on the fly if no stored data
+    try {
     try {
       const days = dateRange === 'today' ? 1 : dateRange === 'week' ? 7 : dateRange === 'month' ? 30 : 90;
       const startDate = new Date();

@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Users, Package, FolderOpen, ShoppingCart, Edit, DollarSign, Settings, Save, History, Clock, BarChart3, Search, X, Tag, RefreshCw } from "lucide-react";
+import { Users, Package, FolderOpen, ShoppingCart, Edit, DollarSign, Settings, Save, History, Clock, BarChart3, Search, X, Tag, RefreshCw, Trash2, AlertTriangle } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface UserStats {
@@ -563,8 +563,11 @@ const AdminDashboard = () => {
         if (refundRequestsTab) {
           fetchRefundRequests();
         }
+        if (deletedUsersTab) {
+          fetchDeletedUsers();
+        }
       }
-    }, [user, authLoading, isAdmin, adminLoading, navigate, limitsTab, promoCodesTab, creatorCodesTab, refundRequestsTab]);
+    }, [user, authLoading, isAdmin, adminLoading, navigate, limitsTab, promoCodesTab, creatorCodesTab, refundRequestsTab, deletedUsersTab]);
 
   // Filter users based on search query
   useEffect(() => {
@@ -593,16 +596,26 @@ const AdminDashboard = () => {
 
   const fetchAdminData = async () => {
     try {
+      // Fetch all non-deleted profiles
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, email, full_name, created_at");
+        .select("id, email, full_name, created_at")
+        .is('deleted_at', null);
 
       if (profilesError) throw profilesError;
 
+      if (!profiles || profiles.length === 0) {
+        setUsers([]);
+        setTotalUsers(0);
+        setFilteredUsers([]);
+        setLoading(false);
+        return;
+      }
+
       const userStatsPromises = profiles.map(async (profile) => {
         const [subRes, roleRes, materialsRes, projectsRes, ordersRes] = await Promise.all([
-          supabase.from('user_subscriptions').select('tier, status').eq('user_id', profile.id).single(),
-          supabase.from('user_roles').select('role').eq('user_id', profile.id).single(),
+          supabase.from('user_subscriptions').select('tier, status').eq('user_id', profile.id).maybeSingle(),
+          supabase.from('user_roles').select('role').eq('user_id', profile.id).maybeSingle(),
           supabase.from('materials').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
           supabase.from('projects').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
           supabase.from('orders').select('id', { count: 'exact', head: true }).eq('user_id', profile.id)
@@ -1714,6 +1727,14 @@ const AdminDashboard = () => {
                         >
                           <Clock className="h-3 w-3" />
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => openDeleteUserDialog(userStat)}
+                          title="Delete User"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -2321,7 +2342,217 @@ const AdminDashboard = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      </>
+
+      {/* Delete User Dialog - First Confirmation */}
+      <Dialog open={deleteUserDialogOpen} onOpenChange={setDeleteUserDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Confirm User Deletion
+            </DialogTitle>
+            <DialogDescription>
+              You are about to schedule the deletion of user: <strong>{selectedUser?.email}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4">
+              <p className="text-sm font-semibold text-destructive mb-2">⚠️ Important Information:</p>
+              <ul className="text-xs space-y-1 text-muted-foreground list-disc list-inside">
+                <li>The user will lose access immediately</li>
+                <li>The account will be permanently deleted in 15 days</li>
+                <li>The user can be restored within the 15-day period</li>
+                <li>If the user registers again with the same email, the account will be restored</li>
+              </ul>
+            </div>
+            <div>
+              <Label htmlFor="delete-reason">Reason for Deletion *</Label>
+              <Textarea
+                id="delete-reason"
+                value={deleteUserReason}
+                onChange={(e) => setDeleteUserReason(e.target.value)}
+                placeholder="Provide a reason for deleting this user..."
+                rows={3}
+                className="mt-2"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setDeleteUserDialogOpen(false);
+              setDeleteUserReason('');
+            }}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (deleteUserReason.trim()) {
+                  setDeleteUserDialogOpen(false);
+                  setDeleteUserConfirmDialogOpen(true);
+                } else {
+                  toast.error('Please provide a reason for deletion');
+                }
+              }}
+              disabled={!deleteUserReason.trim()}
+            >
+              Continue to Final Confirmation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Dialog - Final Confirmation */}
+      <Dialog open={deleteUserConfirmDialogOpen} onOpenChange={setDeleteUserConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Final Confirmation Required
+            </DialogTitle>
+            <DialogDescription>
+              This is your last chance to cancel. Are you absolutely sure you want to delete this user?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4">
+              <p className="text-sm font-semibold mb-2">User to be deleted:</p>
+              <p className="text-sm font-mono">{selectedUser?.email}</p>
+              <p className="text-sm mt-2 font-semibold mb-2">Reason:</p>
+              <p className="text-sm">{deleteUserReason}</p>
+            </div>
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+              <p className="text-xs font-semibold text-yellow-600">
+                Type <strong>DELETE</strong> to confirm
+              </p>
+            </div>
+            <Input
+              placeholder="Type DELETE to confirm"
+              className="mt-2 font-mono"
+              onChange={(e) => {
+                if (e.target.value === 'DELETE') {
+                  handleDeleteUser();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setDeleteUserConfirmDialogOpen(false);
+              setDeleteUserReason('');
+              setSelectedUser(null);
+            }}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Dialog - First Confirmation */}
+      <Dialog open={deleteUserDialogOpen} onOpenChange={setDeleteUserDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Confirm User Deletion
+            </DialogTitle>
+            <DialogDescription>
+              You are about to schedule the deletion of user: <strong>{selectedUser?.email}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4">
+              <p className="text-sm font-semibold text-destructive mb-2">⚠️ Important Information:</p>
+              <ul className="text-xs space-y-1 text-muted-foreground list-disc list-inside">
+                <li>The user will lose access immediately</li>
+                <li>The account will be permanently deleted in 15 days</li>
+                <li>The user can be restored within the 15-day period</li>
+                <li>If the user registers again with the same email, the account will be restored</li>
+              </ul>
+            </div>
+            <div>
+              <Label htmlFor="delete-reason">Reason for Deletion *</Label>
+              <Textarea
+                id="delete-reason"
+                value={deleteUserReason}
+                onChange={(e) => setDeleteUserReason(e.target.value)}
+                placeholder="Provide a reason for deleting this user..."
+                rows={3}
+                className="mt-2"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setDeleteUserDialogOpen(false);
+              setDeleteUserReason('');
+            }}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (deleteUserReason.trim()) {
+                  setDeleteUserDialogOpen(false);
+                  setDeleteUserConfirmDialogOpen(true);
+                } else {
+                  toast.error('Please provide a reason for deletion');
+                }
+              }}
+              disabled={!deleteUserReason.trim()}
+            >
+              Continue to Final Confirmation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Dialog - Final Confirmation */}
+      <Dialog open={deleteUserConfirmDialogOpen} onOpenChange={setDeleteUserConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Final Confirmation Required
+            </DialogTitle>
+            <DialogDescription>
+              This is your last chance to cancel. Are you absolutely sure you want to delete this user?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4">
+              <p className="text-sm font-semibold mb-2">User to be deleted:</p>
+              <p className="text-sm font-mono">{selectedUser?.email}</p>
+              <p className="text-sm mt-2 font-semibold mb-2">Reason:</p>
+              <p className="text-sm">{deleteUserReason}</p>
+            </div>
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+              <p className="text-xs font-semibold text-yellow-600">
+                Type <strong>DELETE</strong> to confirm
+              </p>
+            </div>
+            <Input
+              placeholder="Type DELETE to confirm"
+              className="mt-2 font-mono"
+              onChange={(e) => {
+                if (e.target.value === 'DELETE') {
+                  handleDeleteUser();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setDeleteUserConfirmDialogOpen(false);
+              setDeleteUserReason('');
+              setSelectedUser(null);
+            }}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
