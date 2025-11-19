@@ -1324,6 +1324,8 @@
       "errorLoadingItems": "Error loading items",
       "errorSavingList": "Error saving list",
       "errorDeletingList": "Error deleting list",
+      "shoppingListLimitReached": "You have reached the limit of {{limit}} shopping lists. Delete an existing list to create a new one.",
+      "listNameRequired": "List name is required"
       "errorSavingItem": "Error saving item",
       "errorDeletingItem": "Error deleting item",
       "errorUpdatingItem": "Error updating item",
@@ -1375,6 +1377,9 @@
     "export": "Export",
     "import": "Import",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "pagination": {
+      "showing": "Showing {{start}} - {{end}} of {{total}}"
+    }
   }
 }

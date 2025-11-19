@@ -14,6 +14,7 @@ import { useTierFeatures } from "@/hooks/useTierFeatures";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { getMaterialIcon } from "@/utils/materialIcons";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 interface Project {
   id: string;
@@ -63,6 +64,10 @@ const Projects = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectPrints, setProjectPrints] = useState<any[]>([]);
   const [loadingPrints, setLoadingPrints] = useState(false);
+  
+  // Paginación automática (solo cuando hay >50 items)
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
 
   useEffect(() => {
     if (!loading && !user) {
@@ -196,6 +201,18 @@ const Projects = () => {
   const filteredProjects = selectedTag
     ? projects.filter(p => p.tags && p.tags.includes(selectedTag))
     : projects;
+  
+  // Paginación automática (solo cuando hay >50 items)
+  const needsPagination = filteredProjects.length > itemsPerPage;
+  const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
+  const startIndex = needsPagination ? (currentPage - 1) * itemsPerPage : 0;
+  const endIndex = needsPagination ? startIndex + itemsPerPage : filteredProjects.length;
+  const paginatedProjects = filteredProjects.slice(startIndex, endIndex);
+  
+  // Resetear a página 1 cuando cambian los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedTag]);
 
   if (loading || projectsLoading) {
     return (
@@ -282,8 +299,9 @@ const Projects = () => {
             </CardContent>
         </Card>
       ) : viewMode === "grid" ? (
+        <>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredProjects.map((project) => (
+          {paginatedProjects.map((project) => (
             <Card key={project.id} className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleViewProject(project)}>
               {canAddImages && project.image_url && (
                 <div className="h-32 overflow-hidden bg-muted">
@@ -353,9 +371,45 @@ const Projects = () => {
             </Card>
           ))}
         </div>
+        {needsPagination && (
+          <div className="mt-6 flex items-center justify-center">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(page)}
+                      isActive={currentPage === page}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+            <div className="ml-4 text-sm text-muted-foreground">
+              {t('common.pagination.showing', { start: startIndex + 1, end: Math.min(endIndex, filteredProjects.length), total: filteredProjects.length })}
+            </div>
+          </div>
+        )}
+        </>
       ) : (
+        <>
         <div className="space-y-3">
-          {filteredProjects.map((project) => (
+          {paginatedProjects.map((project) => (
             <Card key={project.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleViewProject(project)}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
@@ -429,6 +483,41 @@ const Projects = () => {
             </Card>
           ))}
         </div>
+        {needsPagination && (
+          <div className="mt-6 flex items-center justify-center">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(page)}
+                      isActive={currentPage === page}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+            <div className="ml-4 text-sm text-muted-foreground">
+              {t('common.pagination.showing', { start: startIndex + 1, end: Math.min(endIndex, filteredProjects.length), total: filteredProjects.length })}
+            </div>
+          </div>
+        )}
+        </>
       )}
 
       <ProjectFormModal

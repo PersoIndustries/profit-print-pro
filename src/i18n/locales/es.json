@@ -1324,6 +1324,8 @@
       "errorLoadingItems": "Error al cargar los items",
       "errorSavingList": "Error al guardar la lista",
       "errorDeletingList": "Error al eliminar la lista",
+      "shoppingListLimitReached": "Has alcanzado el límite de {{limit}} listas de compra. Elimina una lista existente para crear una nueva.",
+      "listNameRequired": "El nombre de la lista es requerido"
       "errorSavingItem": "Error al guardar el item",
       "errorDeletingItem": "Error al eliminar el item",
       "errorUpdatingItem": "Error al actualizar el item",
@@ -1375,6 +1377,9 @@
     "export": "Exportar",
     "import": "Importar",
     "yes": "Sí",
-    "no": "No"
+    "no": "No",
+    "pagination": {
+      "showing": "Mostrando {{start}} - {{end}} de {{total}}"
+    }
   }
 }

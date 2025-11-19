@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useTierFeatures } from "@/hooks/useTierFeatures";
+import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 interface Material {
   id: string;
@@ -88,6 +90,7 @@ const Inventory = () => {
   const { t } = useTranslation();
   const { user, loading } = useAuth();
   const { isPro, isEnterprise, hasFeature } = useTierFeatures();
+  const { subscription } = useSubscription();
   const [tooltipOpen, setTooltipOpen] = useState<{ [key: string]: boolean }>({});
   
   // Get translated constants
@@ -134,6 +137,9 @@ const Inventory = () => {
   const [shoppingListItemQuantity, setShoppingListItemQuantity] = useState("");
   const [shoppingListItemEstimatedPrice, setShoppingListItemEstimatedPrice] = useState("");
   
+  // Paginación automática (solo cuando hay >50 items)
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
 
   const [materialForm, setMaterialForm] = useState({
     name: "",
@@ -475,6 +481,12 @@ const Inventory = () => {
               toast.error(t('shoppingList.addToShoppingList.errors.mustCreateOrSelect'));
               return;
             }
+
+        // Verificar límite de listas de compra
+        if (subscription && !subscription.canAdd.shoppingLists) {
+          toast.error(t('shoppingList.messages.shoppingListLimitReached', { limit: subscription.limits.shoppingLists }));
+          return;
+        }
 
         // Crear nueva lista
         if (!user) {
@@ -849,6 +861,18 @@ const Inventory = () => {
   // Ordenar materiales filtrados
   const filteredMaterials = sortMaterials(filteredMaterialsRaw);
   
+  // Paginación automática (solo cuando hay >50 items)
+  const needsPagination = filteredMaterials.length > itemsPerPage;
+  const totalPages = Math.ceil(filteredMaterials.length / itemsPerPage);
+  const startIndex = needsPagination ? (currentPage - 1) * itemsPerPage : 0;
+  const endIndex = needsPagination ? startIndex + itemsPerPage : filteredMaterials.length;
+  const paginatedMaterials = filteredMaterials.slice(startIndex, endIndex);
+  
+  // Resetear a página 1 cuando cambian los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterType, showLowStock]);
+  
   // Ordenar assignments y printers
   const sortedAssignments = sortAssignments(stockPrints);
   const sortedPrinters = sortPrinters(printers);
@@ -1131,7 +1155,7 @@ const Inventory = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredMaterials.map((material) => {
+                      {paginatedMaterials.map((material) => {
                         const Icon = getMaterialIcon(material.type, MATERIAL_TYPES);
                         // Buscar el item de inventario correspondiente
                         const inventoryItem = inventory.find(inv => inv.material_id === material.id);
@@ -1257,6 +1281,40 @@ const Inventory = () => {
                     </TableBody>
                   </Table>
                 </TooltipProvider>
+                {needsPagination && (
+                  <div className="mt-4 flex items-center justify-center">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious 
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              onClick={() => setCurrentPage(page)}
+                              isActive={currentPage === page}
+                              className="cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        <PaginationItem>
+                          <PaginationNext 
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                    <div className="ml-4 text-sm text-muted-foreground">
+                      {t('common.pagination.showing', { start: startIndex + 1, end: Math.min(endIndex, filteredMaterials.length), total: filteredMaterials.length })}
+                    </div>
+                  </div>
+                )}
               )}
             </CardContent>
           </Card>

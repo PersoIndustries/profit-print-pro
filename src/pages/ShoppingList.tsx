@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
+import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ interface ShoppingList {
 export default function ShoppingListPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { subscription } = useSubscription();
   const [lists, setLists] = useState<ShoppingList[]>([]);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [items, setItems] = useState<ShoppingListItem[]>([]);
@@ -151,6 +153,12 @@ export default function ShoppingListPage() {
         if (error) throw error;
         toast.success(t('shoppingList.messages.listUpdated'));
       } else {
+        // Verificar límite de listas de compra
+        if (subscription && !subscription.canAdd.shoppingLists) {
+          toast.error(t('shoppingList.messages.shoppingListLimitReached', { limit: subscription.limits.shoppingLists }));
+          return;
+        }
+
         const { error } = await supabase
           .from("shopping_lists")
           .insert({ 

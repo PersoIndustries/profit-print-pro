@@ -10,6 +10,7 @@ interface SubscriptionLimits {
   projects: number;
   monthlyOrders: number;
   metricsHistory: number; // in days
+  shoppingLists: number; // configurable, default 5
 }
 
 interface GracePeriodInfo {
@@ -29,11 +30,13 @@ interface SubscriptionInfo {
     materials: number;
     projects: number;
     monthlyOrders: number;
+    shoppingLists: number;
   };
   canAdd: {
     materials: boolean;
     projects: boolean;
     orders: boolean;
+    shoppingLists: boolean;
   };
   trialEndsAt?: Date;
   daysRemaining?: number;
@@ -46,19 +49,22 @@ const TIER_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
     materials: 10,
     projects: 15,
     monthlyOrders: 15,
-    metricsHistory: 0
+    metricsHistory: 0,
+    shoppingLists: 5 // Configurable, default 5
   },
   tier_1: {
     materials: 50,
     projects: 100,
     monthlyOrders: 50,
-    metricsHistory: 60
+    metricsHistory: 60,
+    shoppingLists: 5 // Configurable, default 5
   },
   tier_2: {
     materials: 999999,
     projects: 999999,
     monthlyOrders: 999999,
-    metricsHistory: 730
+    metricsHistory: 730,
+    shoppingLists: 5 // Configurable, default 5
   }
 };
 
@@ -103,20 +109,22 @@ export const useSubscription = () => {
           : undefined;
 
         // Fetch usage counts
-        const [materialsRes, projectsRes, ordersRes] = await Promise.all([
+        const [materialsRes, projectsRes, ordersRes, shoppingListsRes] = await Promise.all([
           supabase.from('materials').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
           supabase.from('projects').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
           supabase
             .from('orders')
             .select('id', { count: 'exact', head: true })
             .eq('user_id', user.id)
-            .gte('order_date', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
+            .gte('order_date', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+          (supabase.from('shopping_lists' as any).select('id', { count: 'exact', head: true }).eq('user_id', user.id) as any)
         ]);
 
         const usage = {
           materials: materialsRes.count || 0,
           projects: projectsRes.count || 0,
-          monthlyOrders: ordersRes.count || 0
+          monthlyOrders: ordersRes.count || 0,
+          shoppingLists: shoppingListsRes.count || 0
         };
 
         setSubscription({
@@ -127,7 +135,8 @@ export const useSubscription = () => {
           canAdd: {
             materials: usage.materials < limits.materials && !subData?.is_read_only,
             projects: usage.projects < limits.projects && !subData?.is_read_only,
-            orders: usage.monthlyOrders < limits.monthlyOrders && !subData?.is_read_only
+            orders: usage.monthlyOrders < limits.monthlyOrders && !subData?.is_read_only,
+            shoppingLists: usage.shoppingLists < limits.shoppingLists && !subData?.is_read_only
           },
           trialEndsAt: expiresAt,
           daysRemaining,
