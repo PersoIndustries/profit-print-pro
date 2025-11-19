@@ -2048,6 +2048,7 @@ const AdminDashboard = () => {
             )}
           </CardContent>
         </Card>
+        </>
       ) : null}
 
       {/* Promo Code Dialog */}
