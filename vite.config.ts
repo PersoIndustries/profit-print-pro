@@ -14,9 +14,18 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    dedupe: ["react", "react-dom"],
+    dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   optimizeDeps: {
-    include: ["react", "react-dom", "@radix-ui/react-tooltip"],
+    include: ["react", "react-dom", "@radix-ui/react-tooltip", "@tanstack/react-query"],
+    exclude: [],
+    esbuildOptions: {
+      target: 'es2020',
+    },
+  },
+  build: {
+    commonjsOptions: {
+      include: [/node_modules/],
+    },
   },
 }));

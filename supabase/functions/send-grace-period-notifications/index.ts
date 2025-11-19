@@ -1,5 +1,4 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.79.0';
-import { Resend } from 'npm:resend@2.0.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,7 +29,6 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
-    const resend = new Resend(resendApiKey);
 
     console.log('Starting grace period notification check...');
 
@@ -168,12 +166,25 @@ Deno.serve(async (req) => {
           </html>
         `;
 
-        await resend.emails.send({
-          from: 'Printgest <notifications@printgest.com>',
-          to: [user.email],
-          subject: `${urgency}: Your images will be deleted in ${user.days_remaining} day${user.days_remaining === 1 ? '' : 's'}`,
-          html: emailHtml
+        // Send email using Resend API
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'Printgest <notifications@printgest.com>',
+            to: [user.email],
+            subject: `${urgency}: Your images will be deleted in ${user.days_remaining} day${user.days_remaining === 1 ? '' : 's'}`,
+            html: emailHtml
+          }),
         });
+
+        if (!response.ok) {
+          const errorData = await response.text();
+          throw new Error(`Resend API error: ${response.status} - ${errorData}`);
+        }
 
         notificationsSent++;
         console.log(`Sent notification to ${user.email} (${user.days_remaining} days remaining)`);

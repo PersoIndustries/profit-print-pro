@@ -634,6 +634,34 @@ const Settings = () => {
                       </div>
                     </div>
 
+                    {/* Grace Period Alert */}
+                    {subscription?.gracePeriod.isInGracePeriod && (
+                      <Card className="border-destructive/50 bg-destructive/5 mt-4">
+                        <CardContent className="pt-6">
+                          <div className="flex items-start gap-3">
+                            <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-destructive mb-1">
+                                {subscription.gracePeriod.daysUntilDeletion! <= 7 
+                                  ? t('gracePeriod.finalWeek', { days: subscription.gracePeriod.daysUntilDeletion })
+                                  : t('gracePeriod.warning', { days: subscription.gracePeriod.daysUntilDeletion })}
+                              </h4>
+                              <p className="text-sm text-muted-foreground mb-3">
+                                Your account is in read-only mode. Images will be deleted on {new Date(subscription.gracePeriod.gracePeriodEnd!).toLocaleDateString()}.
+                              </p>
+                              <Button 
+                                size="sm" 
+                                onClick={() => navigate('/grace-period-settings')}
+                                variant="outline"
+                              >
+                                Manage Grace Period
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
                     {/* Free User CTA */}
                     {subscriptionInfo.tier === 'free' && (
                       <>

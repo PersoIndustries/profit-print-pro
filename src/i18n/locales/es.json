@@ -919,7 +919,52 @@
     "warning": "Tus imágenes se eliminarán en {{days}} días",
     "readOnlyMode": "Estás en modo solo lectura. No puedes crear nuevos proyectos ni pedidos.",
     "preventDeletion": "Reactiva tu suscripción {{tier}} o superior para evitar la eliminación de tus imágenes y recuperar el acceso completo.",
-    "reactivate": "Reactivar Suscripción"
+    "reactivate": "Reactivar Suscripción",
+    "settings": {
+      "title": "Estado del Período de Gracia",
+      "subtitle": "Gestiona tu período de gracia y datos",
+      "statusDescription": "Has sido degradado desde {{tier}}. Tu cuenta está ahora en modo de solo lectura.",
+      "noGracePeriod": {
+        "title": "Sin Período de Gracia Activo",
+        "description": "Tu cuenta no tiene actualmente un período de gracia."
+      },
+      "timeline": {
+        "title": "Línea de Tiempo del Período de Gracia",
+        "description": "Tus imágenes serán eliminadas cuando termine este período",
+        "daysRemaining": "Días restantes",
+        "days": "días",
+        "downgradeDate": "Degradado el",
+        "deletionDate": "Fecha de eliminación",
+        "previousTier": "Tier anterior"
+      },
+      "readOnly": {
+        "title": "Modo de Solo Lectura",
+        "description": "Restricciones actuales en tu cuenta:",
+        "cantCreate": "No puedes crear nuevos proyectos, pedidos o materiales",
+        "cantModify": "No puedes modificar datos existentes",
+        "imagesDeleted": "Todas las imágenes serán eliminadas al final del período",
+        "dataPreserved": "Todos los datos de texto serán preservados"
+      },
+      "actions": {
+        "title": "Acciones Disponibles",
+        "description": "Qué puedes hacer ahora mismo",
+        "reactivate": {
+          "title": "Reactiva Tu Suscripción",
+          "description": "Actualiza de nuevo a {{tier}} o superior para cancelar el período de gracia y preservar todas las imágenes."
+        },
+        "export": {
+          "title": "Exporta Tus Datos",
+          "description": "Descarga una copia completa de todos tus datos antes de la eliminación."
+        }
+      },
+      "export": {
+        "button": "Exportar Todos los Datos",
+        "exporting": "Exportando...",
+        "starting": "Iniciando exportación de datos...",
+        "success": "Datos exportados exitosamente",
+        "error": "Error al exportar datos"
+      }
+    }
   },
   "inventory": {
     "title": "Inventario",
