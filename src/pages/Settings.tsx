@@ -513,6 +513,71 @@ const Settings = () => {
     }
   };
 
+  const handleValidateRefund = async () => {
+    if (!user || !refundInvoiceId || !refundType) return;
+
+    setRefundValidating(true);
+    try {
+      const { data, error } = await supabase.rpc('validate_refund_request', {
+        p_user_id: user.id,
+        p_invoice_id: refundInvoiceId,
+        p_refund_type: refundType
+      });
+
+      if (error) throw error;
+
+      setRefundValidation(data);
+      if (data?.eligible) {
+        toast.success('La solicitud cumple con todos los requisitos');
+      } else {
+        toast.error('La solicitud no cumple con los requisitos');
+      }
+    } catch (error: any) {
+      console.error('Error validating refund:', error);
+      toast.error(error.message || 'Error al validar la solicitud');
+    } finally {
+      setRefundValidating(false);
+    }
+  };
+
+  const handleSubmitRefundRequest = async () => {
+    if (!user || !refundInvoiceId || !refundType || !refundReason.trim() || !refundValidation?.eligible) return;
+
+    setRefundSubmitting(true);
+    try {
+      // Get invoice amount
+      const invoice = recentInvoices.find((inv) => inv.id === refundInvoiceId);
+      if (!invoice) {
+        toast.error('Factura no encontrada');
+        return;
+      }
+
+      const { data, error } = await supabase.rpc('create_refund_request', {
+        p_user_id: user.id,
+        p_invoice_id: refundInvoiceId,
+        p_amount: invoice.amount,
+        p_reason: refundReason,
+        p_description: refundDescription,
+        p_refund_type: refundType
+      });
+
+      if (error) throw error;
+
+      toast.success('Solicitud de refund enviada correctamente');
+      setRefundDialogOpen(false);
+      setRefundInvoiceId("");
+      setRefundType("monthly_payment");
+      setRefundReason("");
+      setRefundDescription("");
+      setRefundValidation(null);
+    } catch (error: any) {
+      console.error('Error submitting refund request:', error);
+      toast.error(error.message || 'Error al enviar la solicitud');
+    } finally {
+      setRefundSubmitting(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">{t('common.loading')}</div>;
   }

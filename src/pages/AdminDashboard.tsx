@@ -1990,7 +1990,7 @@ const AdminDashboard = () => {
               <Label htmlFor="promo-code">Code *</Label>
               <Input
                 id="promo-code"
-                value={promoCodeForm.code}
+                value={promoCodeForm.code || ''}
                 onChange={(e) => setPromoCodeForm({ ...promoCodeForm, code: e.target.value.toUpperCase() })}
                 placeholder="SUMMER2024"
                 className="font-mono"
@@ -1998,7 +1998,7 @@ const AdminDashboard = () => {
             </div>
             <div>
               <Label htmlFor="promo-tier">Tier *</Label>
-              <Select value={promoCodeForm.tier} onValueChange={(value) => setPromoCodeForm({ ...promoCodeForm, tier: value })}>
+              <Select value={promoCodeForm.tier || 'tier_1'} onValueChange={(value) => setPromoCodeForm({ ...promoCodeForm, tier: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -2013,7 +2013,7 @@ const AdminDashboard = () => {
               <Label htmlFor="promo-description">Description</Label>
               <Textarea
                 id="promo-description"
-                value={promoCodeForm.description}
+                value={promoCodeForm.description || ''}
                 onChange={(e) => setPromoCodeForm({ ...promoCodeForm, description: e.target.value })}
                 placeholder="Optional description"
               />
@@ -2024,7 +2024,7 @@ const AdminDashboard = () => {
                 <Input
                   id="promo-expires"
                   type="date"
-                  value={promoCodeForm.expires_at}
+                  value={promoCodeForm.expires_at || ''}
                   onChange={(e) => setPromoCodeForm({ ...promoCodeForm, expires_at: e.target.value })}
                 />
               </div>
@@ -2034,7 +2034,7 @@ const AdminDashboard = () => {
                   id="promo-max-uses"
                   type="number"
                   min="1"
-                  value={promoCodeForm.max_uses}
+                  value={promoCodeForm.max_uses || ''}
                   onChange={(e) => setPromoCodeForm({ ...promoCodeForm, max_uses: e.target.value })}
                   placeholder="Leave empty for unlimited"
                 />
@@ -2077,7 +2077,7 @@ const AdminDashboard = () => {
               <Label htmlFor="creator-code">Code *</Label>
               <Input
                 id="creator-code"
-                value={creatorCodeForm.code}
+                value={creatorCodeForm.code || ''}
                 onChange={(e) => setCreatorCodeForm({ ...creatorCodeForm, code: e.target.value.toUpperCase() })}
                 placeholder="CREATOR2024"
                 className="font-mono"
@@ -2086,7 +2086,7 @@ const AdminDashboard = () => {
             <div>
               <Label htmlFor="creator-user">Creator User *</Label>
               <Select 
-                value={creatorCodeForm.creator_user_id} 
+                value={creatorCodeForm.creator_user_id || ''} 
                 onValueChange={(value) => setCreatorCodeForm({ ...creatorCodeForm, creator_user_id: value })}
               >
                 <SelectTrigger>
@@ -2108,14 +2108,14 @@ const AdminDashboard = () => {
                   id="creator-trial-days"
                   type="number"
                   min="0"
-                  value={creatorCodeForm.trial_days}
+                  value={creatorCodeForm.trial_days || ''}
                   onChange={(e) => setCreatorCodeForm({ ...creatorCodeForm, trial_days: e.target.value })}
                 />
               </div>
               <div>
                 <Label htmlFor="creator-tier">Tier Granted</Label>
                 <Select 
-                  value={creatorCodeForm.tier_granted} 
+                  value={creatorCodeForm.tier_granted || 'tier_2'} 
                   onValueChange={(value) => setCreatorCodeForm({ ...creatorCodeForm, tier_granted: value })}
                 >
                   <SelectTrigger>
@@ -2138,7 +2138,7 @@ const AdminDashboard = () => {
                   min="0"
                   max="100"
                   step="0.01"
-                  value={creatorCodeForm.discount_percentage}
+                  value={creatorCodeForm.discount_percentage || ''}
                   onChange={(e) => setCreatorCodeForm({ ...creatorCodeForm, discount_percentage: e.target.value })}
                   placeholder="0"
                 />
@@ -2151,7 +2151,7 @@ const AdminDashboard = () => {
                   min="0"
                   max="100"
                   step="0.01"
-                  value={creatorCodeForm.creator_commission_percentage}
+                  value={creatorCodeForm.creator_commission_percentage || ''}
                   onChange={(e) => setCreatorCodeForm({ ...creatorCodeForm, creator_commission_percentage: e.target.value })}
                   placeholder="10"
                 />
@@ -2161,7 +2161,7 @@ const AdminDashboard = () => {
               <Label htmlFor="creator-description">Description</Label>
               <Textarea
                 id="creator-description"
-                value={creatorCodeForm.description}
+                value={creatorCodeForm.description || ''}
                 onChange={(e) => setCreatorCodeForm({ ...creatorCodeForm, description: e.target.value })}
                 placeholder="Optional description"
               />
@@ -2172,7 +2172,7 @@ const AdminDashboard = () => {
                 <Input
                   id="creator-expires"
                   type="date"
-                  value={creatorCodeForm.expires_at}
+                  value={creatorCodeForm.expires_at || ''}
                   onChange={(e) => setCreatorCodeForm({ ...creatorCodeForm, expires_at: e.target.value })}
                 />
               </div>
@@ -2182,7 +2182,7 @@ const AdminDashboard = () => {
                   id="creator-max-uses"
                   type="number"
                   min="1"
-                  value={creatorCodeForm.max_uses}
+                  value={creatorCodeForm.max_uses || ''}
                   onChange={(e) => setCreatorCodeForm({ ...creatorCodeForm, max_uses: e.target.value })}
                   placeholder="Leave empty for unlimited"
                 />
