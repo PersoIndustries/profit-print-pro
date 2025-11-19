@@ -35,6 +35,11 @@ const Pricing = () => {
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [isAnnual, setIsAnnual] = useState(false);
   const [currency, setCurrency] = useState<Currency>('EUR');
+  const [limits, setLimits] = useState<{
+    free: { materials: number; projects: number; monthlyOrders: number };
+    tier_1: { materials: number; projects: number; monthlyOrders: number };
+    tier_2: { materials: number; projects: number; monthlyOrders: number };
+  } | null>(null);
 
   // Tipo de cambio aproximado (puedes usar una API real)
   const exchangeRate = 1.1; // 1 EUR = 1.1 USD
@@ -63,6 +68,55 @@ const Pricing = () => {
 
     fetchSubscriptionStatus();
   }, [user]);
+
+  // Fetch subscription limits from database
+  useEffect(() => {
+    const fetchLimits = async () => {
+      try {
+        // Fetch limits for all tiers from database
+        const { data: limitsData, error: limitsError } = await (supabase
+          .from('subscription_limits' as any)
+          .select('tier, materials, projects, monthly_orders')
+          .in('tier', ['free', 'tier_1', 'tier_2']) as any);
+
+        if (limitsError || !limitsData || limitsData.length === 0) {
+          // Fallback to default values if database query fails
+          setLimits({
+            free: { materials: 10, projects: 15, monthlyOrders: 15 },
+            tier_1: { materials: 50, projects: 100, monthlyOrders: 50 },
+            tier_2: { materials: 999999, projects: 999999, monthlyOrders: 999999 }
+          });
+          return;
+        }
+
+        // Transform data to match our structure
+        const limitsMap = limitsData.reduce((acc: any, limit: any) => {
+          acc[limit.tier] = {
+            materials: limit.materials,
+            projects: limit.projects,
+            monthlyOrders: limit.monthly_orders
+          };
+          return acc;
+        }, {});
+
+        setLimits({
+          free: limitsMap.free || { materials: 10, projects: 15, monthlyOrders: 15 },
+          tier_1: limitsMap.tier_1 || { materials: 50, projects: 100, monthlyOrders: 50 },
+          tier_2: limitsMap.tier_2 || { materials: 999999, projects: 999999, monthlyOrders: 999999 }
+        });
+      } catch (error) {
+        console.warn('Failed to fetch subscription limits from database, using defaults:', error);
+        // Fallback to default values
+        setLimits({
+          free: { materials: 10, projects: 15, monthlyOrders: 15 },
+          tier_1: { materials: 50, projects: 100, monthlyOrders: 50 },
+          tier_2: { materials: 999999, projects: 999999, monthlyOrders: 999999 }
+        });
+      }
+    };
+
+    fetchLimits();
+  }, []);
 
   const convertPrice = (priceEUR: number): number => {
     return currency === 'USD' ? Math.round(priceEUR * exchangeRate) : priceEUR;
@@ -100,28 +154,36 @@ const Pricing = () => {
     }
   ];
 
+  // Helper function to format limit value
+  const formatLimit = (value: number): string => {
+    if (value >= 999999) {
+      return t('pricing.comparison.unlimited');
+    }
+    return value.toString();
+  };
+
   // Tabla comparativa de features
   const comparisonFeatures: ComparisonFeature[] = [
     {
       category: t('pricing.comparison.categories.materials'),
       feature: t('pricing.comparison.features.materials'),
-      free: '10',
-      tier1: '50',
-      tier2: t('pricing.comparison.unlimited')
+      free: limits ? formatLimit(limits.free.materials) : '10',
+      tier1: limits ? formatLimit(limits.tier_1.materials) : '50',
+      tier2: limits ? formatLimit(limits.tier_2.materials) : t('pricing.comparison.unlimited')
     },
     {
       category: t('pricing.comparison.categories.materials'),
       feature: t('pricing.comparison.features.projects'),
-      free: '15',
-      tier1: '100',
-      tier2: t('pricing.comparison.unlimited')
+      free: limits ? formatLimit(limits.free.projects) : '15',
+      tier1: limits ? formatLimit(limits.tier_1.projects) : '100',
+      tier2: limits ? formatLimit(limits.tier_2.projects) : t('pricing.comparison.unlimited')
     },
     {
       category: t('pricing.comparison.categories.orders'),
       feature: t('pricing.comparison.features.ordersPerMonth'),
-      free: '15',
-      tier1: '50',
-      tier2: t('pricing.comparison.unlimited')
+      free: limits ? formatLimit(limits.free.monthlyOrders) : '15',
+      tier1: limits ? formatLimit(limits.tier_1.monthlyOrders) : '50',
+      tier2: limits ? formatLimit(limits.tier_2.monthlyOrders) : t('pricing.comparison.unlimited')
     },
     {
       category: t('pricing.comparison.categories.orders'),

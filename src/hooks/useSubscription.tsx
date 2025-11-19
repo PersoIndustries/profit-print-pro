@@ -44,27 +44,28 @@ interface SubscriptionInfo {
   gracePeriod: GracePeriodInfo;
 }
 
-const TIER_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
+// Fallback limits (used if database limits are not available)
+const DEFAULT_TIER_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
   free: {
     materials: 10,
     projects: 15,
     monthlyOrders: 15,
     metricsHistory: 0,
-    shoppingLists: 5 // Configurable, default 5
+    shoppingLists: 5
   },
   tier_1: {
     materials: 50,
     projects: 100,
     monthlyOrders: 50,
     metricsHistory: 60,
-    shoppingLists: 5 // Configurable, default 5
+    shoppingLists: 5
   },
   tier_2: {
     materials: 999999,
     projects: 999999,
     monthlyOrders: 999999,
     metricsHistory: 730,
-    shoppingLists: 5 // Configurable, default 5
+    shoppingLists: 5
   }
 };
 
@@ -93,7 +94,35 @@ export const useSubscription = () => {
         const tier = (subData?.tier || 'free') as SubscriptionTier;
         const status = (subData?.status || 'active') as SubscriptionStatus;
         const expiresAt = subData?.expires_at ? new Date(subData.expires_at) : undefined;
-        const limits = TIER_LIMITS[tier];
+        
+        // Fetch limits from database, fallback to defaults if not available
+        let limits: SubscriptionLimits;
+        try {
+          // Note: Using 'as any' because subscription_limits table types haven't been generated yet
+          // After running the migration, regenerate types with: npx supabase gen types typescript
+          const { data: limitsData, error: limitsError } = await (supabase
+            .from('subscription_limits' as any)
+            .select('materials, projects, monthly_orders, metrics_history, shopping_lists')
+            .eq('tier', tier)
+            .single() as any);
+
+          if (limitsError || !limitsData) {
+            // Fallback to default limits
+            limits = DEFAULT_TIER_LIMITS[tier];
+          } else {
+            limits = {
+              materials: limitsData.materials,
+              projects: limitsData.projects,
+              monthlyOrders: limitsData.monthly_orders,
+              metricsHistory: limitsData.metrics_history,
+              shoppingLists: limitsData.shopping_lists
+            };
+          }
+        } catch (error) {
+          // Fallback to default limits if database query fails
+          console.warn('Failed to fetch subscription limits from database, using defaults:', error);
+          limits = DEFAULT_TIER_LIMITS[tier];
+        }
         
         // Calculate trial info
         const isTrialActive = status === 'trial' && expiresAt && expiresAt > new Date();
