@@ -1403,9 +1403,8 @@ const AdminDashboard = () => {
                   </TableBody>
                 </Table>
               )}
-            </CardContent>
-          </Card>
-        </>
+          </CardContent>
+        </Card>
       ) : limitsTab ? (
         <>
           {/* Action Menu - Two Rows */}
@@ -2049,8 +2048,7 @@ const AdminDashboard = () => {
             )}
           </CardContent>
         </Card>
-        </>
-      )}
+      ) : null}
 
       {/* Promo Code Dialog */}
       <Dialog open={promoCodeDialogOpen} onOpenChange={setPromoCodeDialogOpen}>
