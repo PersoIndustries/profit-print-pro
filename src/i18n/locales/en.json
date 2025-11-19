@@ -919,7 +919,52 @@
     "warning": "Your images will be deleted in {{days}} days",
     "readOnlyMode": "You are in read-only mode. You cannot create new projects or orders.",
     "preventDeletion": "Reactivate your {{tier}} subscription or higher to prevent image deletion and restore full access.",
-    "reactivate": "Reactivate Subscription"
+    "reactivate": "Reactivate Subscription",
+    "settings": {
+      "title": "Grace Period Status",
+      "subtitle": "Manage your grace period and data",
+      "statusDescription": "You were downgraded from {{tier}}. Your account is now in read-only mode.",
+      "noGracePeriod": {
+        "title": "No Active Grace Period",
+        "description": "Your account is not currently in a grace period."
+      },
+      "timeline": {
+        "title": "Grace Period Timeline",
+        "description": "Your images will be deleted when this period ends",
+        "daysRemaining": "Days remaining",
+        "days": "days",
+        "downgradeDate": "Downgraded on",
+        "deletionDate": "Deletion date",
+        "previousTier": "Previous tier"
+      },
+      "readOnly": {
+        "title": "Read-Only Mode",
+        "description": "Current restrictions on your account:",
+        "cantCreate": "Cannot create new projects, orders, or materials",
+        "cantModify": "Cannot modify existing data",
+        "imagesDeleted": "All images will be deleted at end of period",
+        "dataPreserved": "All text data will be preserved"
+      },
+      "actions": {
+        "title": "Available Actions",
+        "description": "What you can do right now",
+        "reactivate": {
+          "title": "Reactivate Your Subscription",
+          "description": "Upgrade back to {{tier}} or higher to cancel the grace period and preserve all images."
+        },
+        "export": {
+          "title": "Export Your Data",
+          "description": "Download a complete backup of all your data before deletion."
+        }
+      },
+      "export": {
+        "button": "Export All Data",
+        "exporting": "Exporting...",
+        "starting": "Starting data export...",
+        "success": "Data exported successfully",
+        "error": "Failed to export data"
+      }
+    }
   },
   "inventory": {
     "title": "Inventory",
@@ -1325,7 +1370,7 @@
       "errorSavingList": "Error saving list",
       "errorDeletingList": "Error deleting list",
       "shoppingListLimitReached": "You have reached the limit of {{limit}} shopping lists. Delete an existing list to create a new one.",
-      "listNameRequired": "List name is required"
+      "listNameRequired": "List name is required",
       "errorSavingItem": "Error saving item",
       "errorDeletingItem": "Error deleting item",
       "errorUpdatingItem": "Error updating item",

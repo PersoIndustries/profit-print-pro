@@ -219,6 +219,7 @@ export type Database = {
         Row: {
           catalog_id: string
           created_at: string | null
+          display_type: string
           id: string
           position: number
           title: string
@@ -227,6 +228,7 @@ export type Database = {
         Insert: {
           catalog_id: string
           created_at?: string | null
+          display_type?: string
           id?: string
           position?: number
           title: string
@@ -235,6 +237,7 @@ export type Database = {
         Update: {
           catalog_id?: string
           created_at?: string | null
+          display_type?: string
           id?: string
           position?: number
           title?: string
@@ -253,31 +256,46 @@ export type Database = {
       catalogs: {
         Row: {
           brand_logo_url: string | null
+          cover_background_url: string | null
           created_at: string | null
           description: string | null
           id: string
           name: string
+          season: string | null
+          show_logo_on_cover: boolean
           show_powered_by: boolean
+          show_text_on_cover: boolean
+          theme: string
           updated_at: string | null
           user_id: string
         }
         Insert: {
           brand_logo_url?: string | null
+          cover_background_url?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           name: string
+          season?: string | null
+          show_logo_on_cover?: boolean
           show_powered_by?: boolean
+          show_text_on_cover?: boolean
+          theme?: string
           updated_at?: string | null
           user_id: string
         }
         Update: {
           brand_logo_url?: string | null
+          cover_background_url?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           name?: string
+          season?: string | null
+          show_logo_on_cover?: boolean
           show_powered_by?: boolean
+          show_text_on_cover?: boolean
+          theme?: string
           updated_at?: string | null
           user_id?: string
         }
@@ -953,6 +971,77 @@ export type Database = {
         }
         Relationships: []
       }
+      shopping_list: {
+        Row: {
+          created_at: string
+          estimated_price: number | null
+          id: string
+          is_completed: boolean
+          name: string
+          notes: string | null
+          quantity: string | null
+          shopping_list_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          estimated_price?: number | null
+          id?: string
+          is_completed?: boolean
+          name: string
+          notes?: string | null
+          quantity?: string | null
+          shopping_list_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          estimated_price?: number | null
+          id?: string
+          is_completed?: boolean
+          name?: string
+          notes?: string | null
+          quantity?: string | null
+          shopping_list_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_list_shopping_list_id_fkey"
+            columns: ["shopping_list_id"]
+            isOneToOne: false
+            referencedRelation: "shopping_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopping_lists: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscription_changes: {
         Row: {
           admin_id: string | null
@@ -990,6 +1079,99 @@ export type Database = {
             | null
           reason?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      subscription_limits: {
+        Row: {
+          created_at: string
+          id: string
+          materials: number
+          metrics_history: number
+          monthly_orders: number
+          projects: number
+          shopping_lists: number
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          materials?: number
+          metrics_history?: number
+          monthly_orders?: number
+          projects?: number
+          shopping_lists?: number
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          materials?: number
+          metrics_history?: number
+          monthly_orders?: number
+          projects?: number
+          shopping_lists?: number
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscription_limits_history: {
+        Row: {
+          change_type: string
+          changed_by: string | null
+          created_at: string
+          id: string
+          new_materials: number | null
+          new_metrics_history: number | null
+          new_monthly_orders: number | null
+          new_projects: number | null
+          new_shopping_lists: number | null
+          notes: string | null
+          old_materials: number | null
+          old_metrics_history: number | null
+          old_monthly_orders: number | null
+          old_projects: number | null
+          old_shopping_lists: number | null
+          tier: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Insert: {
+          change_type: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_materials?: number | null
+          new_metrics_history?: number | null
+          new_monthly_orders?: number | null
+          new_projects?: number | null
+          new_shopping_lists?: number | null
+          notes?: string | null
+          old_materials?: number | null
+          old_metrics_history?: number | null
+          old_monthly_orders?: number | null
+          old_projects?: number | null
+          old_shopping_lists?: number | null
+          tier: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Update: {
+          change_type?: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_materials?: number | null
+          new_metrics_history?: number | null
+          new_monthly_orders?: number | null
+          new_projects?: number | null
+          new_shopping_lists?: number | null
+          notes?: string | null
+          old_materials?: number | null
+          old_metrics_history?: number | null
+          old_monthly_orders?: number | null
+          old_projects?: number | null
+          old_shopping_lists?: number | null
+          tier?: Database["public"]["Enums"]["subscription_tier"]
         }
         Relationships: []
       }
@@ -1158,6 +1340,16 @@ export type Database = {
         Returns: boolean
       }
       generate_invoice_number: { Args: never; Returns: string }
+      get_subscription_limits: {
+        Args: { _tier: Database["public"]["Enums"]["subscription_tier"] }
+        Returns: {
+          materials: number
+          metrics_history: number
+          monthly_orders: number
+          projects: number
+          shopping_lists: number
+        }[]
+      }
       get_user_tier: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["subscription_tier"]

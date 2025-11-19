@@ -246,6 +246,7 @@ export default function ShoppingListPage() {
             estimated_price: estimatedPriceValue,
             shopping_list_id: selectedListId,
             is_completed: false,
+            user_id: user!.id,
           });
 
         if (error) throw error;

@@ -1325,7 +1325,7 @@
       "errorSavingList": "Error al guardar la lista",
       "errorDeletingList": "Error al eliminar la lista",
       "shoppingListLimitReached": "Has alcanzado el límite de {{limit}} listas de compra. Elimina una lista existente para crear una nueva.",
-      "listNameRequired": "El nombre de la lista es requerido"
+      "listNameRequired": "El nombre de la lista es requerido",
       "errorSavingItem": "Error al guardar el item",
       "errorDeletingItem": "Error al eliminar el item",
       "errorUpdatingItem": "Error al actualizar el item",

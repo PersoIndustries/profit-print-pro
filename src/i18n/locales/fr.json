@@ -1314,7 +1314,7 @@
       "errorSavingList": "Erreur lors de l'enregistrement de la liste",
       "errorDeletingList": "Erreur lors de la suppression de la liste",
       "shoppingListLimitReached": "Vous avez atteint la limite de {{limit}} listes de courses. Supprimez une liste existante pour en créer une nouvelle.",
-      "listNameRequired": "Le nom de la liste est obligatoire"
+      "listNameRequired": "Le nom de la liste est obligatoire",
       "errorSavingItem": "Erreur lors de l'enregistrement de l'article",
       "errorDeletingItem": "Erreur lors de la suppression de l'article",
       "errorUpdatingItem": "Erreur lors de la mise à jour de l'article",
