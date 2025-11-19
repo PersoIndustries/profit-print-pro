@@ -504,9 +504,15 @@ const Inventory = () => {
         : null;
 
       // Insertar item en la lista
+      if (!user) {
+        toast.error("Error: usuario no autenticado");
+        return;
+      }
+
       const { error } = await supabase
         .from("shopping_list")
         .insert({
+          user_id: user.id,
           name: shoppingListItemName.trim(),
           quantity: shoppingListItemQuantity.trim() || null,
           estimated_price: estimatedPrice && !isNaN(estimatedPrice) ? estimatedPrice : null,
