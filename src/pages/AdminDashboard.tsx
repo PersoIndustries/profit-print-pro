@@ -198,17 +198,24 @@ const AdminDashboard = () => {
       return;
     }
     
-    // Solo redirigir si definitivamente no es admin
-    if (!isAdmin) {
-      console.log('[AdminDashboard] User is not admin, redirecting to /dashboard');
-      toast.error('No tienes permisos de administrador');
-      navigate("/dashboard");
-      return;
+    // IMPORTANTE: Solo actuar cuando TODO haya terminado de cargar
+    // Si no es admin DESPUÉS de que todo cargó, entonces redirigir
+    if (!isAdmin && !adminLoading && !authLoading) {
+      console.log('[AdminDashboard] User is not admin after all checks, redirecting to /dashboard');
+      console.log('[AdminDashboard] Final state - isAdmin:', isAdmin, 'adminLoading:', adminLoading, 'authLoading:', authLoading);
+      
+      // Usar un pequeño delay para evitar condiciones de carrera
+      const timeoutId = setTimeout(() => {
+        toast.error('No tienes permisos de administrador');
+        navigate("/dashboard");
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
     }
     
-    // Si es admin, cargar datos
-    if (isAdmin) {
-      console.log('[AdminDashboard] User is admin, loading data');
+    // Si es admin, cargar datos (solo cuando todo esté listo)
+    if (isAdmin && !adminLoading && !authLoading) {
+      console.log('[AdminDashboard] ✅ User is admin, loading data');
       fetchAdminData();
       fetchSubscriptionLimits();
       if (limitsTab) {
@@ -413,7 +420,7 @@ const AdminDashboard = () => {
   }).length;
 
   // Mostrar loading mientras se verifica el auth o el admin
-  if (authLoading || adminLoading || !user) {
+  if (authLoading || adminLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -426,9 +433,14 @@ const AdminDashboard = () => {
     );
   }
 
-  // Si no es admin, no debería llegar aquí (el useEffect redirige), pero por seguridad:
-  if (!isAdmin) {
-    return null; // El useEffect ya redirigió
+  // Si no hay usuario después de cargar, mostrar nada (el useEffect redirige)
+  if (!user) {
+    return null;
+  }
+
+  // Si no es admin DESPUÉS de que todo cargó, mostrar nada (el useEffect redirige)
+  if (!isAdmin && !adminLoading && !authLoading) {
+    return null; // El useEffect ya redirigió o está por redirigir
   }
 
   return (

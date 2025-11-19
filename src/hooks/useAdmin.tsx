@@ -3,12 +3,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
 export const useAdmin = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Esperar a que termine de cargar la autenticación
+    if (authLoading) {
+      console.log('[useAdmin] Auth still loading, waiting...');
+      setLoading(true);
+      return;
+    }
+
     if (!user) {
+      console.log('[useAdmin] No user, setting isAdmin to false');
       setIsAdmin(false);
       setLoading(false);
       return;
@@ -16,6 +24,7 @@ export const useAdmin = () => {
 
     const checkAdmin = async () => {
       try {
+        setLoading(true);
         console.log('[useAdmin] Checking admin status for user:', user.id);
         const { data, error } = await supabase
           .from('user_roles')
@@ -53,7 +62,7 @@ export const useAdmin = () => {
     };
 
     checkAdmin();
-  }, [user]);
+  }, [user, authLoading]);
 
   return { isAdmin, loading };
 };
