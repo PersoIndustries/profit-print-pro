@@ -354,6 +354,13 @@
     "viewPlans": "Voir les Plans",
     "settings": {
       "title": "Paramètres du Catalogue",
+      "name": "Nom du Catalogue",
+      "namePlaceholder": "Ex: Catalogue Printemps 2024",
+      "description": "Description",
+      "descriptionPlaceholder": "Description du catalogue (optionnel)",
+      "season": "Saison",
+      "seasonPlaceholder": "Ex: 2025, Q2 2025, Printemps 2025",
+      "seasonDesc": "Indiquez la saison ou la période du catalogue (optionnel)",
       "showPoweredBy": "Afficher \"Powered by LAYER SUITE\" dans le PDF",
       "showPoweredByDesc": "Activé par défaut. Vous pouvez le masquer si vous avez un plan Business.",
       "coverBackground": "Arrière-plan de Couverture",

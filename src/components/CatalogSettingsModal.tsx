@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Loader2, Image as ImageIcon, X } from "lucide-react";
 
@@ -26,6 +27,9 @@ export function CatalogSettingsModal({ open, onOpenChange, catalogId, onSuccess 
   const [coverBackgroundUrl, setCoverBackgroundUrl] = useState<string | null>(null);
   const [showLogoOnCover, setShowLogoOnCover] = useState(true);
   const [showTextOnCover, setShowTextOnCover] = useState(true);
+  const [catalogName, setCatalogName] = useState("");
+  const [catalogDescription, setCatalogDescription] = useState("");
+  const [season, setSeason] = useState("");
 
   useEffect(() => {
     if (open && catalogId) {
@@ -38,12 +42,15 @@ export function CatalogSettingsModal({ open, onOpenChange, catalogId, onSuccess 
       setLoading(true);
       const { data, error } = await supabase
         .from("catalogs")
-        .select("show_powered_by, cover_background_url, show_logo_on_cover, show_text_on_cover")
+        .select("name, description, season, show_powered_by, cover_background_url, show_logo_on_cover, show_text_on_cover")
         .eq("id", catalogId)
         .single();
 
       if (error) throw error;
 
+      setCatalogName(data.name || "");
+      setCatalogDescription(data.description || "");
+      setSeason(data.season || "");
       setShowPoweredBy(data.show_powered_by ?? true);
       setCoverBackgroundUrl(data.cover_background_url || null);
       setShowLogoOnCover(data.show_logo_on_cover ?? true);
@@ -134,6 +141,9 @@ export function CatalogSettingsModal({ open, onOpenChange, catalogId, onSuccess 
       const { error } = await supabase
         .from("catalogs")
         .update({
+          name: catalogName,
+          description: catalogDescription || null,
+          season: season || null,
           show_powered_by: showPoweredBy,
           cover_background_url: coverBackgroundUrl,
           show_logo_on_cover: showLogoOnCover,
@@ -144,7 +154,7 @@ export function CatalogSettingsModal({ open, onOpenChange, catalogId, onSuccess 
       if (error) throw error;
 
       toast.success(t('catalog.settings.updated'));
-      onSuccess?.();
+      onSuccess?.(); // Esto actualizará el nombre del catálogo en la página principal
       onOpenChange(false);
     } catch (error: any) {
       console.error("Error saving catalog settings:", error);
@@ -162,6 +172,44 @@ export function CatalogSettingsModal({ open, onOpenChange, catalogId, onSuccess 
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Catalog Name */}
+          <div className="space-y-2">
+            <Label htmlFor="catalog-name">{t('catalog.settings.name')} *</Label>
+            <Input
+              id="catalog-name"
+              value={catalogName}
+              onChange={(e) => setCatalogName(e.target.value)}
+              placeholder={t('catalog.settings.namePlaceholder')}
+              required
+            />
+          </div>
+
+          {/* Catalog Description */}
+          <div className="space-y-2">
+            <Label htmlFor="catalog-description">{t('catalog.settings.description')}</Label>
+            <Textarea
+              id="catalog-description"
+              value={catalogDescription}
+              onChange={(e) => setCatalogDescription(e.target.value)}
+              placeholder={t('catalog.settings.descriptionPlaceholder')}
+              rows={3}
+            />
+          </div>
+
+          {/* Season */}
+          <div className="space-y-2">
+            <Label htmlFor="catalog-season">{t('catalog.settings.season')}</Label>
+            <Input
+              id="catalog-season"
+              value={season}
+              onChange={(e) => setSeason(e.target.value)}
+              placeholder={t('catalog.settings.seasonPlaceholder')}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t('catalog.settings.seasonDesc')}
+            </p>
+          </div>
+
           {/* Powered By */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">

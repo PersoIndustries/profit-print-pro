@@ -365,6 +365,13 @@
     "viewPlans": "Ver Planes",
     "settings": {
       "title": "Configuración del Catálogo",
+      "name": "Nombre del Catálogo",
+      "namePlaceholder": "Ej: Catálogo Primavera 2024",
+      "description": "Descripción",
+      "descriptionPlaceholder": "Descripción del catálogo (opcional)",
+      "season": "Temporada",
+      "seasonPlaceholder": "Ej: 2025, Q2 2025, Primavera 2025",
+      "seasonDesc": "Indica la temporada o período del catálogo (opcional)",
       "showPoweredBy": "Mostrar \"Powered by LAYER SUITE\" en el PDF",
       "showPoweredByDesc": "Por defecto está activado. Puedes ocultarlo si tienes plan Business.",
       "coverBackground": "Fondo de Portada",

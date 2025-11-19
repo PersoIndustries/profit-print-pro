@@ -365,6 +365,13 @@
     "viewPlans": "View Plans",
     "settings": {
       "title": "Catalog Settings",
+      "name": "Catalog Name",
+      "namePlaceholder": "E.g: Spring 2024 Catalog",
+      "description": "Description",
+      "descriptionPlaceholder": "Catalog description (optional)",
+      "season": "Season",
+      "seasonPlaceholder": "E.g: 2025, Q2 2025, Spring 2025",
+      "seasonDesc": "Indicate the season or period of the catalog (optional)",
       "showPoweredBy": "Show \"Powered by LAYER SUITE\" in PDF",
       "showPoweredByDesc": "Enabled by default. You can hide it if you have a Business plan.",
       "coverBackground": "Cover Background",

@@ -27,6 +27,7 @@ import {
   DragOverlay,
   DragStartEvent,
   DragOverEvent,
+  useDroppable,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -296,8 +297,45 @@ export default function CatalogDetail() {
       const activeProject = projects.find(p => p.id === activeId);
       const overProject = projects.find(p => p.id === overId);
 
+      // Mover proyecto a sección (arrastrar proyecto sobre sección)
+      if (activeProject && overSection) {
+        // Obtener proyectos actuales de la sección para calcular nueva posición
+        const sectionProjects = projects.filter(p => p.catalog_section_id === overSection.id).sort((a, b) => a.position - b.position);
+        const newPosition = sectionProjects.length;
+        
+        await supabase
+          .from("catalog_projects")
+          .update({ 
+            catalog_section_id: overSection.id,
+            position: newPosition
+          })
+          .eq("id", activeProject.id);
+      }
+      // Mover proyecto fuera de sección (arrastrar proyecto sobre otro proyecto sin sección)
+      else if (activeProject && overProject && activeProject.catalog_section_id && !overProject.catalog_section_id) {
+        const projectsWithoutSection = projects.filter(p => !p.catalog_section_id).sort((a, b) => a.position - b.position);
+        const newIndex = projectsWithoutSection.indexOf(overProject);
+        
+        // Actualizar posición de proyectos sin sección
+        await Promise.all(
+          projectsWithoutSection.map((project, index) =>
+            supabase
+              .from("catalog_projects")
+              .update({ position: index >= newIndex ? index + 1 : index })
+              .eq("id", project.id)
+          )
+        );
+        
+        await supabase
+          .from("catalog_projects")
+          .update({ 
+            catalog_section_id: null,
+            position: newIndex
+          })
+          .eq("id", activeProject.id);
+      }
       // Reordenar secciones
-      if (activeSection && overSection) {
+      else if (activeSection && overSection) {
         const oldIndex = sections.indexOf(activeSection);
         const newIndex = sections.indexOf(overSection);
         const newSections = arrayMove(sections, oldIndex, newIndex);
@@ -309,6 +347,24 @@ export default function CatalogDetail() {
               .from("catalog_sections")
               .update({ position: index })
               .eq("id", section.id)
+          )
+        );
+      }
+      // Reordenar proyectos dentro de la misma sección
+      else if (activeProject && overProject && activeProject.catalog_section_id === overProject.catalog_section_id && activeProject.catalog_section_id) {
+        const sectionProjects = projects
+          .filter(p => p.catalog_section_id === activeProject.catalog_section_id)
+          .sort((a, b) => a.position - b.position);
+        const oldIndex = sectionProjects.indexOf(activeProject);
+        const newIndex = sectionProjects.indexOf(overProject);
+        const newProjects = arrayMove(sectionProjects, oldIndex, newIndex);
+        
+        await Promise.all(
+          newProjects.map((project, index) =>
+            supabase
+              .from("catalog_projects")
+              .update({ position: index })
+              .eq("id", project.id)
           )
         );
       }
@@ -493,17 +549,13 @@ export default function CatalogDetail() {
             <Plus className="w-4 h-4 mr-2" />
             {t('catalog.detail.newProject')}
           </Button>
+          {isEnterprise && (
+            <Button variant="outline" size="icon" onClick={() => setSettingsModalOpen(true)} title={t('catalog.detail.settings.button')}>
+              <Settings className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </div>
-
-      {isEnterprise && (
-        <div className="mb-6 flex justify-end">
-          <Button variant="outline" onClick={() => setSettingsModalOpen(true)}>
-            <Settings className="w-4 h-4 mr-2" />
-            {t('catalog.detail.settings.button')}
-          </Button>
-        </div>
-      )}
 
       <DndContext
         sensors={sensors}
@@ -513,9 +565,9 @@ export default function CatalogDetail() {
       >
         <div className="space-y-3">
           {/* Secciones con proyectos */}
-          <SortableContext items={sections.map(s => s.id)} strategy={verticalListSortingStrategy}>
+          <SortableContext items={[...sections.map(s => s.id), ...projects.map(p => p.id)]} strategy={verticalListSortingStrategy}>
             {sections.map((section) => (
-              <SortableSectionCard
+              <DroppableSectionCard
                 key={section.id}
                 section={section}
                 isExpanded={expandedSections.has(section.id)}
@@ -536,7 +588,6 @@ export default function CatalogDetail() {
           </SortableContext>
 
           {/* Proyectos sin sección */}
-          <SortableContext items={projectsWithoutSection.map(p => p.id)} strategy={verticalListSortingStrategy}>
             {projectsWithoutSection.map((project) => (
               <SortableProjectCard
                 key={project.id}
@@ -551,7 +602,6 @@ export default function CatalogDetail() {
                 onNewProductSection={handleNewProductSection}
               />
             ))}
-          </SortableContext>
 
           {sections.length === 0 && projectsWithoutSection.length === 0 && (
             <Card>
@@ -641,6 +691,64 @@ export default function CatalogDetail() {
           />
         </>
       )}
+    </div>
+  );
+}
+
+// Componente Droppable de Sección (permite que proyectos se arrastren sobre ella)
+function DroppableSectionCard({
+  section,
+  isExpanded,
+  onToggle,
+  onEdit,
+  onDelete,
+  onNewProject,
+  onEditProject,
+  onDeleteProject,
+  onNewProduct,
+  onEditProduct,
+  onDeleteProduct,
+  onNewProductSection,
+  expandedProjects,
+  onToggleProject,
+}: {
+  section: CatalogSection;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+  onNewProject: () => void;
+  onEditProject: (id: string) => void;
+  onDeleteProject: (id: string) => void;
+  onNewProduct: (projectId: string) => void;
+  onEditProduct: (productId: string, projectId: string) => void;
+  onDeleteProduct: (productId: string) => void;
+  onNewProductSection: (projectId: string) => void;
+  expandedProjects: Set<string>;
+  onToggleProject: (projectId: string) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: section.id,
+  });
+
+  return (
+    <div ref={setNodeRef} className={isOver ? "opacity-75" : ""}>
+      <SortableSectionCard
+        section={section}
+        isExpanded={isExpanded}
+        onToggle={onToggle}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onNewProject={onNewProject}
+        onEditProject={onEditProject}
+        onDeleteProject={onDeleteProject}
+        onNewProduct={onNewProduct}
+        onEditProduct={onEditProduct}
+        onDeleteProduct={onDeleteProduct}
+        onNewProductSection={onNewProductSection}
+        expandedProjects={expandedProjects}
+        onToggleProject={onToggleProject}
+      />
     </div>
   );
 }
