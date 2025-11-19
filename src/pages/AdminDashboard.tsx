@@ -1568,7 +1568,7 @@ const AdminDashboard = () => {
                               {actionType === 'changeTier' && (
                                 <div>
                                   <Label htmlFor="tier">New Subscription Tier</Label>
-                                  <Select value={newTier} onValueChange={setNewTier}>
+                                  <Select value={newTier || ''} onValueChange={setNewTier}>
                                     <SelectTrigger>
                                       <SelectValue />
                                     </SelectTrigger>
@@ -1583,27 +1583,27 @@ const AdminDashboard = () => {
                               {actionType === 'refund' && (
                                 <div>
                                   <Label htmlFor="refundAmount">Refund Amount (€)</Label>
-                                  <Input
-                                    id="refundAmount"
-                                    type="number"
-                                    step="0.01"
-                                    value={refundAmount}
-                                    onChange={(e) => setRefundAmount(e.target.value)}
-                                    placeholder="0.00"
-                                  />
+                <Input
+                  id="refundAmount"
+                  type="number"
+                  step="0.01"
+                  value={refundAmount || ''}
+                  onChange={(e) => setRefundAmount(e.target.value)}
+                  placeholder="0.00"
+                />
                                 </div>
                               )}
                               {actionType === 'addTrial' && (
                                 <div>
                                   <Label htmlFor="trialDays">Trial Days</Label>
-                                  <Input
-                                    id="trialDays"
-                                    type="number"
-                                    min="1"
-                                    value={trialDays}
-                                    onChange={(e) => setTrialDays(e.target.value)}
-                                    placeholder="15"
-                                  />
+                <Input
+                  id="trialDays"
+                  type="number"
+                  min="1"
+                  value={trialDays || ''}
+                  onChange={(e) => setTrialDays(e.target.value)}
+                  placeholder="15"
+                />
                                   <p className="text-sm text-muted-foreground mt-1">
                                     The user will get {trialDays} days of trial access. 
                                     {selectedUser?.tier === 'free' && ' They will be upgraded to Professional tier during the trial.'}
@@ -1612,12 +1612,12 @@ const AdminDashboard = () => {
                               )}
                               <div>
                                 <Label htmlFor="notes">Notes</Label>
-                                <Textarea
-                                  id="notes"
-                                  value={notes}
-                                  onChange={(e) => setNotes(e.target.value)}
-                                  placeholder="Add notes about this action..."
-                                />
+                <Textarea
+                  id="notes"
+                  value={notes || ''}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Add notes about this action..."
+                />
                               </div>
                               <div className="flex gap-2">
                                 <Button onClick={handleSubmit}>Confirm</Button>
@@ -2245,7 +2245,7 @@ const AdminDashboard = () => {
                 <Label htmlFor="refund-admin-notes">Admin Notes</Label>
                 <Textarea
                   id="refund-admin-notes"
-                  value={refundAdminNotes}
+                  value={refundAdminNotes || ''}
                   onChange={(e) => setRefundAdminNotes(e.target.value)}
                   placeholder="Add notes about this decision..."
                   rows={3}
@@ -2293,7 +2293,7 @@ const AdminDashboard = () => {
               <Label htmlFor="delete-reason">Reason for Deletion *</Label>
               <Textarea
                 id="delete-reason"
-                value={deleteUserReason}
+                value={deleteUserReason || ''}
                 onChange={(e) => setDeleteUserReason(e.target.value)}
                 placeholder="Provide a reason for deleting this user..."
                 rows={3}
@@ -2353,7 +2353,7 @@ const AdminDashboard = () => {
             <Input
               placeholder="Type DELETE to confirm"
               className="mt-2 font-mono"
-              value={deleteConfirmText}
+              value={deleteConfirmText || ''}
               onChange={(e) => {
                 setDeleteConfirmText(e.target.value);
                 if (e.target.value === 'DELETE') {
@@ -2401,7 +2401,7 @@ const AdminDashboard = () => {
               <Label htmlFor="delete-reason">Reason for Deletion *</Label>
               <Textarea
                 id="delete-reason"
-                value={deleteUserReason}
+                value={deleteUserReason || ''}
                 onChange={(e) => setDeleteUserReason(e.target.value)}
                 placeholder="Provide a reason for deleting this user..."
                 rows={3}
@@ -2461,7 +2461,7 @@ const AdminDashboard = () => {
             <Input
               placeholder="Type DELETE to confirm"
               className="mt-2 font-mono"
-              value={deleteConfirmText}
+              value={deleteConfirmText || ''}
               onChange={(e) => {
                 setDeleteConfirmText(e.target.value);
                 if (e.target.value === 'DELETE') {
