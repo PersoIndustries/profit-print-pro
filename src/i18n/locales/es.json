@@ -932,6 +932,9 @@
     "material": "Material",
     "type": "Tipo",
     "pricePerKg": "Precio/kg",
+    "pricePerKgTooltip": "Este precio se usa para calcular los costos de materiales en proyectos, calculadora e impresiones",
+    "avgPricePerKg": "Precio Promedio/kg",
+    "avgPricePerKgTooltip": "Precio promedio por kg basado en las adquisiciones históricas de este material",
     "stockAvailable": "Stock Disponible",
     "stockAvailableTooltip": "Cantidad total de material disponible en inventario",
     "pending": "Pendiente",
@@ -1344,6 +1347,7 @@
       "estimatedPrice": "Precio estimado (€)",
       "pricePerKg": "Precio por kg",
       "addToList": "Agregar a Lista",
+      "addToListTooltip": "Agregar a lista de compra",
       "cancel": "Cancelar",
       "or": "o",
       "errors": {

@@ -1025,14 +1025,14 @@ const Inventory = () => {
                                 </button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Este precio se usa para calcular los costos de materiales en proyectos, calculadora e impresiones</p>
+                                <p>{t('inventory.pricePerKgTooltip')}</p>
                               </TooltipContent>
                             </Tooltip>
                           </div>
                         </SortableHeader>
                         <TableHead>
                           <div className="flex items-center gap-2">
-                            Avg Price/kg
+                            {t('inventory.avgPricePerKg')}
                             <Tooltip open={tooltipOpen['avg-precio-kg']} onOpenChange={(open) => setTooltipOpen(prev => ({ ...prev, 'avg-precio-kg': open }))}>
                               <TooltipTrigger asChild>
                                 <button
@@ -1047,7 +1047,7 @@ const Inventory = () => {
                                 </button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Precio promedio por kg basado en las adquisiciones históricas de este material</p>
+                                <p>{t('inventory.avgPricePerKgTooltip')}</p>
                               </TooltipContent>
                             </Tooltip>
                           </div>
@@ -1231,7 +1231,7 @@ const Inventory = () => {
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>Agregar a lista de compra</p>
+                                      <p>{t('shoppingList.addToShoppingList.addToListTooltip')}</p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
