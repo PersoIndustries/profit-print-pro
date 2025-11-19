@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Calendar, Clock, AlertTriangle, RefreshCw, Plus, Edit } from 'lucide-react';
+import { Calendar, Clock, AlertTriangle, RefreshCw, Plus, Edit, Users, Settings, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
@@ -172,23 +172,47 @@ export default function AdminGracePeriodManagement() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Grace Period Management</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage users in grace period before image deletion
-          </p>
-        </div>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold">Grace Period Management</h2>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/admin')}
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Users
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/admin')}
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Subscription Limits
+          </Button>
+          <Button
+            variant="default"
+            onClick={() => navigate('/admin/grace-period')}
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            Grace Period
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/admin/metrics')}
+          >
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Metrics
+          </Button>
           <Button variant="outline" onClick={fetchGracePeriodUsers} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button variant="outline" onClick={() => navigate('/admin')}>
-            Back to Admin
-          </Button>
         </div>
       </div>
+      
+      <p className="text-sm text-muted-foreground mb-4">
+        Manage users in grace period before image deletion
+      </p>
 
       <Alert>
         <AlertTriangle className="h-4 w-4" />

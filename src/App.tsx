@@ -18,6 +18,7 @@ import ResetPassword from "./pages/ResetPassword";
 import AdminDashboard from "./pages/AdminDashboard";
 import GracePeriodSettings from "./pages/GracePeriodSettings";
 import AdminGracePeriodManagement from "./pages/AdminGracePeriodManagement";
+import AdminMetricsDashboard from "./pages/AdminMetricsDashboard";
 import Terms from "./pages/Terms";
 import Catalogs from "./pages/Catalogs";
 import CatalogDetail from "./pages/CatalogDetail";
@@ -61,6 +62,7 @@ const App = () => (
           <Route path="/catalogs/:catalogId/project/:projectId/products" element={<AppLayout><CatalogProjectDetail /></AppLayout>} />
           <Route path="/admin" element={<AppLayout><AdminDashboard /></AppLayout>} />
           <Route path="/admin/grace-period" element={<AppLayout><AdminGracePeriodManagement /></AppLayout>} />
+          <Route path="/admin/metrics" element={<AppLayout><AdminMetricsDashboard /></AppLayout>} />
           <Route path="/grace-period-settings" element={<AppLayout><GracePeriodSettings /></AppLayout>} />
           
           <Route path="*" element={<NotFound />} />

@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Users, Package, FolderOpen, ShoppingCart, Edit, DollarSign, Settings, Save, History, Clock } from "lucide-react";
+import { Users, Package, FolderOpen, ShoppingCart, Edit, DollarSign, Settings, Save, History, Clock, BarChart3 } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface UserStats {
@@ -44,8 +44,9 @@ const AdminDashboard = () => {
   // Form states for user management
   const [newTier, setNewTier] = useState<string>('');
   const [refundAmount, setRefundAmount] = useState<string>('');
+  const [trialDays, setTrialDays] = useState<string>('15');
   const [notes, setNotes] = useState<string>('');
-  const [actionType, setActionType] = useState<'changeTier' | 'cancel' | 'refund'>('changeTier');
+  const [actionType, setActionType] = useState<'changeTier' | 'cancel' | 'refund' | 'addTrial'>('changeTier');
   
   // Subscription limits management
   const [limitsTab, setLimitsTab] = useState(false);
@@ -280,11 +281,12 @@ const AdminDashboard = () => {
     }
   };
 
-  const openUserDialog = (userStat: UserStats, action: 'changeTier' | 'cancel' | 'refund') => {
+  const openUserDialog = (userStat: UserStats, action: 'changeTier' | 'cancel' | 'refund' | 'addTrial') => {
     setSelectedUser(userStat);
     setActionType(action);
     setNewTier(userStat.tier);
     setRefundAmount('');
+    setTrialDays('15');
     setNotes('');
     setDialogOpen(true);
   };
@@ -407,6 +409,55 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleAddTrial = async () => {
+    if (!selectedUser || !trialDays) return;
+
+    const days = parseInt(trialDays);
+    if (isNaN(days) || days < 1) {
+      toast.error('Please enter a valid number of days');
+      return;
+    }
+
+    try {
+      // Get current subscription
+      const { data: currentSub, error: fetchError } = await supabase
+        .from('user_subscriptions')
+        .select('tier, expires_at')
+        .eq('user_id', selectedUser.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const currentTier = currentSub?.tier || selectedUser.tier;
+      const currentExpiresAt = currentSub?.expires_at 
+        ? new Date(currentSub.expires_at)
+        : new Date();
+      
+      // Calculate new expiration date
+      const newExpiresAt = new Date(currentExpiresAt);
+      newExpiresAt.setDate(newExpiresAt.getDate() + days);
+
+      // Update subscription to trial
+      const { error: updateError } = await supabase
+        .from('user_subscriptions')
+        .update({
+          status: 'trial',
+          expires_at: newExpiresAt.toISOString(),
+          tier: currentTier === 'free' ? 'tier_1' : currentTier, // Upgrade to tier_1 if free
+        })
+        .eq('user_id', selectedUser.id);
+
+      if (updateError) throw updateError;
+
+      toast.success(`Trial period of ${days} days added successfully`);
+      setDialogOpen(false);
+      fetchAdminData();
+    } catch (error: any) {
+      console.error('Error adding trial:', error);
+      toast.error(error.message || 'Error adding trial period');
+    }
+  };
+
   const handleSubmit = () => {
     switch (actionType) {
       case 'changeTier':
@@ -417,6 +468,9 @@ const AdminDashboard = () => {
         break;
       case 'refund':
         handleRefund();
+        break;
+      case 'addTrial':
+        handleAddTrial();
         break;
     }
   };
@@ -488,6 +542,13 @@ const AdminDashboard = () => {
           >
             <Clock className="h-4 w-4 mr-2" />
             Grace Period
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/admin/metrics')}
+          >
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Metrics
           </Button>
         </div>
       </div>
@@ -595,6 +656,7 @@ const AdminDashboard = () => {
                                 {actionType === 'changeTier' && 'Change the subscription tier for this user'}
                                 {actionType === 'cancel' && 'Cancel the subscription for this user'}
                                 {actionType === 'refund' && 'Process a refund for this user'}
+                                {actionType === 'addTrial' && 'Add a trial period for this user'}
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
@@ -624,6 +686,23 @@ const AdminDashboard = () => {
                                     onChange={(e) => setRefundAmount(e.target.value)}
                                     placeholder="0.00"
                                   />
+                                </div>
+                              )}
+                              {actionType === 'addTrial' && (
+                                <div>
+                                  <Label htmlFor="trialDays">Trial Days</Label>
+                                  <Input
+                                    id="trialDays"
+                                    type="number"
+                                    min="1"
+                                    value={trialDays}
+                                    onChange={(e) => setTrialDays(e.target.value)}
+                                    placeholder="15"
+                                  />
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    The user will get {trialDays} days of trial access. 
+                                    {selectedUser?.tier === 'free' && ' They will be upgraded to Professional tier during the trial.'}
+                                  </p>
                                 </div>
                               )}
                               <div>
@@ -658,6 +737,14 @@ const AdminDashboard = () => {
                           onClick={() => openUserDialog(userStat, 'refund')}
                         >
                           <DollarSign className="h-3 w-3" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => openUserDialog(userStat, 'addTrial')}
+                          title="Add Trial Period"
+                        >
+                          <Clock className="h-3 w-3" />
                         </Button>
                       </div>
                     </TableCell>
