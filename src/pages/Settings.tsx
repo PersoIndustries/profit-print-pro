@@ -1192,7 +1192,6 @@ const Settings = () => {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
 
       {/* Refund Request Dialog */}
       <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
