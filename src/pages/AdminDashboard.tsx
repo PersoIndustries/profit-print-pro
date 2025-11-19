@@ -114,6 +114,12 @@ const AdminDashboard = () => {
   const [userAnalysisData, setUserAnalysisData] = useState<any>(null);
   const [loadingUserAnalysis, setLoadingUserAnalysis] = useState(false);
   
+  // Delete user management
+  const [deleteUserDialogOpen, setDeleteUserDialogOpen] = useState(false);
+  const [deleteUserConfirmDialogOpen, setDeleteUserConfirmDialogOpen] = useState(false);
+  const [deleteUserReason, setDeleteUserReason] = useState('');
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  
   // Ref para evitar múltiples redirecciones
   const hasRedirected = useRef(false);
 
@@ -1719,7 +1725,7 @@ const AdminDashboard = () => {
               <div className="space-y-6">
                 {(['free', 'tier_1', 'tier_2'] as const).map((tier) => {
                   const tierName = tier === 'free' ? 'Free' : tier === 'tier_1' ? 'Professional' : 'Business';
-                  const tierLimits = editingLimits[tier];
+                  const tierLimits = editingLimits[tier] || { materials: 0, projects: 0, monthlyOrders: 0, metricsHistory: 0, shoppingLists: 0 };
                   
                   return (
                     <div key={tier} className="border rounded-lg p-4 space-y-4">
@@ -1731,11 +1737,11 @@ const AdminDashboard = () => {
                             id={`${tier}-materials`}
                             type="number"
                             min="0"
-                            value={tierLimits.materials}
+                            value={tierLimits.materials || 0}
                             onChange={(e) => setEditingLimits({
                               ...editingLimits,
                               [tier]: { ...tierLimits, materials: parseInt(e.target.value) || 0 }
-                            })}
+                            } as typeof editingLimits)}
                           />
                         </div>
                         <div>
@@ -1744,11 +1750,11 @@ const AdminDashboard = () => {
                             id={`${tier}-projects`}
                             type="number"
                             min="0"
-                            value={tierLimits.projects}
+                            value={tierLimits.projects || 0}
                             onChange={(e) => setEditingLimits({
                               ...editingLimits,
                               [tier]: { ...tierLimits, projects: parseInt(e.target.value) || 0 }
-                            })}
+                            } as typeof editingLimits)}
                           />
                         </div>
                         <div>
@@ -1757,11 +1763,11 @@ const AdminDashboard = () => {
                             id={`${tier}-orders`}
                             type="number"
                             min="0"
-                            value={tierLimits.monthlyOrders}
+                            value={tierLimits.monthlyOrders || 0}
                             onChange={(e) => setEditingLimits({
                               ...editingLimits,
                               [tier]: { ...tierLimits, monthlyOrders: parseInt(e.target.value) || 0 }
-                            })}
+                            } as typeof editingLimits)}
                           />
                         </div>
                         <div>
@@ -1770,11 +1776,11 @@ const AdminDashboard = () => {
                             id={`${tier}-history`}
                             type="number"
                             min="0"
-                            value={tierLimits.metricsHistory}
+                            value={tierLimits.metricsHistory || 0}
                             onChange={(e) => setEditingLimits({
                               ...editingLimits,
                               [tier]: { ...tierLimits, metricsHistory: parseInt(e.target.value) || 0 }
-                            })}
+                            } as typeof editingLimits)}
                           />
                         </div>
                         <div>
@@ -1783,11 +1789,11 @@ const AdminDashboard = () => {
                             id={`${tier}-lists`}
                             type="number"
                             min="0"
-                            value={tierLimits.shoppingLists}
+                            value={tierLimits.shoppingLists || 0}
                             onChange={(e) => setEditingLimits({
                               ...editingLimits,
                               [tier]: { ...tierLimits, shoppingLists: parseInt(e.target.value) || 0 }
-                            })}
+                            } as typeof editingLimits)}
                           />
                         </div>
                       </div>
@@ -2347,7 +2353,9 @@ const AdminDashboard = () => {
             <Input
               placeholder="Type DELETE to confirm"
               className="mt-2 font-mono"
+              value={deleteConfirmText}
               onChange={(e) => {
+                setDeleteConfirmText(e.target.value);
                 if (e.target.value === 'DELETE') {
                   handleDeleteUser();
                 }
@@ -2358,6 +2366,7 @@ const AdminDashboard = () => {
             <Button variant="outline" onClick={() => {
               setDeleteUserConfirmDialogOpen(false);
               setDeleteUserReason('');
+              setDeleteConfirmText('');
               setSelectedUser(null);
             }}>
               Cancel
@@ -2452,7 +2461,9 @@ const AdminDashboard = () => {
             <Input
               placeholder="Type DELETE to confirm"
               className="mt-2 font-mono"
+              value={deleteConfirmText}
               onChange={(e) => {
+                setDeleteConfirmText(e.target.value);
                 if (e.target.value === 'DELETE') {
                   handleDeleteUser();
                 }
@@ -2463,6 +2474,7 @@ const AdminDashboard = () => {
             <Button variant="outline" onClick={() => {
               setDeleteUserConfirmDialogOpen(false);
               setDeleteUserReason('');
+              setDeleteConfirmText('');
               setSelectedUser(null);
             }}>
               Cancel
