@@ -563,11 +563,8 @@ const AdminDashboard = () => {
         if (refundRequestsTab) {
           fetchRefundRequests();
         }
-        if (deletedUsersTab) {
-          fetchDeletedUsers();
-        }
       }
-    }, [user, authLoading, isAdmin, adminLoading, navigate, limitsTab, promoCodesTab, creatorCodesTab, refundRequestsTab, deletedUsersTab]);
+    }, [user, authLoading, isAdmin, adminLoading, navigate, limitsTab, promoCodesTab, creatorCodesTab, refundRequestsTab]);
 
   // Filter users based on search query
   useEffect(() => {
