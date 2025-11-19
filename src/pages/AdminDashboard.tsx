@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -60,6 +60,9 @@ const AdminDashboard = () => {
   // Limits history
   const [limitsHistory, setLimitsHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  
+  // Ref para evitar múltiples redirecciones
+  const hasRedirected = useRef(false);
 
   const fetchSubscriptionLimits = async () => {
     try {
@@ -177,6 +180,11 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
+    // Reset redirect flag cuando cambia el usuario
+    if (user) {
+      hasRedirected.current = false;
+    }
+    
     // Esperar a que termine de cargar la autenticación
     if (authLoading) {
       console.log('[AdminDashboard] Auth still loading, waiting...');
@@ -186,7 +194,10 @@ const AdminDashboard = () => {
     // Si no hay usuario después de cargar, redirigir a auth
     if (!user) {
       console.log('[AdminDashboard] No user after loading, redirecting to /auth');
-      navigate("/auth");
+      if (!hasRedirected.current) {
+        hasRedirected.current = true;
+        navigate("/auth");
+      }
       return;
     }
     
@@ -201,16 +212,22 @@ const AdminDashboard = () => {
     // IMPORTANTE: Solo actuar cuando TODO haya terminado de cargar
     // Si no es admin DESPUÉS de que todo cargó, entonces redirigir
     if (!isAdmin && !adminLoading && !authLoading) {
-      console.log('[AdminDashboard] User is not admin after all checks, redirecting to /dashboard');
+      console.log('[AdminDashboard] User is not admin after all checks');
       console.log('[AdminDashboard] Final state - isAdmin:', isAdmin, 'adminLoading:', adminLoading, 'authLoading:', authLoading);
       
-      // Usar un pequeño delay para evitar condiciones de carrera
-      const timeoutId = setTimeout(() => {
-        toast.error('No tienes permisos de administrador');
-        navigate("/dashboard");
-      }, 100);
-      
-      return () => clearTimeout(timeoutId);
+      // Solo redirigir una vez
+      if (!hasRedirected.current) {
+        hasRedirected.current = true;
+        console.log('[AdminDashboard] Redirecting to /dashboard');
+        // Usar un pequeño delay para dar tiempo a que el estado se actualice
+        const timeoutId = setTimeout(() => {
+          toast.error('No tienes permisos de administrador');
+          navigate("/dashboard");
+        }, 300);
+        
+        return () => clearTimeout(timeoutId);
+      }
+      return;
     }
     
     // Si es admin, cargar datos (solo cuando todo esté listo)
