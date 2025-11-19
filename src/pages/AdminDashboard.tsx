@@ -1969,7 +1969,7 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
         </>
-      ) : null}
+      )}
 
       {/* Promo Code Dialog */}
       <Dialog open={promoCodeDialogOpen} onOpenChange={setPromoCodeDialogOpen}>
