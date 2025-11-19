@@ -908,7 +908,52 @@
     "warning": "Vos images seront supprimées dans {{days}} jours",
     "readOnlyMode": "Vous êtes en mode lecture seule. Vous ne pouvez pas créer de nouveaux projets ou commandes.",
     "preventDeletion": "Réactivez votre abonnement {{tier}} ou supérieur pour éviter la suppression des images et restaurer l'accès complet.",
-    "reactivate": "Réactiver l'Abonnement"
+    "reactivate": "Réactiver l'Abonnement",
+    "settings": {
+      "title": "Statut de la Période de Grâce",
+      "subtitle": "Gérez votre période de grâce et vos données",
+      "statusDescription": "Vous avez été rétrogradé de {{tier}}. Votre compte est maintenant en mode lecture seule.",
+      "noGracePeriod": {
+        "title": "Aucune Période de Grâce Active",
+        "description": "Votre compte n'a actuellement pas de période de grâce."
+      },
+      "timeline": {
+        "title": "Chronologie de la Période de Grâce",
+        "description": "Vos images seront supprimées à la fin de cette période",
+        "daysRemaining": "Jours restants",
+        "days": "jours",
+        "downgradeDate": "Rétrogradé le",
+        "deletionDate": "Date de suppression",
+        "previousTier": "Tier précédent"
+      },
+      "readOnly": {
+        "title": "Mode Lecture Seule",
+        "description": "Restrictions actuelles sur votre compte:",
+        "cantCreate": "Vous ne pouvez pas créer de nouveaux projets, commandes ou matériaux",
+        "cantModify": "Vous ne pouvez pas modifier les données existantes",
+        "imagesDeleted": "Toutes les images seront supprimées à la fin de la période",
+        "dataPreserved": "Toutes les données textuelles seront préservées"
+      },
+      "actions": {
+        "title": "Actions Disponibles",
+        "description": "Ce que vous pouvez faire maintenant",
+        "reactivate": {
+          "title": "Réactiver Votre Abonnement",
+          "description": "Passez à {{tier}} ou supérieur pour annuler la période de grâce et préserver toutes les images."
+        },
+        "export": {
+          "title": "Exporter Vos Données",
+          "description": "Téléchargez une sauvegarde complète de toutes vos données avant suppression."
+        }
+      },
+      "export": {
+        "button": "Exporter Toutes les Données",
+        "exporting": "Exportation en cours...",
+        "starting": "Démarrage de l'exportation...",
+        "success": "Données exportées avec succès",
+        "error": "Erreur lors de l'exportation des données"
+      }
+    }
   },
   "inventory": {
     "title": "Inventaire",
