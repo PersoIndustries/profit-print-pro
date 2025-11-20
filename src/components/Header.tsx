@@ -59,7 +59,7 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
               className="flex items-center cursor-pointer" 
               onClick={() => navigate('/')}
             >
-              <img src={logo} alt="LayerSuite" className="h-8" />
+              <img src={logo} alt="LayerSuite" className="h-16" />
             </div>
             <Button variant="ghost" onClick={() => navigate('/')}>
               {t('nav.home')}
@@ -85,7 +85,7 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
               className="flex items-center cursor-pointer" 
               onClick={() => navigate('/')}
             >
-              <img src={logo} alt="LayerSuite" className="h-8" />
+              <img src={logo} alt="LayerSuite" className="h-16" />
             </div>
             <Button variant="ghost" onClick={() => navigate('/')}>
               {t('nav.home')}
@@ -130,7 +130,7 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
               className="flex items-center cursor-pointer" 
               onClick={() => navigate('/dashboard')}
             >
-              <img src={logo} alt="LayerSuite" className="h-8" />
+              <img src={logo} alt="LayerSuite" className="h-16" />
             </div>
             {getTierBadge()}
           </div>

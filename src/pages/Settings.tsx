@@ -1290,7 +1290,7 @@ const Settings = () => {
                   <li>No haber utilizado los límites máximos del plan</li>
                   <li>Solo se puede hacer refund del mes actual (para pagos mensuales)</li>
                   <li>Debe haber un problema grave demostrable por la aplicación</li>
-                  <li>El refund solo aplica al período de facturación actual</li>
+                  <li>El refund solo aplica al período de facturación actual. Para más información, contacte a support@layersuite.com</li>
                 </ul>
               </CardContent>
             </Card>
