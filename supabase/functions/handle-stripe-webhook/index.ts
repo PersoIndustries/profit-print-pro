@@ -318,11 +318,42 @@ async function handleSubscriptionUpdated(supabase: any, subscription: Stripe.Sub
 
 async function handleSubscriptionDeleted(supabase: any, subscription: Stripe.Subscription) {
   const metadata = subscription.metadata;
-  const userId = metadata?.userId;
+  let userId = metadata?.userId;
 
-  if (!userId) return;
+  // Si no está en metadata, buscar en la base de datos por stripe_subscription_id
+  if (!userId) {
+    const { data: sub } = await supabase
+      .from('user_subscriptions')
+      .select('user_id')
+      .eq('stripe_subscription_id', subscription.id)
+      .single();
+    userId = sub?.user_id;
+  }
 
-  // Cancel subscription in database
+  if (!userId) {
+    console.warn(`No userId found for deleted subscription ${subscription.id}`);
+    return;
+  }
+
+  // VERIFICAR: Si hay una nueva suscripción activa, NO cancelar
+  // Esto previene que webhooks de cancelación sobrescriban nuevas suscripciones
+  // (por ejemplo, cuando se cambia de anual a mensual)
+  const { data: currentSub } = await supabase
+    .from('user_subscriptions')
+    .select('stripe_subscription_id, status, tier')
+    .eq('user_id', userId)
+    .single();
+
+  // Si la suscripción actual tiene un ID diferente, significa que ya se creó una nueva
+  if (currentSub?.stripe_subscription_id && 
+      currentSub.stripe_subscription_id !== subscription.id &&
+      currentSub.status === 'active') {
+    console.log(`⚠️ Subscription ${subscription.id} was cancelled, but user ${userId} already has new active subscription ${currentSub.stripe_subscription_id}. Skipping cancellation.`);
+    return; // No hacer nada, la nueva suscripción ya está activa
+  }
+
+  // Solo cancelar si realmente no hay suscripción activa
+  console.log(`Cancelling subscription for user ${userId} (subscription ${subscription.id} was deleted in Stripe)`);
   await supabase
     .from('user_subscriptions')
     .update({

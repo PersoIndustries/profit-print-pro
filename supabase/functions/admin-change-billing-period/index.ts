@@ -205,6 +205,7 @@ serve(async (req) => {
         let refundAmount = 0;
         let nextBillingDate: Date;
         let expiresAt: Date;
+        let newSubscription: Stripe.Subscription | null = null; // Para logging
 
         if (previousBillingPeriod === 'annual' && newBillingPeriod === 'monthly') {
           // Cambiar de ANUAL a MENSUAL
@@ -266,10 +267,10 @@ serve(async (req) => {
             }
           }
 
-          // Crear nueva suscripción mensual que comienza inmediatamente
-          // El usuario tiene acceso inmediato, pero el primer pago será en 30 días
+          // IMPORTANTE: Crear nueva suscripción ANTES de cancelar la antigua
+          // Esto previene que el usuario quede sin suscripción activa
           const customerId = stripeSubscription.customer as string;
-          const newSubscription = await stripe.subscriptions.create({
+          newSubscription = await stripe.subscriptions.create({
             customer: customerId,
             items: [{ price: newPrice.id }],
             // billing_cycle_anchor: Próximo billing en 30 días desde ahora
@@ -277,10 +278,10 @@ serve(async (req) => {
             // El usuario tiene acceso inmediato (trial de 30 días efectivamente)
             trial_period_days: 0, // No usar trial, solo diferir el billing
             metadata: {
-              userId,
+              userId, // ✅ CRÍTICO: Siempre incluir userId para webhooks
               tier,
               billingPeriod: newBillingPeriod,
-              changedBy: 'admin',
+              changedBy: 'admin', // Flag para webhooks
               adminId: user.id,
               previousSubscription: stripeSubscriptionId,
               note: 'Changed from annual to monthly, refund processed',
@@ -291,13 +292,23 @@ serve(async (req) => {
           nextBillingDate = new Date((Date.now() + 30 * 24 * 60 * 60 * 1000));
           expiresAt = new Date((Date.now() + 30 * 24 * 60 * 60 * 1000));
 
-          // Actualizar stripe_subscription_id en la base de datos
+          // ✅ ACTUALIZAR BD INMEDIATAMENTE con nueva suscripción
+          // Esto previene que webhooks de cancelación sobrescriban la nueva suscripción
           await supabaseAdmin
             .from('user_subscriptions')
             .update({
               stripe_subscription_id: newSubscription.id,
+              billing_period: newBillingPeriod,
+              next_billing_date: nextBillingDate.toISOString(),
+              expires_at: expiresAt.toISOString(),
             })
             .eq('user_id', userId);
+
+          // AHORA cancelar la suscripción antigua
+          // Usar cancel_at_period_end para evitar interrupciones
+          await stripe.subscriptions.update(stripeSubscriptionId, {
+            cancel_at_period_end: true, // Cancelar al final del período (más seguro)
+          });
 
           stripeUpdated = true;
 
@@ -358,7 +369,22 @@ serve(async (req) => {
           // Don't fail - Stripe is already updated
         }
 
-        // Log the change
+        // Log the change with detailed information
+        const logData: any = {
+          previousBillingPeriod,
+          newBillingPeriod,
+          stripeUpdated: true,
+          adminNotes: notes || null,
+        };
+
+        if (previousBillingPeriod === 'annual' && newBillingPeriod === 'monthly') {
+          logData.refundAmount = refundAmount.toFixed(2);
+          logData.oldSubscriptionId = stripeSubscriptionId;
+          logData.newSubscriptionId = newSubscription?.id;
+        } else if (previousBillingPeriod === 'monthly' && newBillingPeriod === 'annual') {
+          logData.prorationAmount = prorationAmount.toFixed(2);
+        }
+
         await supabaseAdmin
           .from('subscription_changes')
           .insert({
@@ -366,9 +392,9 @@ serve(async (req) => {
             admin_id: user.id,
             previous_tier: tier,
             new_tier: tier,
-            change_type: 'upgrade', // Using upgrade as change type
+            change_type: 'billing_period_change',
             reason: `Billing period changed from ${previousBillingPeriod} to ${newBillingPeriod}`,
-            notes: notes || `Stripe subscription updated. Proration: ~${prorationAmount.toFixed(2)}€`,
+            notes: JSON.stringify(logData),
           });
 
         return new Response(
