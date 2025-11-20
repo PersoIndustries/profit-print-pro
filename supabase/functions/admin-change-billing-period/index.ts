@@ -188,45 +188,168 @@ serve(async (req) => {
         // Create new price in Stripe
         const newPrice = await stripe.prices.create(priceData);
 
-        // Update subscription in Stripe with proration
-        // Stripe will automatically calculate proration and charge/credit the difference
-        const updatedSubscription = await stripe.subscriptions.update(stripeSubscriptionId, {
-          items: [{
-            id: stripeSubscription.items.data[0].id,
-            price: newPrice.id,
-          }],
-          proration_behavior: 'always_invoice', // Always create invoice for proration
-          metadata: {
-            userId,
-            tier,
-            billingPeriod: newBillingPeriod,
-            changedBy: 'admin',
-            adminId: user.id,
-          },
-        });
+        // Calculate time used and remaining
+        const now = Math.floor(Date.now() / 1000);
+        const periodStart = stripeSubscription.current_period_start;
+        const periodEnd = stripeSubscription.current_period_end;
+        const totalPeriodSeconds = periodEnd - periodStart;
+        const usedSeconds = now - periodStart;
+        const remainingSeconds = periodEnd - now;
+        const usedRatio = usedSeconds / totalPeriodSeconds;
+        const remainingRatio = remainingSeconds / totalPeriodSeconds;
 
-        stripeUpdated = true;
-        
-        // Calculate proration amount (approximate)
         const currentPrice = stripeSubscription.items.data[0].price.unit_amount || 0;
-        const daysRemaining = Math.ceil((stripeSubscription.current_period_end - Date.now() / 1000) / 86400);
-        const totalDays = stripeSubscription.current_period_end - stripeSubscription.current_period_start;
-        const prorationRatio = daysRemaining / totalDays;
-        
-        // Approximate proration (Stripe calculates this more precisely)
-        prorationAmount = Math.round((newPriceAmount - currentPrice) * prorationRatio) / 100;
+        const currentPriceEur = currentPrice / 100;
+        const newPriceEur = newPriceAmount / 100;
 
-        // Update next billing date
-        const nextBillingDate = new Date(updatedSubscription.current_period_end * 1000).toISOString();
-        const expiresAt = new Date(updatedSubscription.current_period_end * 1000).toISOString();
+        let refundAmount = 0;
+        let nextBillingDate: Date;
+        let expiresAt: Date;
+
+        if (previousBillingPeriod === 'annual' && newBillingPeriod === 'monthly') {
+          // Cambiar de ANUAL a MENSUAL
+          // Estrategia: Cancelar anual, hacer refund del tiempo no usado (menos 1 mes), crear mensual
+          
+          // Calcular cuántos meses ha usado (redondeado hacia arriba)
+          const monthsUsed = Math.ceil((usedSeconds / (30 * 24 * 60 * 60))); // Aproximado
+          const totalMonths = 12;
+          const monthsRemaining = totalMonths - monthsUsed;
+          
+          // Refund del tiempo no usado, pero mantener al menos 1 mes pagado
+          // Si le quedan más de 1 mes, refund de (meses restantes - 1)
+          const monthsToRefund = Math.max(0, monthsRemaining - 1);
+          const monthlyPrice = currentPriceEur / 12; // Precio mensual del plan anual
+          refundAmount = monthsToRefund * monthlyPrice;
+
+          // Cancelar la suscripción anual actual
+          await stripe.subscriptions.cancel(stripeSubscriptionId);
+
+          // Procesar refund si hay monto a reembolsar
+          if (refundAmount > 0) {
+            try {
+              // Buscar el último invoice pagado de esta suscripción
+              const invoices = await stripe.invoices.list({
+                subscription: stripeSubscriptionId,
+                status: 'paid',
+                limit: 5,
+              });
+
+              // Buscar el invoice más reciente que tenga un charge
+              let chargeToRefund: string | null = null;
+              for (const invoice of invoices.data) {
+                if (invoice.charge && typeof invoice.charge === 'string') {
+                  chargeToRefund = invoice.charge;
+                  break;
+                }
+              }
+
+              if (chargeToRefund) {
+                // Crear refund parcial del charge
+                const refund = await stripe.refunds.create({
+                  amount: Math.round(refundAmount * 100), // Convertir a cents
+                  charge: chargeToRefund,
+                  metadata: {
+                    userId,
+                    reason: 'Billing period change: annual to monthly',
+                    monthsRefunded: monthsToRefund.toString(),
+                    originalSubscription: stripeSubscriptionId,
+                  },
+                });
+                console.log(`Refund created: ${refund.id}, amount: ${refundAmount.toFixed(2)}€`);
+              } else {
+                console.warn('No se encontró charge para procesar el refund');
+              }
+            } catch (refundError: any) {
+              console.error('Error creating refund:', refundError);
+              // No fallar si el refund falla, continuar con el cambio
+              // El admin puede procesar el refund manualmente si es necesario
+            }
+          }
+
+          // Crear nueva suscripción mensual que comienza inmediatamente
+          // El usuario tiene acceso inmediato, pero el primer pago será en 30 días
+          const customerId = stripeSubscription.customer as string;
+          const newSubscription = await stripe.subscriptions.create({
+            customer: customerId,
+            items: [{ price: newPrice.id }],
+            // billing_cycle_anchor: Próximo billing en 30 días desde ahora
+            billing_cycle_anchor: Math.floor((Date.now() + 30 * 24 * 60 * 60 * 1000) / 1000),
+            // El usuario tiene acceso inmediato (trial de 30 días efectivamente)
+            trial_period_days: 0, // No usar trial, solo diferir el billing
+            metadata: {
+              userId,
+              tier,
+              billingPeriod: newBillingPeriod,
+              changedBy: 'admin',
+              adminId: user.id,
+              previousSubscription: stripeSubscriptionId,
+              note: 'Changed from annual to monthly, refund processed',
+            },
+          });
+
+          // Actualizar fechas
+          nextBillingDate = new Date((Date.now() + 30 * 24 * 60 * 60 * 1000));
+          expiresAt = new Date((Date.now() + 30 * 24 * 60 * 60 * 1000));
+
+          // Actualizar stripe_subscription_id en la base de datos
+          await supabaseAdmin
+            .from('user_subscriptions')
+            .update({
+              stripe_subscription_id: newSubscription.id,
+            })
+            .eq('user_id', userId);
+
+          stripeUpdated = true;
+
+        } else if (previousBillingPeriod === 'monthly' && newBillingPeriod === 'annual') {
+          // Cambiar de MENSUAL a ANUAL
+          // Estrategia: Actualizar plan con proration, usuario paga diferencia
+          
+          const updatedSubscription = await stripe.subscriptions.update(stripeSubscriptionId, {
+            items: [{
+              id: stripeSubscription.items.data[0].id,
+              price: newPrice.id,
+            }],
+            proration_behavior: 'always_invoice', // Usuario paga la diferencia prorrateada
+            billing_cycle_anchor: 'now', // Comenzar período anual desde ahora
+            metadata: {
+              userId,
+              tier,
+              billingPeriod: newBillingPeriod,
+              changedBy: 'admin',
+              adminId: user.id,
+            },
+          });
+
+          // Calcular proration (usuario paga diferencia)
+          const monthlyPrice = currentPriceEur;
+          const daysUsed = Math.ceil(usedSeconds / 86400);
+          const totalDays = Math.ceil(totalPeriodSeconds / 86400);
+          const usedValue = (daysUsed / totalDays) * monthlyPrice;
+          const remainingValue = (remainingSeconds / totalPeriodSeconds) * monthlyPrice;
+          
+          // El usuario paga: precio anual - valor usado del mes actual
+          prorationAmount = newPriceEur - usedValue;
+
+          nextBillingDate = new Date(updatedSubscription.current_period_end * 1000);
+          expiresAt = new Date(updatedSubscription.current_period_end * 1000);
+          stripeUpdated = true;
+
+        } else {
+          // Mismo período (no debería pasar, pero por si acaso)
+          return new Response(
+            JSON.stringify({ error: 'El período de facturación es el mismo' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
 
         // Update subscription in database
         const { error: updateError } = await supabaseAdmin
           .from('user_subscriptions')
           .update({
             billing_period: newBillingPeriod,
-            next_billing_date: nextBillingDate,
-            expires_at: expiresAt,
+            next_billing_date: nextBillingDate.toISOString(),
+            expires_at: expiresAt.toISOString(),
           })
           .eq('user_id', userId);
 
@@ -255,8 +378,11 @@ serve(async (req) => {
             previousBillingPeriod,
             newBillingPeriod,
             stripeUpdated: true,
-            prorationAmount: prorationAmount.toFixed(2),
-            note: 'Stripe calculará el prorrateo exacto y lo aplicará en la próxima factura',
+            refundAmount: previousBillingPeriod === 'annual' && newBillingPeriod === 'monthly' ? refundAmount.toFixed(2) : undefined,
+            prorationAmount: previousBillingPeriod === 'monthly' && newBillingPeriod === 'annual' ? prorationAmount.toFixed(2) : undefined,
+            note: previousBillingPeriod === 'annual' && newBillingPeriod === 'monthly' 
+              ? `Refund procesado: ${refundAmount.toFixed(2)}€. Nueva suscripción mensual activa. Próximo pago en 30 días.`
+              : `Usuario pagará ${prorationAmount.toFixed(2)}€ por la diferencia prorrateada. Nuevo período anual activo.`,
           }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );

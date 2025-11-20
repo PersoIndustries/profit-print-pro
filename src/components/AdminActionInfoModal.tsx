@@ -269,9 +269,13 @@ export const AdminActionInfoModal = ({
       warnings.push('⚠️ Stripe calculará el prorrateo automáticamente.');
       
       if (previousBillingPeriod === 'annual' && newBillingPeriod === 'monthly') {
-        warnings.push('⚠️ Al cambiar de Anual a Mensual, el usuario recibirá un crédito por el tiempo no usado.');
+        warnings.push('⚠️ Se cancelará la suscripción anual actual.');
+        warnings.push('⚠️ Se procesará un REFUND del tiempo no usado (menos 1 mes).');
+        warnings.push('⚠️ Se creará una nueva suscripción mensual que comenzará inmediatamente.');
+        warnings.push('⚠️ El usuario comenzará a pagar mensualmente en 30 días.');
       } else if (previousBillingPeriod === 'monthly' && newBillingPeriod === 'annual') {
         warnings.push('⚠️ Al cambiar de Mensual a Anual, el usuario pagará la diferencia prorrateada.');
+        warnings.push('⚠️ El nuevo período anual comenzará inmediatamente.');
       }
       
       warnings.push('⚠️ Se creará una factura de ajuste en Stripe inmediatamente.');
@@ -296,11 +300,14 @@ export const AdminActionInfoModal = ({
       effects.push('✓ Se creará una factura de ajuste (proration) en Stripe.');
       
       if (previousBillingPeriod === 'annual' && newBillingPeriod === 'monthly') {
-        effects.push('✓ El usuario recibirá crédito por el tiempo no usado del período anual.');
-        effects.push('✓ El crédito se aplicará a los próximos meses.');
+        effects.push('✓ Se cancelará la suscripción anual actual.');
+        effects.push('✓ Se procesará un REFUND del tiempo no usado (menos 1 mes para cubrir el mes actual).');
+        effects.push('✓ Se creará una nueva suscripción mensual que comenzará inmediatamente.');
+        effects.push('✓ El usuario comenzará a pagar mensualmente en 30 días.');
       } else if (previousBillingPeriod === 'monthly' && newBillingPeriod === 'annual') {
-        effects.push('✓ El usuario pagará la diferencia prorrateada.');
+        effects.push('✓ El usuario pagará la diferencia prorrateada (precio anual - valor usado del mes actual).');
         effects.push('✓ El nuevo período anual comenzará inmediatamente.');
+        effects.push('✓ El próximo pago anual será en 1 año.');
       }
     } else {
       effects.push('✓ La fecha de expiración se recalculará según el nuevo período.');
