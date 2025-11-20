@@ -11,11 +11,16 @@ SECURITY DEFINER SET search_path = public
 AS $$
 BEGIN
   -- Insertar perfil de usuario
+  -- Google OAuth proporciona 'name' en raw_user_meta_data, no 'full_name'
   INSERT INTO public.profiles (id, email, full_name)
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', '')
+    COALESCE(
+      NEW.raw_user_meta_data->>'full_name',
+      NEW.raw_user_meta_data->>'name',
+      ''
+    )
   );
 
   -- Insertar suscripción con trial de 15 días

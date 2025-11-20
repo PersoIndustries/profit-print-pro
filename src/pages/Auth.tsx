@@ -10,11 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Chrome } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
 const Auth = () => {
-  const { user, loading, signUp, signIn, resetPassword } = useAuth();
+  const { user, loading, signUp, signIn, resetPassword, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
@@ -196,130 +197,200 @@ const Auth = () => {
             </TabsList>
 
             <TabsContent value="login">
-              <form onSubmit={handleSignIn} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email">{t('auth.email')}</Label>
-                  <Input
-                    id="login-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="login-password">{t('auth.password')}</Label>
-                  <div className="relative">
-                    <Input
-                      id="login-password"
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
+              <div className="space-y-4">
                 <Button
                   type="button"
-                  variant="link"
-                  className="px-0"
-                  onClick={() => navigate("/auth?mode=forgot")}
+                  variant="outline"
+                  className="w-full"
+                  onClick={async () => {
+                    setIsLoading(true);
+                    const { error } = await signInWithGoogle();
+                    if (error) {
+                      toast.error(error.message);
+                      setIsLoading(false);
+                    }
+                  }}
+                  disabled={isLoading}
                 >
-                  {t('auth.forgotPassword')}
+                  {isLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Chrome className="mr-2 h-4 w-4" />
+                  )}
+                  Continuar con Google
                 </Button>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {t('auth.login')}
-                </Button>
-              </form>
+                
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">
+                      O continúa con email
+                    </span>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSignIn} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="login-email">{t('auth.email')}</Label>
+                    <Input
+                      id="login-email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="login-password">{t('auth.password')}</Label>
+                    <div className="relative">
+                      <Input
+                        id="login-password"
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="px-0"
+                    onClick={() => navigate("/auth?mode=forgot")}
+                  >
+                    {t('auth.forgotPassword')}
+                  </Button>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {t('auth.login')}
+                  </Button>
+                </form>
+              </div>
             </TabsContent>
 
             <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name">{t('auth.fullName')}</Label>
-                  <Input
-                    id="signup-name"
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">{t('auth.email')}</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">{t('auth.password')}</Label>
-                  <div className="relative">
-                    <Input
-                      id="signup-password"
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={6}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </Button>
+              <div className="space-y-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={async () => {
+                    setIsLoading(true);
+                    const { error } = await signInWithGoogle();
+                    if (error) {
+                      toast.error(error.message);
+                      setIsLoading(false);
+                    }
+                  }}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Chrome className="mr-2 h-4 w-4" />
+                  )}
+                  Continuar con Google
+                </Button>
+                
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">
+                      O regístrate con email
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-start space-x-2">
-                  <Checkbox
-                    id="terms"
-                    checked={acceptTerms}
-                    onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
-                  />
-                  <label
-                    htmlFor="terms"
-                    className="text-sm text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    {t('auth.acceptTerms')}{" "}
-                    <button
-                      type="button"
-                      onClick={() => window.open('/terms', '_blank')}
-                      className="text-primary underline hover:text-primary/80"
+
+                <form onSubmit={handleSignUp} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-name">{t('auth.fullName')}</Label>
+                    <Input
+                      id="signup-name"
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">{t('auth.email')}</Label>
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password">{t('auth.password')}</Label>
+                    <div className="relative">
+                      <Input
+                        id="signup-password"
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        minLength={6}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <Checkbox
+                      id="terms"
+                      checked={acceptTerms}
+                      onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
+                    />
+                    <label
+                      htmlFor="terms"
+                      className="text-sm text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
-                      {t('auth.termsAndConditions')}
-                    </button>
-                  </label>
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading || !acceptTerms}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {t('auth.createAccount')}
-                </Button>
-              </form>
+                      {t('auth.acceptTerms')}{" "}
+                      <button
+                        type="button"
+                        onClick={() => window.open('/terms', '_blank')}
+                        className="text-primary underline hover:text-primary/80"
+                      >
+                        {t('auth.termsAndConditions')}
+                      </button>
+                    </label>
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isLoading || !acceptTerms}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {t('auth.createAccount')}
+                  </Button>
+                </form>
+              </div>
             </TabsContent>
           </Tabs>
         </CardContent>
