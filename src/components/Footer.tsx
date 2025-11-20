@@ -47,6 +47,32 @@ export const Footer = ({ variant = 'app' }: FooterProps) => {
             </div>
 
             <div>
+              <h4 className="font-semibold mb-3">Soporte</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <a 
+                    href="https://discord.gg/GHAq7BrZta"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Discord
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href="https://discord.gg/GHAq7BrZta"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Support
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div>
               <h4 className="font-semibold mb-3">Legal</h4>
               <ul className="space-y-2 text-sm">
                 <li>
@@ -81,6 +107,22 @@ export const Footer = ({ variant = 'app' }: FooterProps) => {
           </div>
           
           <div className="flex items-center gap-6">
+            <a 
+              href="https://discord.gg/GHAq7BrZta"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              Discord
+            </a>
+            <a 
+              href="https://discord.gg/GHAq7BrZta"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              Support
+            </a>
             <button 
               onClick={() => navigate('/terms')} 
               className="text-sm text-muted-foreground hover:text-primary transition-colors"

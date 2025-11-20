@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, CreditCard, Receipt, User, TrendingUp, AlertCircle, Calendar, BarChart3, Shield, Clock, DollarSign, FileText } from "lucide-react";
+import { Settings as SettingsIcon, CreditCard, Receipt, User, TrendingUp, AlertCircle, Calendar, BarChart3, Shield, Clock, DollarSign, FileText, HelpCircle, Mail, MessageCircle } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface Profile {
@@ -612,7 +612,7 @@ const Settings = () => {
       </div>
 
         <Tabs defaultValue="profile" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4 max-w-xl">
+          <TabsList className="grid w-full grid-cols-5 max-w-2xl">
             <TabsTrigger value="profile">
               <User className="h-4 w-4 mr-2" />
               {t('settings.tabs.profile')}
@@ -628,6 +628,10 @@ const Settings = () => {
             <TabsTrigger value="invoices">
               <Receipt className="h-4 w-4 mr-2" />
               {t('settings.tabs.invoices')}
+            </TabsTrigger>
+            <TabsTrigger value="support">
+              <HelpCircle className="h-4 w-4 mr-2" />
+              Soporte
             </TabsTrigger>
           </TabsList>
 
@@ -1253,6 +1257,75 @@ const Settings = () => {
                     </TableBody>
                   </Table>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="support">
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2">
+                  <HelpCircle className="h-5 w-5" />
+                  Soporte
+                </CardTitle>
+                <CardDescription>
+                  ¿Necesitas ayuda? Estamos aquí para asistirte.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="p-6 border rounded-lg bg-muted/50">
+                    <div className="flex items-start gap-4">
+                      <Mail className="h-6 w-6 text-primary mt-1" />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg mb-2">Soporte por Email</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Envíanos un email con tu consulta y te responderemos lo antes posible.
+                        </p>
+                        <a
+                          href="mailto:support@layersuite.com"
+                          className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
+                        >
+                          <Mail className="h-4 w-4" />
+                          support@layersuite.com
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-6 border rounded-lg bg-muted/50">
+                    <div className="flex items-start gap-4">
+                      <MessageCircle className="h-6 w-6 text-primary mt-1" />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg mb-2">Comunidad Discord</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Únete a nuestra comunidad en Discord para obtener ayuda, compartir ideas y conectar con otros usuarios.
+                        </p>
+                        <a
+                          href="https://discord.gg/GHAq7BrZta"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                          Unirse a Discord
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm text-blue-900 dark:text-blue-100">
+                          <strong>Nota:</strong> Para obtener la mejor asistencia, incluye detalles sobre tu problema o consulta. 
+                          Si es un problema técnico, menciona tu navegador y sistema operativo.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
