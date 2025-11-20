@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import logo from '@/assets/images/logo.svg';
 
 interface FooterProps {
   variant?: 'landing' | 'app';
@@ -16,7 +17,7 @@ export const Footer = ({ variant = 'app' }: FooterProps) => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="md:col-span-2">
               <div className="mb-3">
-                <img src="/logo.svg" alt="LayerSuite" className="h-6" />
+                <img src={logo} alt="LayerSuite" className="h-6" />
               </div>
               <p className="text-sm text-muted-foreground mb-4">
                 La solución completa para gestionar tu negocio de impresión 3D.

@@ -14,6 +14,7 @@ import { useTierFeatures } from '@/hooks/useTierFeatures';
 import { useAdmin } from '@/hooks/useAdmin';
 import { LogOut, Settings, LayoutDashboard, ChevronDown, Package, FolderKanban, Calculator, FileText, Printer, BookOpen, ShoppingCart, History, TrendingUp, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import logo from '@/assets/images/logo.svg';
 
 interface HeaderProps {
   variant?: 'landing' | 'app' | 'auth';
@@ -58,7 +59,7 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
               className="flex items-center cursor-pointer" 
               onClick={() => navigate('/')}
             >
-              <img src="/logo.svg" alt="LayerSuite" className="h-8" />
+              <img src={logo} alt="LayerSuite" className="h-8" />
             </div>
             <Button variant="ghost" onClick={() => navigate('/')}>
               {t('nav.home')}
@@ -84,7 +85,7 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
               className="flex items-center cursor-pointer" 
               onClick={() => navigate('/')}
             >
-              <img src="/logo.svg" alt="LayerSuite" className="h-8" />
+              <img src={logo} alt="LayerSuite" className="h-8" />
             </div>
             <Button variant="ghost" onClick={() => navigate('/')}>
               {t('nav.home')}
@@ -129,7 +130,7 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
               className="flex items-center cursor-pointer" 
               onClick={() => navigate('/dashboard')}
             >
-              <img src="/logo.svg" alt="LayerSuite" className="h-8" />
+              <img src={logo} alt="LayerSuite" className="h-8" />
             </div>
             {getTierBadge()}
           </div>
