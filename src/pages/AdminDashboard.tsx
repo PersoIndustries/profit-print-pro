@@ -18,6 +18,9 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Users, Package, FolderOpen, ShoppingCart, Edit, DollarSign, Settings, Save, History, Clock, BarChart3, Search, X, Tag, RefreshCw, Trash2, AlertTriangle } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { AdminSidebar } from "@/components/AdminSidebar";
+import { FinancialDashboard } from "@/components/FinancialDashboard";
 
 interface UserStats {
   id: string;
@@ -54,11 +57,8 @@ const AdminDashboard = () => {
   const [notes, setNotes] = useState<string>('');
   const [actionType, setActionType] = useState<'changeTier' | 'cancel' | 'refund' | 'addTrial'>('changeTier');
   
-  // Subscription limits management
-  const [limitsTab, setLimitsTab] = useState(false);
-  const [promoCodesTab, setPromoCodesTab] = useState(false);
-  const [creatorCodesTab, setCreatorCodesTab] = useState(false);
-  const [refundRequestsTab, setRefundRequestsTab] = useState(false);
+  // Navigation - using section state instead of multiple tabs
+  const [activeSection, setActiveSection] = useState<string>('users');
   const [limits, setLimits] = useState<{
     free: { materials: number; projects: number; monthlyOrders: number; metricsHistory: number; shoppingLists: number };
     tier_1: { materials: number; projects: number; monthlyOrders: number; metricsHistory: number; shoppingLists: number };
@@ -319,7 +319,7 @@ const AdminDashboard = () => {
     try {
       setLoadingCreatorCodes(true);
       const { data, error } = await supabase
-        .from('creator_codes')
+        .from('creator_codes' as any)
         .select(`
           *,
           creator_user:profiles!creator_codes_creator_user_id_fkey(id, email, full_name),
@@ -355,7 +355,7 @@ const AdminDashboard = () => {
     try {
       setLoadingRefundRequests(true);
       const { data, error } = await supabase
-        .from('refund_requests')
+        .from('refund_requests' as any)
         .select(`
           *,
           user:profiles!refund_requests_user_id_fkey(id, email, full_name),
@@ -409,7 +409,7 @@ const AdminDashboard = () => {
       }
 
       const { error: updateError } = await supabase
-        .from('refund_requests')
+        .from('refund_requests' as any)
         .update(updateData)
         .eq('id', selectedRefundRequest.id);
 
@@ -448,7 +448,7 @@ const AdminDashboard = () => {
       // Soft delete: update deleted_at instead of actually deleting
       const { error } = await supabase
         .from('profiles')
-        .update({ deleted_at: new Date().toISOString() })
+        .update({ deleted_at: new Date().toISOString() } as any)
         .eq('id', selectedUser.id);
 
       if (error) throw error;
@@ -493,7 +493,7 @@ const AdminDashboard = () => {
 
       if (editingCreatorCode) {
         const { error } = await supabase
-          .from('creator_codes')
+          .from('creator_codes' as any)
           .update(creatorCodeData)
           .eq('id', editingCreatorCode.id);
 
@@ -501,7 +501,7 @@ const AdminDashboard = () => {
         toast.success('Creator code updated successfully');
       } else {
         const { error } = await supabase
-          .from('creator_codes')
+          .from('creator_codes' as any)
           .insert([creatorCodeData]);
 
         if (error) throw error;
@@ -534,7 +534,7 @@ const AdminDashboard = () => {
 
     try {
       const { error } = await supabase
-        .from('creator_codes')
+        .from('creator_codes' as any)
         .delete()
         .eq('id', id);
 
@@ -675,20 +675,20 @@ const AdminDashboard = () => {
       fetchAdminData();
       fetchSubscriptionLimits();
       fetchAllUsers();
-      if (limitsTab) {
+      if (activeSection === 'limits') {
         fetchLimitsHistory();
       }
-      if (promoCodesTab) {
+      if (activeSection === 'promo-codes') {
         fetchPromoCodes();
       }
-        if (creatorCodesTab) {
-          fetchCreatorCodes();
-        }
-        if (refundRequestsTab) {
-          fetchRefundRequests();
-        }
+      if (activeSection === 'creator-codes') {
+        fetchCreatorCodes();
       }
-    }, [user, authLoading, isAdmin, adminLoading, navigate, limitsTab, promoCodesTab, creatorCodesTab, refundRequestsTab]);
+      if (activeSection === 'refunds') {
+        fetchRefundRequests();
+      }
+      }
+    }, [user, authLoading, isAdmin, adminLoading, navigate, activeSection]);
 
   // Filter users based on search query
   useEffect(() => {
@@ -714,7 +714,7 @@ const AdminDashboard = () => {
     if (isAdmin && !adminLoading) {
       const fetchPendingRefunds = async () => {
         const { count } = await supabase
-          .from('refund_requests')
+          .from('refund_requests' as any)
           .select('*', { count: 'exact', head: true })
           .eq('status', 'pending');
         setPendingRefundCount(count || 0);
@@ -944,7 +944,7 @@ const AdminDashboard = () => {
         .update({
           status: 'trial',
           expires_at: newExpiresAt.toISOString(),
-          tier: currentTier === 'free' ? 'tier_1' : currentTier, // Upgrade to tier_1 if free
+          tier: (currentTier === 'free' ? 'tier_1' : currentTier) as 'tier_1' | 'tier_2' | 'free', // Upgrade to tier_1 if free
         })
         .eq('user_id', selectedUser.id);
 
@@ -1015,148 +1015,68 @@ const AdminDashboard = () => {
     return null; // El useEffect ya redirigió o está por redirigir
   }
 
+  const handleSectionChange = (section: string) => {
+    setActiveSection(section);
+    
+    // Cargar datos según la sección
+    if (section === 'limits') {
+      fetchLimitsHistory();
+    } else if (section === 'promo-codes') {
+      fetchPromoCodes();
+    } else if (section === 'creator-codes') {
+      fetchCreatorCodes();
+    } else if (section === 'refunds') {
+      fetchRefundRequests();
+    }
+  };
+
   return (
-    <>
-      {/* Improved Navigation Menu */}
-      <div className="mb-6 space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-3xl font-bold">{t('admin.title')}</h2>
+    <SidebarProvider>
+      <AdminSidebar 
+        activeSection={activeSection} 
+        onSectionChange={handleSectionChange}
+        pendingRefundCount={pendingRefundCount}
+      />
+      <SidebarInset>
+        <div className="flex items-center gap-2 p-4 border-b">
+          <SidebarTrigger />
+          <div className="flex-1" />
           <LanguageSwitcher />
         </div>
         
-        {/* Main Navigation - First Row */}
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant={!limitsTab && !promoCodesTab && !creatorCodesTab && !refundRequestsTab ? "default" : "outline"}
-            onClick={() => {
-              setLimitsTab(false);
-              setPromoCodesTab(false);
-              setCreatorCodesTab(false);
-              setRefundRequestsTab(false);
-            }}
-            className="flex-1 min-w-[120px]"
-          >
-            <Users className="h-4 w-4 mr-2" />
-            Users
-          </Button>
-          <Button
-            variant={limitsTab ? "default" : "outline"}
-            onClick={() => {
-              setLimitsTab(true);
-              setPromoCodesTab(false);
-              setCreatorCodesTab(false);
-              setRefundRequestsTab(false);
-              fetchLimitsHistory();
-            }}
-            className="flex-1 min-w-[120px]"
-          >
-            <Settings className="h-4 w-4 mr-2" />
-            Limits
-          </Button>
-          <Button
-            variant={promoCodesTab ? "default" : "outline"}
-            onClick={() => {
-              setPromoCodesTab(true);
-              setLimitsTab(false);
-              setCreatorCodesTab(false);
-              setRefundRequestsTab(false);
-              fetchPromoCodes();
-            }}
-            className="flex-1 min-w-[120px]"
-          >
-            <Tag className="h-4 w-4 mr-2" />
-            Promo Codes
-          </Button>
-          <Button
-            variant={creatorCodesTab ? "default" : "outline"}
-            onClick={() => {
-              setCreatorCodesTab(true);
-              setLimitsTab(false);
-              setPromoCodesTab(false);
-              setRefundRequestsTab(false);
-              fetchCreatorCodes();
-            }}
-            className="flex-1 min-w-[120px]"
-          >
-            <Users className="h-4 w-4 mr-2" />
-            Creator Codes
-          </Button>
-          <Button
-            variant={refundRequestsTab ? "default" : "outline"}
-            onClick={() => {
-              setRefundRequestsTab(true);
-              setLimitsTab(false);
-              setPromoCodesTab(false);
-              setCreatorCodesTab(false);
-              fetchRefundRequests();
-            }}
-            className="flex-1 min-w-[120px] relative"
-          >
-            <DollarSign className="h-4 w-4 mr-2" />
-            Refunds
-            {pendingRefundCount > 0 && (
-              <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
-                {pendingRefundCount}
-              </Badge>
-            )}
-          </Button>
-        </div>
-
-        {/* Secondary Actions - Second Row */}
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            onClick={() => navigate('/admin/grace-period')}
-            className="flex-1 min-w-[120px]"
-          >
-            <Clock className="h-4 w-4 mr-2" />
-            Grace Period
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/admin/metrics')}
-            className="flex-1 min-w-[120px]"
-          >
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Metrics
-          </Button>
-        </div>
-
-        {/* Alert for Pending Refund Requests */}
-        {pendingRefundCount > 0 && !refundRequestsTab && (
-          <Card className="border-orange-500/50 bg-orange-500/10">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <DollarSign className="h-5 w-5 text-orange-600" />
-                  <div>
-                    <p className="font-semibold text-orange-600">
-                      {pendingRefundCount} solicitud{pendingRefundCount > 1 ? 'es' : ''} de refund pendiente{pendingRefundCount > 1 ? 's' : ''}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Hay solicitudes de refund esperando revisión
-                    </p>
+        <div className="p-6">
+          {/* Alert for Pending Refund Requests */}
+          {pendingRefundCount > 0 && activeSection !== 'refunds' && (
+            <Card className="border-orange-500/50 bg-orange-500/10 mb-6">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <DollarSign className="h-5 w-5 text-orange-600" />
+                    <div>
+                      <p className="font-semibold text-orange-600">
+                        {pendingRefundCount} solicitud{pendingRefundCount > 1 ? 'es' : ''} de refund pendiente{pendingRefundCount > 1 ? 's' : ''}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Hay solicitudes de refund esperando revisión
+                      </p>
+                    </div>
                   </div>
+                  <Button
+                    variant="default"
+                    onClick={() => {
+                      handleSectionChange('refunds');
+                    }}
+                  >
+                    Ver Solicitudes
+                  </Button>
                 </div>
-                <Button
-                  variant="default"
-                  onClick={() => {
-                    setRefundRequestsTab(true);
-                    setLimitsTab(false);
-                    setPromoCodesTab(false);
-                    setCreatorCodesTab(false);
-                    fetchRefundRequests();
-                  }}
-                >
-                  Ver Solicitudes
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+              </CardContent>
+            </Card>
+          )}
 
-      {refundRequestsTab ? (
+      {activeSection === 'financial-dashboard' ? (
+        <FinancialDashboard />
+      ) : activeSection === 'refunds' ? (
         <>
           {/* Action Menu - Two Rows */}
           <div className="mb-4 space-y-2">
@@ -1271,7 +1191,7 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
         </>
-      ) : creatorCodesTab ? (
+      ) : activeSection === 'creator-codes' ? (
         <>
           {/* Action Menu - Two Rows */}
           <div className="mb-4 space-y-2">
@@ -1362,7 +1282,7 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </>
-      ) : promoCodesTab ? (
+      ) : activeSection === 'promo-codes' ? (
         <>
           {/* Action Menu - Two Rows */}
           <div className="mb-4 space-y-2">
@@ -1445,7 +1365,7 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
         </>
-      ) : limitsTab ? (
+      ) : activeSection === 'limits' ? (
         <>
           {/* Action Menu - Two Rows */}
           <div className="mb-4 space-y-2">
@@ -1531,7 +1451,7 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
         </>
-      ) : !limitsTab ? (
+      ) : activeSection === 'users' || activeSection === 'user-analysis' ? (
         <>
           {/* Action Menu - Two Rows */}
           <div className="mb-4 space-y-2">
@@ -2091,6 +2011,7 @@ const AdminDashboard = () => {
         </Card>
         </>
       )}
+        </div>
 
       {/* Promo Code Dialog */}
       <Dialog open={promoCodeDialogOpen} onOpenChange={setPromoCodeDialogOpen}>
@@ -2598,7 +2519,8 @@ const AdminDashboard = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+      </SidebarInset>
+    </SidebarProvider>
   );
 };
 
