@@ -1281,6 +1281,9 @@ const Settings = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
+                <p className="text-muted-foreground mb-2">
+                  <strong>Jardiper S.C.</strong> - Carretera A131, km 1.8 S/N, Fraga, 22520, España
+                </p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                   <li>Máximo 1 semana (7 días) desde el pago para solicitar refund</li>
                   <li>Máximo 15 días para errores de pago (anual en vez de mensual)</li>

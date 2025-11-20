@@ -104,6 +104,21 @@ const Terms = () => {
                 {t('terms.section11.content')}
               </p>
             </section>
+
+            <section>
+              <h2 className="text-xl font-semibold mb-3">12. {t('terms.section12.title')}</h2>
+              <p className="text-muted-foreground mb-2">
+                {t('terms.section12.content')}
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
+                <li>{t('terms.section12.item1')}</li>
+                <li>{t('terms.section12.item2')}</li>
+                <li>{t('terms.section12.item3')}</li>
+                <li>{t('terms.section12.item4')}</li>
+                <li>{t('terms.section12.item5')}</li>
+                <li>{t('terms.section12.item6')}</li>
+              </ul>
+            </section>
           </CardContent>
         </Card>
       </div>

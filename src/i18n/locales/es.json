@@ -1297,7 +1297,7 @@
     },
     "section6": {
       "title": "Propiedad Intelectual",
-      "content": "Todo el contenido, características y funcionalidad del servicio (incluyendo pero no limitado a información, software, texto, gráficos, logos) son propiedad exclusiva de Layer Suite y están protegidos por leyes de derechos de autor, marcas registradas y otras leyes de propiedad intelectual."
+      "content": "Todo el contenido, características y funcionalidad del servicio (incluyendo pero no limitado a información, software, texto, gráficos, logos) son propiedad exclusiva de Jardiper S.C. y están protegidos por leyes de derechos de autor, marcas registradas y otras leyes de propiedad intelectual."
     },
     "section7": {
       "title": "Privacidad y Protección de Datos",
@@ -1317,7 +1317,17 @@
     },
     "section11": {
       "title": "Contacto",
-      "content": "Si tiene preguntas sobre estos Términos y Condiciones, puede contactarnos a través de nuestro formulario de contacto en el sitio web."
+      "content": "Si tiene preguntas sobre estos Términos y Condiciones, puede contactarnos a través de nuestro formulario de contacto en el sitio web. Jardiper S.C., Carretera A131, km 1.8 S/N, Fraga, 22520, España."
+    },
+    "section12": {
+      "title": "Política de Reembolsos",
+      "content": "Jardiper S.C. ofrece reembolsos bajo las siguientes condiciones:",
+      "item1": "Máximo 1 semana (7 días) desde el pago para solicitar refund",
+      "item2": "Máximo 15 días para errores de pago (anual en vez de mensual)",
+      "item3": "No haber utilizado los límites máximos del plan",
+      "item4": "Solo se puede hacer refund del mes actual (para pagos mensuales)",
+      "item5": "Debe haber un problema grave demostrable por la aplicación",
+      "item6": "El refund solo aplica al período de facturación actual. Para más información, contacte a Jardiper S.C., Carretera A131, km 1.8 S/N, Fraga, 22520, España."
     }
   },
   "shoppingList": {

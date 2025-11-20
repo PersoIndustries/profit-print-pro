@@ -15,7 +15,9 @@ export const Footer = ({ variant = 'app' }: FooterProps) => {
         <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="md:col-span-2">
-              <h3 className="text-lg font-bold text-primary mb-3">Layer Suite</h3>
+              <div className="mb-3">
+                <img src="/logo.svg" alt="LayerSuite" className="h-6" />
+              </div>
               <p className="text-sm text-muted-foreground mb-4">
                 La solución completa para gestionar tu negocio de impresión 3D.
               </p>
@@ -61,7 +63,7 @@ export const Footer = ({ variant = 'app' }: FooterProps) => {
           </div>
           
           <div className="border-t mt-8 pt-6 text-center text-sm text-muted-foreground">
-            <p>© {currentYear} Layer Suite. Todos los derechos reservados.</p>
+            <p>© {currentYear} Jardiper S.C. Todos los derechos reservados.</p>
           </div>
         </div>
       </footer>
@@ -74,7 +76,7 @@ export const Footer = ({ variant = 'app' }: FooterProps) => {
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="text-sm text-muted-foreground">
-            © {currentYear} Layer Suite. Todos los derechos reservados.
+            © {currentYear} Jardiper S.C. Todos los derechos reservados.
           </div>
           
           <div className="flex items-center gap-6">

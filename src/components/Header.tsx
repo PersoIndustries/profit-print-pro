@@ -54,12 +54,12 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
       <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <h1 
-              className="text-2xl font-bold text-primary cursor-pointer" 
+            <div 
+              className="flex items-center cursor-pointer" 
               onClick={() => navigate('/')}
             >
-              Layer Suite
-            </h1>
+              <img src="/logo.svg" alt="LayerSuite" className="h-8" />
+            </div>
             <Button variant="ghost" onClick={() => navigate('/')}>
               {t('nav.home')}
             </Button>
@@ -80,12 +80,12 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
       <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <h1 
-              className="text-2xl font-bold text-primary cursor-pointer" 
+            <div 
+              className="flex items-center cursor-pointer" 
               onClick={() => navigate('/')}
             >
-              Layer Suite
-            </h1>
+              <img src="/logo.svg" alt="LayerSuite" className="h-8" />
+            </div>
             <Button variant="ghost" onClick={() => navigate('/')}>
               {t('nav.home')}
             </Button>
@@ -125,12 +125,12 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <h1 
-              className="text-2xl font-bold text-primary cursor-pointer" 
+            <div 
+              className="flex items-center cursor-pointer" 
               onClick={() => navigate('/dashboard')}
             >
-              Layer Suite
-            </h1>
+              <img src="/logo.svg" alt="LayerSuite" className="h-8" />
+            </div>
             {getTierBadge()}
           </div>
           <Button 
