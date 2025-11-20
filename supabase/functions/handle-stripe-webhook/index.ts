@@ -168,6 +168,7 @@ async function handleCheckoutCompleted(
     : new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
 
   // Update or create user subscription
+  // IMPORTANT: Subscriptions from Stripe are PAID subscriptions
   const { error: subError } = await supabase
     .from('user_subscriptions')
     .upsert({
@@ -178,6 +179,10 @@ async function handleCheckoutCompleted(
       expires_at: expiresAt.toISOString(),
       last_payment_date: new Date().toISOString(),
       next_billing_date: new Date(subscription.current_period_end * 1000).toISOString(),
+      // Mark as paid subscription (from Stripe)
+      is_paid_subscription: true,
+      stripe_subscription_id: subscriptionId,
+      stripe_customer_id: customerId,
     }, {
       onConflict: 'user_id',
     });

@@ -100,7 +100,7 @@ serve(async (req) => {
     // Get current subscription
     const { data: currentSub, error: subError } = await supabaseAdmin
       .from('user_subscriptions')
-      .select('tier, status, expires_at, grace_period_end')
+      .select('tier, status, expires_at, grace_period_end, is_paid_subscription, stripe_subscription_id')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -138,6 +138,8 @@ serve(async (req) => {
     }
 
     // Update subscription
+    // IMPORTANT: Changes from admin are always FREE (not paid)
+    // If user had a paid subscription, we mark it as free/admin-granted
     const updateData: any = {
       tier: newTier,
       status: newTier === 'free' ? 'cancelled' : 'active',
@@ -145,6 +147,16 @@ serve(async (req) => {
       downgrade_date: downgradeDate,
       grace_period_end: gracePeriodEnd,
       is_read_only: isReadOnly,
+      // Mark as free subscription (admin-granted, not paid)
+      is_paid_subscription: false,
+      // Clear Stripe IDs if they exist (this is now a free subscription)
+      stripe_subscription_id: null,
+      stripe_customer_id: null,
+      // Clear billing info for free subscriptions
+      billing_period: null,
+      last_payment_date: null,
+      next_billing_date: null,
+      price_paid: null,
     };
 
     const { error: updateError } = await supabaseAdmin

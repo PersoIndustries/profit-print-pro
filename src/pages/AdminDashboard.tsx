@@ -22,6 +22,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { FinancialDashboard } from "@/components/FinancialDashboard";
+import { AdminActionInfoModal } from "@/components/AdminActionInfoModal";
 
 interface UserStats {
   id: string;
@@ -57,6 +58,14 @@ const AdminDashboard = () => {
   const [trialDays, setTrialDays] = useState<string>('15');
   const [notes, setNotes] = useState<string>('');
   const [actionType, setActionType] = useState<'changeTier' | 'cancel' | 'refund' | 'addTrial'>('changeTier');
+  
+  // Info modal state
+  const [infoModalOpen, setInfoModalOpen] = useState(false);
+  const [subscriptionInfo, setSubscriptionInfo] = useState<{
+    isPaidSubscription?: boolean;
+    hasStripeSubscription?: boolean;
+    stripeSubscriptionId?: string;
+  } | null>(null);
   
   // Navigation - using section state instead of multiple tabs
   const [activeSection, setActiveSection] = useState<string>('users');
@@ -1106,7 +1115,7 @@ const AdminDashboard = () => {
 
       const userStatsPromises = profiles.map(async (profile) => {
         const [subRes, roleRes, materialsRes, projectsRes, ordersRes] = await Promise.all([
-          supabase.from('user_subscriptions').select('tier, status').eq('user_id', profile.id).maybeSingle(),
+          supabase.from('user_subscriptions' as any).select('tier, status, is_paid_subscription, stripe_subscription_id').eq('user_id', profile.id).maybeSingle(),
           supabase.from('user_roles').select('role').eq('user_id', profile.id).maybeSingle(),
           supabase.from('materials').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
           supabase.from('projects').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
@@ -1115,8 +1124,8 @@ const AdminDashboard = () => {
 
         return {
           ...profile,
-          tier: subRes.data?.tier || 'free',
-          subscription_status: subRes.data?.status || 'active',
+          tier: (subRes.data as any)?.tier || 'free',
+          subscription_status: (subRes.data as any)?.status || 'active',
           role: roleRes.data?.role || 'user',
           materials_count: materialsRes.count || 0,
           projects_count: projectsRes.count || 0,
@@ -1136,18 +1145,50 @@ const AdminDashboard = () => {
     }
   };
 
-  const openUserDialog = (userStat: UserStats, action: 'changeTier' | 'cancel' | 'refund' | 'addTrial') => {
+  const openUserDialog = async (userStat: UserStats, action: 'changeTier' | 'cancel' | 'refund' | 'addTrial') => {
     setSelectedUser(userStat);
     setActionType(action);
     setNewTier(userStat.tier);
     setRefundAmount('');
     setTrialDays('15');
     setNotes('');
+    
+    // Fetch subscription info to determine if it's paid or free
+    try {
+      const { data: subData } = await supabase
+        .from('user_subscriptions' as any)
+        .select('is_paid_subscription, stripe_subscription_id')
+        .eq('user_id', userStat.id)
+        .maybeSingle();
+      
+      setSubscriptionInfo({
+        isPaidSubscription: (subData as any)?.is_paid_subscription || false,
+        hasStripeSubscription: !!(subData as any)?.stripe_subscription_id,
+        stripeSubscriptionId: (subData as any)?.stripe_subscription_id || undefined,
+      });
+    } catch (error) {
+      console.error('Error fetching subscription info:', error);
+      setSubscriptionInfo({
+        isPaidSubscription: false,
+        hasStripeSubscription: false,
+      });
+    }
+    
+    // Show info modal first
+    setInfoModalOpen(true);
+  };
+  
+  const handleInfoModalConfirm = () => {
+    setInfoModalOpen(false);
+    // Open the actual action dialog
     setDialogOpen(true);
   };
 
   const handleChangeTier = async () => {
     if (!selectedUser || !newTier) return;
+    
+    // Close dialog first
+    setDialogOpen(false);
 
     try {
       const { data, error } = await supabase.functions.invoke('admin-change-subscription-tier', {
@@ -1175,10 +1216,9 @@ const AdminDashboard = () => {
 
   const handleCancelSubscription = async () => {
     if (!selectedUser) return;
-
-    if (!confirm(`Are you sure you want to cancel the subscription for ${selectedUser.email}?`)) {
-      return;
-    }
+    
+    // Close dialog first
+    setDialogOpen(false);
 
     try {
       const { data, error } = await supabase.functions.invoke('admin-cancel-subscription', {
@@ -1210,6 +1250,9 @@ const AdminDashboard = () => {
       toast.error('Please enter refund amount');
       return;
     }
+    
+    // Close dialog first
+    setDialogOpen(false);
 
     try {
       const { data, error } = await supabase.functions.invoke('admin-process-refund', {
@@ -1245,6 +1288,9 @@ const AdminDashboard = () => {
       toast.error('Please enter a valid number of days');
       return;
     }
+    
+    // Close dialog first
+    setDialogOpen(false);
 
     try {
       const { data, error } = await supabase.functions.invoke('admin-add-trial', {
@@ -3339,6 +3385,25 @@ const AdminDashboard = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Admin Action Info Modal */}
+      <AdminActionInfoModal
+        open={infoModalOpen}
+        onClose={() => {
+          setInfoModalOpen(false);
+          setSubscriptionInfo(null);
+        }}
+        onConfirm={handleInfoModalConfirm}
+        actionType={actionType}
+        actionData={{
+          previousTier: selectedUser?.tier,
+          newTier: actionType === 'changeTier' ? newTier : undefined,
+          amount: actionType === 'refund' ? parseFloat(refundAmount || '0') : undefined,
+          days: actionType === 'addTrial' ? parseInt(trialDays || '0') : undefined,
+          isPaidSubscription: subscriptionInfo?.isPaidSubscription,
+          hasStripeSubscription: subscriptionInfo?.hasStripeSubscription,
+        }}
+      />
       </SidebarInset>
     </SidebarProvider>
   );
