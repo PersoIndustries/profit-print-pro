@@ -745,38 +745,22 @@ const AdminDashboard = () => {
     if (!selectedRefundRequest || !user) return;
 
     try {
-      const updateData: any = {
-        status: refundAction === 'approve' ? 'approved' : 'rejected',
-        admin_id: user.id,
-        admin_notes: refundAdminNotes || null,
-        processed_at: new Date().toISOString()
-      };
+      const { data, error } = await supabase.functions.invoke('admin-process-refund-request', {
+        body: {
+          refundRequestId: selectedRefundRequest.id,
+          action: refundAction,
+          adminNotes: refundAdminNotes || null,
+          processInStripe: refundAction === 'approve', // Process in Stripe if approving
+        },
+      });
 
-      if (refundAction === 'approve') {
-        // Create refund invoice
-        const { error: invoiceError } = await supabase
-          .from('invoices')
-          .insert([{
-            user_id: selectedRefundRequest.user_id,
-            invoice_number: `REF-${Date.now()}`,
-            amount: -Math.abs(selectedRefundRequest.amount),
-            status: 'refunded',
-            tier: selectedRefundRequest.user?.tier || 'free',
-            notes: `Refund for request: ${selectedRefundRequest.reason}`
-          }]);
+      if (error) throw error;
 
-        if (invoiceError) throw invoiceError;
-        updateData.status = 'processed';
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
-      const { error: updateError } = await supabase
-        .from('refund_requests' as any)
-        .update(updateData)
-        .eq('id', selectedRefundRequest.id);
-
-      if (updateError) throw updateError;
-
-      toast.success(`Refund request ${refundAction === 'approve' ? 'approved and processed' : 'rejected'} successfully`);
+      toast.success(data?.message || `Refund request ${refundAction === 'approve' ? 'approved and processed' : 'rejected'} successfully`);
       setRefundRequestDialogOpen(false);
       setSelectedRefundRequest(null);
       setRefundAdminNotes('');
@@ -806,15 +790,21 @@ const AdminDashboard = () => {
     }
 
     try {
-      // Soft delete: update deleted_at instead of actually deleting
-      const { error } = await supabase
-        .from('profiles')
-        .update({ deleted_at: new Date().toISOString() } as any)
-        .eq('id', selectedUser.id);
+      const { data, error } = await supabase.functions.invoke('admin-delete-user', {
+        body: {
+          userId: selectedUser.id,
+          reason: deleteUserReason,
+          cancelStripeSubscription: true, // Cancel subscription in Stripe
+        },
+      });
 
       if (error) throw error;
 
-      toast.success('User deleted successfully');
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast.success(data?.message || 'User deleted successfully');
       setDeleteUserConfirmDialogOpen(false);
       setDeleteUserDialogOpen(false);
       setSelectedUser(null);
@@ -1160,29 +1150,21 @@ const AdminDashboard = () => {
     if (!selectedUser || !newTier) return;
 
     try {
-      // Update subscription tier
-      const { error: subError } = await supabase
-        .from('user_subscriptions')
-        .update({ tier: newTier as 'free' | 'tier_1' | 'tier_2' })
-        .eq('user_id', selectedUser.id);
+      const { data, error } = await supabase.functions.invoke('admin-change-subscription-tier', {
+        body: {
+          userId: selectedUser.id,
+          newTier: newTier as 'free' | 'tier_1' | 'tier_2',
+          notes: notes || null,
+        },
+      });
 
-      if (subError) throw subError;
+      if (error) throw error;
 
-      // Log the change
-      const { error: logError } = await supabase
-        .from('subscription_changes')
-        .insert([{
-          user_id: selectedUser.id,
-          admin_id: user?.id || null,
-          previous_tier: selectedUser.tier as 'free' | 'tier_1' | 'tier_2',
-          new_tier: newTier as 'free' | 'tier_1' | 'tier_2',
-          change_type: newTier === 'free' ? 'downgrade' : 'upgrade',
-          notes: notes
-        }]);
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
-      if (logError) throw logError;
-
-      toast.success('Subscription tier updated successfully');
+      toast.success(data?.message || 'Subscription tier updated successfully');
       setDialogOpen(false);
       fetchAdminData();
     } catch (error: any) {
@@ -1199,28 +1181,22 @@ const AdminDashboard = () => {
     }
 
     try {
-      const { error: subError } = await supabase
-        .from('user_subscriptions')
-        .update({ status: 'cancelled', tier: 'free' })
-        .eq('user_id', selectedUser.id);
+      const { data, error } = await supabase.functions.invoke('admin-cancel-subscription', {
+        body: {
+          userId: selectedUser.id,
+          notes: notes || null,
+          cancelInStripe: true, // Cancel in Stripe if subscription exists
+          immediate: true,
+        },
+      });
 
-      if (subError) throw subError;
+      if (error) throw error;
 
-      const { error: logError } = await supabase
-        .from('subscription_changes')
-        .insert([{
-          user_id: selectedUser.id,
-          admin_id: user?.id || null,
-          previous_tier: selectedUser.tier as 'free' | 'tier_1' | 'tier_2',
-          new_tier: 'free' as 'free' | 'tier_1' | 'tier_2',
-          change_type: 'cancel',
-          reason: 'Admin cancelled subscription',
-          notes: notes
-        }]);
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
-      if (logError) throw logError;
-
-      toast.success('Subscription cancelled successfully');
+      toast.success(data?.message || 'Subscription cancelled successfully');
       setDialogOpen(false);
       fetchAdminData();
     } catch (error: any) {
@@ -1236,36 +1212,23 @@ const AdminDashboard = () => {
     }
 
     try {
-      // Create a refund invoice record
-      const { error: invoiceError } = await supabase
-        .from('invoices')
-        .insert([{
-          user_id: selectedUser.id,
-          invoice_number: `REF-${Date.now()}`,
-          amount: -parseFloat(refundAmount),
-          status: 'refunded',
-          tier: selectedUser.tier,
-          notes: notes
-        }]);
+      const { data, error } = await supabase.functions.invoke('admin-process-refund', {
+        body: {
+          userId: selectedUser.id,
+          amount: parseFloat(refundAmount),
+          currency: 'EUR',
+          notes: notes || null,
+          processInStripe: true, // Process refund in Stripe if possible
+        },
+      });
 
-      if (invoiceError) throw invoiceError;
+      if (error) throw error;
 
-      // Log the refund
-      const { error: logError } = await supabase
-        .from('subscription_changes')
-        .insert([{
-          user_id: selectedUser.id,
-          admin_id: user?.id || null,
-          previous_tier: selectedUser.tier as 'free' | 'tier_1' | 'tier_2',
-          new_tier: selectedUser.tier as 'free' | 'tier_1' | 'tier_2',
-          change_type: 'refund',
-          reason: `Refund of ${refundAmount}€`,
-          notes: notes
-        }]);
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
-      if (logError) throw logError;
-
-      toast.success(`Refund of ${refundAmount}€ processed successfully`);
+      toast.success(data?.message || `Refund of ${refundAmount}€ processed successfully`);
       setDialogOpen(false);
       fetchAdminData();
     } catch (error: any) {
@@ -1284,37 +1247,21 @@ const AdminDashboard = () => {
     }
 
     try {
-      // Get current subscription
-      const { data: currentSub, error: fetchError } = await supabase
-        .from('user_subscriptions')
-        .select('tier, expires_at')
-        .eq('user_id', selectedUser.id)
-        .single();
+      const { data, error } = await supabase.functions.invoke('admin-add-trial', {
+        body: {
+          userId: selectedUser.id,
+          trialDays: days,
+          notes: notes || null,
+        },
+      });
 
-      if (fetchError) throw fetchError;
+      if (error) throw error;
 
-      const currentTier = currentSub?.tier || selectedUser.tier;
-      const currentExpiresAt = currentSub?.expires_at 
-        ? new Date(currentSub.expires_at)
-        : new Date();
-      
-      // Calculate new expiration date
-      const newExpiresAt = new Date(currentExpiresAt);
-      newExpiresAt.setDate(newExpiresAt.getDate() + days);
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
-      // Update subscription to trial
-      const { error: updateError } = await supabase
-        .from('user_subscriptions')
-        .update({
-          status: 'trial',
-          expires_at: newExpiresAt.toISOString(),
-          tier: (currentTier === 'free' ? 'tier_1' : currentTier) as 'tier_1' | 'tier_2' | 'free', // Upgrade to tier_1 if free
-        })
-        .eq('user_id', selectedUser.id);
-
-      if (updateError) throw updateError;
-
-      toast.success(`Trial period of ${days} days added successfully`);
+      toast.success(data?.message || `Trial period of ${days} days added successfully`);
       setDialogOpen(false);
       fetchAdminData();
     } catch (error: any) {

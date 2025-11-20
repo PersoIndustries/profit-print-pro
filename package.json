@@ -11,7 +11,10 @@
     "preview": "vite preview",
     "validate:printers": "node scripts/quick-validate-printers.js",
     "validate:connection": "node scripts/test-connection.js",
-    "validate:order-statuses": "node scripts/validate-order-statuses.js"
+    "validate:order-statuses": "node scripts/validate-order-statuses.js",
+    "test:edge-functions": "npx tsx scripts/test-admin-edge-functions.ts",
+    "test:edge-functions:auth": "npx tsx scripts/test-admin-functions-with-auth.ts",
+    "validate:edge-functions": "npx tsx scripts/validate-edge-functions-structure.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
