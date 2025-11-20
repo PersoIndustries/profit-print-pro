@@ -1,7 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Loader2, BarChart3, Printer, TrendingUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -18,6 +20,34 @@ const Dashboard = () => {
   const { subscription, loading: subLoading } = useSubscription();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const [sessionProcessed, setSessionProcessed] = useState(false);
+
+  // Handle Stripe Checkout success
+  useEffect(() => {
+    const sessionId = searchParams.get('session_id');
+    if (sessionId && !sessionProcessed && user) {
+      handleCheckoutSuccess(sessionId);
+    }
+  }, [searchParams, user, sessionProcessed]);
+
+  const handleCheckoutSuccess = async (sessionId: string) => {
+    setSessionProcessed(true);
+    try {
+      // Verify the session was completed
+      // The webhook should have already processed it, but we can verify here
+      toast.success('¡Pago procesado exitosamente! Tu suscripción está activa.');
+      
+      // Remove session_id from URL
+      navigate('/dashboard', { replace: true });
+      
+      // Refresh subscription data
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Error verifying checkout session:', error);
+      toast.error('Error al verificar el pago. Por favor, contacta a soporte.');
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {

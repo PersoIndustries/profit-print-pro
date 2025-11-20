@@ -1,4 +1,4 @@
-import { Users, DollarSign, Settings, Tag, Clock, BarChart3, TrendingUp } from "lucide-react";
+import { Users, DollarSign, Settings, Tag, Clock, BarChart3, TrendingUp, FileText } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -42,6 +42,11 @@ export function AdminSidebar({ activeSection, onSectionChange, pendingRefundCoun
           title: "Dashboard Económico",
           icon: TrendingUp,
           section: "financial-dashboard",
+        },
+        {
+          title: "Facturas",
+          icon: FileText,
+          section: "invoices",
         },
         {
           title: "Solicitudes de Refund",

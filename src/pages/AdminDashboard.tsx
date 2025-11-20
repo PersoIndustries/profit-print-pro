@@ -17,7 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Users, Package, FolderOpen, ShoppingCart, Edit, DollarSign, Settings, Save, History, Clock, BarChart3, Search, X, Tag, RefreshCw, Trash2, AlertTriangle } from "lucide-react";
+import { Users, Package, FolderOpen, ShoppingCart, Edit, DollarSign, Settings, Save, History, Clock, BarChart3, Search, X, Tag, RefreshCw, Trash2, AlertTriangle, FileText } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
@@ -137,6 +137,17 @@ const AdminDashboard = () => {
   const [loadingMetrics, setLoadingMetrics] = useState(false);
   const [dailyMetrics, setDailyMetrics] = useState<any[]>([]);
   const [dateRange, setDateRange] = useState<'today' | 'week' | 'month' | 'all'>('today');
+  
+  // Invoices management
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [invoiceFilters, setInvoiceFilters] = useState({
+    userId: '',
+    status: '',
+    dateFrom: '',
+    dateTo: '',
+  });
+  const [invoiceSearchQuery, setInvoiceSearchQuery] = useState('');
   
   // Ref para evitar múltiples redirecciones
   const hasRedirected = useRef(false);
@@ -437,6 +448,67 @@ const AdminDashboard = () => {
       toast.error(`Error loading refund requests: ${error.message || 'Unknown error'}`);
     } finally {
       setLoadingRefundRequests(false);
+    }
+  };
+
+  const fetchInvoices = async () => {
+    try {
+      setLoadingInvoices(true);
+      
+      // Build query
+      let query = supabase
+        .from('invoices')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      // Apply filters
+      if (invoiceFilters.userId) {
+        query = query.eq('user_id', invoiceFilters.userId);
+      }
+      if (invoiceFilters.status) {
+        query = query.eq('status', invoiceFilters.status);
+      }
+      if (invoiceFilters.dateFrom) {
+        query = query.gte('issued_date', invoiceFilters.dateFrom);
+      }
+      if (invoiceFilters.dateTo) {
+        query = query.lte('issued_date', invoiceFilters.dateTo);
+      }
+      if (invoiceSearchQuery) {
+        query = query.or(`invoice_number.ilike.%${invoiceSearchQuery}%,notes.ilike.%${invoiceSearchQuery}%`);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw error;
+      }
+
+      // Enrich with user data
+      const enrichedData = await Promise.all((data || []).map(async (invoice: any) => {
+        let user = null;
+        try {
+          const userRes = await supabase
+            .from('profiles')
+            .select('id, email, full_name')
+            .eq('id', invoice.user_id)
+            .single();
+          if (!userRes.error) user = userRes.data;
+        } catch (e) {
+          console.warn('Error fetching user for invoice:', e);
+        }
+        return {
+          ...invoice,
+          user: user,
+        };
+      }));
+
+      setInvoices(enrichedData);
+    } catch (error: any) {
+      console.error('Error fetching invoices:', error);
+      toast.error(`Error loading invoices: ${error.message || 'Unknown error'}`);
+    } finally {
+      setLoadingInvoices(false);
     }
   };
 
@@ -976,8 +1048,11 @@ const AdminDashboard = () => {
       if (activeSection === 'refunds') {
         fetchRefundRequests();
       }
+      if (activeSection === 'invoices') {
+        fetchInvoices();
       }
-    }, [user, authLoading, isAdmin, adminLoading, navigate, activeSection]);
+    }
+  }, [user, authLoading, isAdmin, adminLoading, navigate, activeSection]);
 
   // Filter users based on search query
   useEffect(() => {
@@ -1316,6 +1391,8 @@ const AdminDashboard = () => {
       fetchCreatorCodes();
     } else if (section === 'refunds') {
       fetchRefundRequests();
+    } else if (section === 'invoices') {
+      fetchInvoices();
     } else if (section === 'grace-period') {
       fetchGracePeriodUsers();
     } else if (section === 'metrics') {
@@ -1369,6 +1446,169 @@ const AdminDashboard = () => {
 
       {activeSection === 'financial-dashboard' ? (
         <FinancialDashboard />
+      ) : activeSection === 'invoices' ? (
+        <>
+          <div className="mb-4 space-y-4">
+            <div className="flex flex-wrap gap-2 items-end">
+              <div className="flex-1 min-w-[200px]">
+                <Label>Buscar</Label>
+                <Input
+                  placeholder="Buscar por número de factura o notas..."
+                  value={invoiceSearchQuery}
+                  onChange={(e) => setInvoiceSearchQuery(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div className="min-w-[150px]">
+                <Label>Usuario</Label>
+                <Select
+                  value={invoiceFilters.userId}
+                  onValueChange={(value) => setInvoiceFilters({ ...invoiceFilters, userId: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos los usuarios" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todos los usuarios</SelectItem>
+                    {allUsers.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="min-w-[150px]">
+                <Label>Estado</Label>
+                <Select
+                  value={invoiceFilters.status}
+                  onValueChange={(value) => setInvoiceFilters({ ...invoiceFilters, status: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos los estados" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todos los estados</SelectItem>
+                    <SelectItem value="paid">Pagado</SelectItem>
+                    <SelectItem value="pending">Pendiente</SelectItem>
+                    <SelectItem value="failed">Fallido</SelectItem>
+                    <SelectItem value="refunded">Reembolsado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="min-w-[150px]">
+                <Label>Desde</Label>
+                <Input
+                  type="date"
+                  value={invoiceFilters.dateFrom}
+                  onChange={(e) => setInvoiceFilters({ ...invoiceFilters, dateFrom: e.target.value })}
+                />
+              </div>
+              <div className="min-w-[150px]">
+                <Label>Hasta</Label>
+                <Input
+                  type="date"
+                  value={invoiceFilters.dateTo}
+                  onChange={(e) => setInvoiceFilters({ ...invoiceFilters, dateTo: e.target.value })}
+                />
+              </div>
+              <Button variant="outline" onClick={fetchInvoices} disabled={loadingInvoices}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${loadingInvoices ? 'animate-spin' : ''}`} />
+                Actualizar
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setInvoiceFilters({ userId: '', status: '', dateFrom: '', dateTo: '' });
+                  setInvoiceSearchQuery('');
+                  fetchInvoices();
+                }}
+              >
+                <X className="h-4 w-4 mr-2" />
+                Limpiar
+              </Button>
+            </div>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Facturas ({invoices.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingInvoices ? (
+                <div className="text-center py-8">Cargando facturas...</div>
+              ) : invoices.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No se encontraron facturas
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Número</TableHead>
+                        <TableHead>Usuario</TableHead>
+                        <TableHead>Fecha Emisión</TableHead>
+                        <TableHead>Fecha Pago</TableHead>
+                        <TableHead>Tier</TableHead>
+                        <TableHead>Período</TableHead>
+                        <TableHead>Monto</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead>Notas</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {invoices.map((invoice) => (
+                        <TableRow key={invoice.id}>
+                          <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{invoice.user?.email || 'Unknown'}</div>
+                              {invoice.user?.full_name && (
+                                <div className="text-sm text-muted-foreground">{invoice.user.full_name}</div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {invoice.issued_date ? new Date(invoice.issued_date).toLocaleDateString() : 'N/A'}
+                          </TableCell>
+                          <TableCell>
+                            {invoice.paid_date ? new Date(invoice.paid_date).toLocaleDateString() : 'N/A'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {invoice.tier === 'tier_1' ? 'Pro' : invoice.tier === 'tier_2' ? 'Enterprise' : 'Free'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="capitalize">{invoice.billing_period || 'N/A'}</TableCell>
+                          <TableCell className={`font-semibold ${invoice.amount < 0 ? 'text-destructive' : ''}`}>
+                            {invoice.amount.toFixed(2)} {invoice.currency || 'EUR'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                invoice.status === 'paid' ? 'default' :
+                                invoice.status === 'refunded' ? 'destructive' :
+                                invoice.status === 'failed' ? 'destructive' : 'secondary'
+                              }
+                            >
+                              {invoice.status === 'paid' ? 'Pagado' :
+                               invoice.status === 'refunded' ? 'Reembolsado' :
+                               invoice.status === 'failed' ? 'Fallido' : 'Pendiente'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate" title={invoice.notes || ''}>
+                            {invoice.notes || '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
       ) : activeSection === 'refunds' ? (
         <>
           {/* Action Menu - Two Rows */}
@@ -2040,7 +2280,7 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
         </>
-      ) : (
+      ) : activeSection === 'limits' ? (
         <>
         <Card>
           <CardHeader>

@@ -11,6 +11,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useStripeCheckout } from '@/hooks/useStripeCheckout';
 import { supabase } from '@/integrations/supabase/client';
 import { TrialNotification } from '@/components/TrialNotification';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -32,6 +33,7 @@ const Pricing = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { subscription } = useSubscription();
+  const { createCheckoutSession, loading: checkoutLoading } = useStripeCheckout();
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [isAnnual, setIsAnnual] = useState(false);
   const [currency, setCurrency] = useState<Currency>('EUR');
@@ -376,7 +378,7 @@ const Pricing = () => {
     }
   ];
 
-  const handleSelectPlan = (tier: string, billingPeriod: BillingPeriod) => {
+  const handleSelectPlan = async (tier: string, billingPeriod: BillingPeriod) => {
     if (!user) {
       navigate('/auth');
       return;
@@ -384,11 +386,20 @@ const Pricing = () => {
     
     if (tier === 'free') {
       navigate('/dashboard');
-    } else {
-      // For now, just redirect to dashboard
-      // In a real app, this would open a payment flow with Stripe
-      navigate('/dashboard');
+      return;
     }
+
+    // Validate tier
+    if (tier !== 'tier_1' && tier !== 'tier_2') {
+      console.error('Invalid tier:', tier);
+      return;
+    }
+
+    // Create Stripe Checkout Session
+    await createCheckoutSession({
+      tier: tier as 'tier_1' | 'tier_2',
+      billingPeriod: billingPeriod,
+    });
   };
 
   const getDisplayPrice = (tier: typeof tiers[0]) => {
@@ -588,8 +599,16 @@ const Pricing = () => {
                       className="w-full" 
                       variant={tier.popular ? 'default' : 'outline'}
                       onClick={() => handleSelectPlan(tier.tier, isAnnual ? 'annual' : 'monthly')}
+                      disabled={checkoutLoading}
                     >
-                      {tier.cta}
+                      {checkoutLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                          Procesando...
+                        </>
+                      ) : (
+                        tier.cta
+                      )}
                     </Button>
                   )}
                 </CardFooter>
