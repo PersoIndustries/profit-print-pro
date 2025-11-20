@@ -20,7 +20,7 @@ interface AdminActionInfoModalProps {
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  actionType: 'changeTier' | 'cancel' | 'refund' | 'addTrial' | 'deleteUser' | 'processRefundRequest';
+  actionType: 'changeTier' | 'cancel' | 'refund' | 'addTrial' | 'deleteUser' | 'processRefundRequest' | 'changeBillingPeriod';
   actionData?: {
     previousTier?: string;
     newTier?: string;
@@ -28,6 +28,8 @@ interface AdminActionInfoModalProps {
     days?: number;
     isPaidSubscription?: boolean;
     hasStripeSubscription?: boolean;
+    previousBillingPeriod?: string;
+    newBillingPeriod?: string;
   };
 }
 
@@ -87,6 +89,14 @@ export const AdminActionInfoModal = ({
           description: 'Se procesará la solicitud de refund del usuario.',
           warnings: getProcessRefundRequestWarnings(),
           effects: getProcessRefundRequestEffects(),
+        };
+      case 'changeBillingPeriod':
+        return {
+          title: 'Cambiar Período de Facturación',
+          icon: <CreditCard className="h-5 w-5 text-blue-500" />,
+          description: getChangeBillingPeriodDescription(),
+          warnings: getChangeBillingPeriodWarnings(),
+          effects: getChangeBillingPeriodEffects(),
         };
       default:
         return {
@@ -237,6 +247,69 @@ export const AdminActionInfoModal = ({
     effects.push('✓ Si se aprueba, se creará una factura de refund.');
     effects.push('✓ Se intentará procesar el refund en Stripe (si aplica).');
     effects.push('✓ El cambio se registrará en el historial de auditoría.');
+    return effects;
+  };
+
+  const getChangeBillingPeriodDescription = () => {
+    const { previousBillingPeriod, newBillingPeriod } = actionData || {};
+    const periodNames = { monthly: 'Mensual', annual: 'Anual' };
+    
+    if (previousBillingPeriod && newBillingPeriod) {
+      return `Cambiar período de facturación de ${periodNames[previousBillingPeriod as keyof typeof periodNames]} a ${periodNames[newBillingPeriod as keyof typeof periodNames]}.`;
+    }
+    return 'Cambiar el período de facturación de la suscripción.';
+  };
+
+  const getChangeBillingPeriodWarnings = () => {
+    const { isPaidSubscription, hasStripeSubscription, previousBillingPeriod, newBillingPeriod } = actionData || {};
+    const warnings: string[] = [];
+
+    if (isPaidSubscription || hasStripeSubscription) {
+      warnings.push('⚠️ Este usuario tiene una suscripción PAGADA en Stripe.');
+      warnings.push('⚠️ Stripe calculará el prorrateo automáticamente.');
+      
+      if (previousBillingPeriod === 'annual' && newBillingPeriod === 'monthly') {
+        warnings.push('⚠️ Al cambiar de Anual a Mensual, el usuario recibirá un crédito por el tiempo no usado.');
+      } else if (previousBillingPeriod === 'monthly' && newBillingPeriod === 'annual') {
+        warnings.push('⚠️ Al cambiar de Mensual a Anual, el usuario pagará la diferencia prorrateada.');
+      }
+      
+      warnings.push('⚠️ Se creará una factura de ajuste en Stripe inmediatamente.');
+    } else {
+      warnings.push('ℹ️ Esta es una suscripción GRATUITA (admin-granted).');
+      warnings.push('ℹ️ Solo se actualizará el período en la base de datos.');
+      warnings.push('ℹ️ No se procesará ningún pago.');
+    }
+
+    return warnings;
+  };
+
+  const getChangeBillingPeriodEffects = () => {
+    const { isPaidSubscription, hasStripeSubscription, previousBillingPeriod, newBillingPeriod } = actionData || {};
+    const effects: string[] = [];
+
+    effects.push('✓ El período de facturación se actualizará inmediatamente.');
+    
+    if (isPaidSubscription || hasStripeSubscription) {
+      effects.push('✓ La suscripción se actualizará en Stripe.');
+      effects.push('✓ Stripe calculará el prorrateo automáticamente.');
+      effects.push('✓ Se creará una factura de ajuste (proration) en Stripe.');
+      
+      if (previousBillingPeriod === 'annual' && newBillingPeriod === 'monthly') {
+        effects.push('✓ El usuario recibirá crédito por el tiempo no usado del período anual.');
+        effects.push('✓ El crédito se aplicará a los próximos meses.');
+      } else if (previousBillingPeriod === 'monthly' && newBillingPeriod === 'annual') {
+        effects.push('✓ El usuario pagará la diferencia prorrateada.');
+        effects.push('✓ El nuevo período anual comenzará inmediatamente.');
+      }
+    } else {
+      effects.push('✓ La fecha de expiración se recalculará según el nuevo período.');
+      effects.push('✓ NO se creará ninguna factura.');
+      effects.push('✓ NO se procesará ningún pago.');
+    }
+
+    effects.push('✓ El cambio se registrará en el historial de auditoría.');
+
     return effects;
   };
 

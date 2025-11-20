@@ -57,7 +57,8 @@ const AdminDashboard = () => {
   const [refundAmount, setRefundAmount] = useState<string>('');
   const [trialDays, setTrialDays] = useState<string>('15');
   const [notes, setNotes] = useState<string>('');
-  const [actionType, setActionType] = useState<'changeTier' | 'cancel' | 'refund' | 'addTrial'>('changeTier');
+  const [actionType, setActionType] = useState<'changeTier' | 'cancel' | 'refund' | 'addTrial' | 'changeBillingPeriod'>('changeTier');
+  const [newBillingPeriod, setNewBillingPeriod] = useState<'monthly' | 'annual' | ''>('');
   
   // Info modal state
   const [infoModalOpen, setInfoModalOpen] = useState(false);
@@ -1145,7 +1146,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const openUserDialog = async (userStat: UserStats, action: 'changeTier' | 'cancel' | 'refund' | 'addTrial') => {
+  const openUserDialog = async (userStat: UserStats, action: 'changeTier' | 'cancel' | 'refund' | 'addTrial' | 'changeBillingPeriod') => {
     setSelectedUser(userStat);
     setActionType(action);
     setNewTier(userStat.tier);
@@ -1157,15 +1158,21 @@ const AdminDashboard = () => {
     try {
       const { data: subData } = await supabase
         .from('user_subscriptions' as any)
-        .select('is_paid_subscription, stripe_subscription_id')
+        .select('is_paid_subscription, stripe_subscription_id, billing_period')
         .eq('user_id', userStat.id)
         .maybeSingle();
       
+      const subscriptionData = subData as any;
       setSubscriptionInfo({
-        isPaidSubscription: (subData as any)?.is_paid_subscription || false,
-        hasStripeSubscription: !!(subData as any)?.stripe_subscription_id,
-        stripeSubscriptionId: (subData as any)?.stripe_subscription_id || undefined,
+        isPaidSubscription: subscriptionData?.is_paid_subscription || false,
+        hasStripeSubscription: !!subscriptionData?.stripe_subscription_id,
+        stripeSubscriptionId: subscriptionData?.stripe_subscription_id || undefined,
       });
+      
+      // If changing billing period, set opposite of current
+      if (action === 'changeBillingPeriod' && subscriptionData?.billing_period) {
+        setNewBillingPeriod(subscriptionData.billing_period === 'monthly' ? 'annual' : 'monthly');
+      }
     } catch (error) {
       console.error('Error fetching subscription info:', error);
       setSubscriptionInfo({
@@ -1316,6 +1323,42 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleChangeBillingPeriod = async () => {
+    if (!selectedUser || !newBillingPeriod) {
+      toast.error('Please select a billing period');
+      return;
+    }
+    
+    // Close dialog first
+    setDialogOpen(false);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-change-billing-period', {
+        body: {
+          userId: selectedUser.id,
+          newBillingPeriod: newBillingPeriod as 'monthly' | 'annual',
+          notes: notes || null,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast.success(data?.message || 'Billing period updated successfully');
+      if (data?.prorationAmount) {
+        toast.info(`Proration amount: ~${data.prorationAmount}€ (Stripe will calculate exact amount)`);
+      }
+      setDialogOpen(false);
+      fetchAdminData();
+    } catch (error: any) {
+      console.error('Error changing billing period:', error);
+      toast.error(error.message || 'Error changing billing period');
+    }
+  };
+
   const handleSubmit = () => {
     switch (actionType) {
       case 'changeTier':
@@ -1329,6 +1372,9 @@ const AdminDashboard = () => {
         break;
       case 'addTrial':
         handleAddTrial();
+        break;
+      case 'changeBillingPeriod':
+        handleChangeBillingPeriod();
         break;
     }
   };
@@ -2124,6 +2170,7 @@ const AdminDashboard = () => {
                                 {actionType === 'cancel' && 'Cancel the subscription for this user'}
                                 {actionType === 'refund' && 'Process a refund for this user'}
                                 {actionType === 'addTrial' && 'Add a trial period for this user'}
+                                {actionType === 'changeBillingPeriod' && 'Change the billing period for this user'}
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
@@ -2172,6 +2219,33 @@ const AdminDashboard = () => {
                                   </p>
                                 </div>
                               )}
+                              {actionType === 'changeBillingPeriod' && (
+                                <div>
+                                  <Label htmlFor="billingPeriod">New Billing Period</Label>
+                                  <Select value={newBillingPeriod || ''} onValueChange={(value) => setNewBillingPeriod(value as 'monthly' | 'annual')}>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select billing period" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="monthly">Monthly (€9.99/mes Pro, €19.99/mes Business)</SelectItem>
+                                      <SelectItem value="annual">Annual (€99.90/año Pro, €199.90/año Business)</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <p className="text-sm text-muted-foreground mt-2">
+                                    {subscriptionInfo?.isPaidSubscription ? (
+                                      <>
+                                        <strong>⚠️ Suscripción PAGADA:</strong> Stripe calculará el prorrateo automáticamente.
+                                        El usuario recibirá un crédito o pagará la diferencia según corresponda.
+                                      </>
+                                    ) : (
+                                      <>
+                                        <strong>ℹ️ Suscripción GRATUITA:</strong> Solo se actualizará el período en la base de datos.
+                                        No se procesará ningún pago.
+                                      </>
+                                    )}
+                                  </p>
+                                </div>
+                              )}
                               <div>
                                 <Label htmlFor="notes">Notes</Label>
                 <Textarea
@@ -2212,6 +2286,15 @@ const AdminDashboard = () => {
                           title="Add Trial Period"
                         >
                           <Clock className="h-3 w-3" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => openUserDialog(userStat, 'changeBillingPeriod')}
+                          title="Change Billing Period"
+                          disabled={userStat.tier === 'free'}
+                        >
+                          <Settings className="h-3 w-3" />
                         </Button>
                         <Button
                           size="sm"
@@ -3402,6 +3485,8 @@ const AdminDashboard = () => {
           days: actionType === 'addTrial' ? parseInt(trialDays || '0') : undefined,
           isPaidSubscription: subscriptionInfo?.isPaidSubscription,
           hasStripeSubscription: subscriptionInfo?.hasStripeSubscription,
+          previousBillingPeriod: actionType === 'changeBillingPeriod' ? (newBillingPeriod === 'monthly' ? 'annual' : 'monthly') : undefined,
+          newBillingPeriod: actionType === 'changeBillingPeriod' ? newBillingPeriod : undefined,
         }}
       />
       </SidebarInset>
