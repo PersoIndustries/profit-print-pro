@@ -318,20 +318,44 @@ const AdminDashboard = () => {
   const fetchCreatorCodes = async () => {
     try {
       setLoadingCreatorCodes(true);
+      
       const { data, error } = await supabase
         .from('creator_codes' as any)
-        .select(`
-          *,
-          creator_user:profiles!creator_codes_creator_user_id_fkey(id, email, full_name),
-          uses:creator_code_uses(count)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setCreatorCodes(data || []);
+      
+      // Enriquecer manualmente con datos de usuarios y counts
+      const enrichedData = await Promise.all((data || []).map(async (code: any) => {
+        let creatorUser = null;
+        let usesCount = code.current_uses || 0;
+        
+        try {
+          const userRes = await supabase.from('profiles').select('id, email, full_name').eq('id', code.creator_user_id).single();
+          if (!userRes.error) creatorUser = userRes.data;
+        } catch (e) {
+          console.warn('Error fetching creator user:', e);
+        }
+        
+        try {
+          const usesRes = await supabase.from('creator_code_uses' as any).select('*', { count: 'exact', head: true }).eq('creator_code_id', code.id);
+          if (!usesRes.error) usesCount = usesRes.count || 0;
+        } catch (e) {
+          console.warn('Error fetching uses count:', e);
+        }
+        
+        return {
+          ...code,
+          creator_user: creatorUser,
+          current_uses: usesCount
+        };
+      }));
+
+      setCreatorCodes(enrichedData);
     } catch (error: any) {
       console.error('Error fetching creator codes:', error);
-      toast.error('Error loading creator codes');
+      toast.error(`Error loading creator codes: ${error.message || 'Unknown error'}`);
     } finally {
       setLoadingCreatorCodes(false);
     }
@@ -356,18 +380,46 @@ const AdminDashboard = () => {
       setLoadingRefundRequests(true);
       const { data, error } = await supabase
         .from('refund_requests' as any)
-        .select(`
-          *,
-          user:profiles!refund_requests_user_id_fkey(id, email, full_name),
-          invoice:invoices!refund_requests_invoice_id_fkey(id, invoice_number, amount)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setRefundRequests(data || []);
+      if (error) {
+        console.error('Refund requests error details:', error);
+        throw error;
+      }
+      
+      // Enriquecer manualmente con datos de usuarios e invoices
+      const enrichedData = await Promise.all((data || []).map(async (request: any) => {
+        let user = null;
+        let invoice = null;
+        
+        try {
+          const userRes = await supabase.from('profiles').select('id, email, full_name').eq('id', request.user_id).single();
+          if (!userRes.error) user = userRes.data;
+        } catch (e) {
+          console.warn('Error fetching user for refund request:', e);
+        }
+        
+        if (request.invoice_id) {
+          try {
+            const invoiceRes = await supabase.from('invoices').select('id, invoice_number, amount').eq('id', request.invoice_id).single();
+            if (!invoiceRes.error) invoice = invoiceRes.data;
+          } catch (e) {
+            console.warn('Error fetching invoice for refund request:', e);
+          }
+        }
+        
+        return {
+          ...request,
+          user: user,
+          invoice: invoice
+        };
+      }));
+      
+      setRefundRequests(enrichedData);
     } catch (error: any) {
       console.error('Error fetching refund requests:', error);
-      toast.error('Error loading refund requests');
+      toast.error(`Error loading refund requests: ${error.message || 'Unknown error'}`);
     } finally {
       setLoadingRefundRequests(false);
     }
