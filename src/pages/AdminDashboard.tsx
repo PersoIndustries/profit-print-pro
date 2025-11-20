@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
@@ -122,6 +123,20 @@ const AdminDashboard = () => {
   
   // Fetch pending refund requests count for alert
   const [pendingRefundCount, setPendingRefundCount] = useState(0);
+  
+  // Grace Period management
+  const [gracePeriodUsers, setGracePeriodUsers] = useState<any[]>([]);
+  const [loadingGracePeriod, setLoadingGracePeriod] = useState(false);
+  const [gracePeriodDialogOpen, setGracePeriodDialogOpen] = useState(false);
+  const [selectedGracePeriodUser, setSelectedGracePeriodUser] = useState<any | null>(null);
+  const [extensionDays, setExtensionDays] = useState('30');
+  const [processingGracePeriod, setProcessingGracePeriod] = useState(false);
+  
+  // Metrics
+  const [metrics, setMetrics] = useState<any>(null);
+  const [loadingMetrics, setLoadingMetrics] = useState(false);
+  const [dailyMetrics, setDailyMetrics] = useState<any[]>([]);
+  const [dateRange, setDateRange] = useState<'today' | 'week' | 'month' | 'all'>('today');
   
   // Ref para evitar múltiples redirecciones
   const hasRedirected = useRef(false);
@@ -422,6 +437,228 @@ const AdminDashboard = () => {
       toast.error(`Error loading refund requests: ${error.message || 'Unknown error'}`);
     } finally {
       setLoadingRefundRequests(false);
+    }
+  };
+
+  const fetchGracePeriodUsers = async () => {
+    try {
+      setLoadingGracePeriod(true);
+      const { data: subscriptions, error: subsError } = await supabase
+        .from('user_subscriptions')
+        .select('user_id, tier, previous_tier, downgrade_date, grace_period_end, is_read_only')
+        .not('grace_period_end', 'is', null)
+        .gt('grace_period_end', new Date().toISOString());
+
+      if (subsError) throw subsError;
+
+      if (!subscriptions || subscriptions.length === 0) {
+        setGracePeriodUsers([]);
+        return;
+      }
+
+      const userIds = subscriptions.map(s => s.user_id);
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      const usersData = subscriptions.map(sub => {
+        const profile = profiles?.find(p => p.id === sub.user_id);
+        const gracePeriodEnd = new Date(sub.grace_period_end);
+        const now = new Date();
+        const daysRemaining = Math.ceil((gracePeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+        return {
+          user_id: sub.user_id,
+          email: profile?.email || 'Unknown',
+          full_name: profile?.full_name || null,
+          tier: sub.tier,
+          previous_tier: sub.previous_tier,
+          downgrade_date: sub.downgrade_date,
+          grace_period_end: sub.grace_period_end,
+          is_read_only: sub.is_read_only || false,
+          days_remaining: daysRemaining
+        };
+      }).sort((a, b) => a.days_remaining - b.days_remaining);
+
+      setGracePeriodUsers(usersData);
+    } catch (error: any) {
+      console.error('Error fetching grace period users:', error);
+      toast.error('Error loading grace period users');
+    } finally {
+      setLoadingGracePeriod(false);
+    }
+  };
+
+  const handleExtendGracePeriod = async () => {
+    if (!selectedGracePeriodUser) return;
+
+    try {
+      setProcessingGracePeriod(true);
+      const days = parseInt(extensionDays);
+      if (isNaN(days) || days < 1) {
+        toast.error('Please enter a valid number of days');
+        return;
+      }
+
+      const currentEnd = new Date(selectedGracePeriodUser.grace_period_end);
+      const newEnd = new Date(currentEnd.getTime() + days * 24 * 60 * 60 * 1000);
+
+      const { error } = await supabase
+        .from('user_subscriptions')
+        .update({ grace_period_end: newEnd.toISOString() })
+        .eq('user_id', selectedGracePeriodUser.user_id);
+
+      if (error) throw error;
+
+      toast.success(`Grace period extended by ${days} days`);
+      setGracePeriodDialogOpen(false);
+      fetchGracePeriodUsers();
+    } catch (error: any) {
+      console.error('Error extending grace period:', error);
+      toast.error('Failed to extend grace period');
+    } finally {
+      setProcessingGracePeriod(false);
+    }
+  };
+
+  const handleCancelGracePeriod = async (userId: string) => {
+    try {
+      setProcessingGracePeriod(true);
+      const { error } = await supabase
+        .from('user_subscriptions')
+        .update({
+          grace_period_end: null,
+          previous_tier: null,
+          downgrade_date: null,
+          is_read_only: false
+        })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      toast.success('Grace period cancelled successfully');
+      fetchGracePeriodUsers();
+    } catch (error: any) {
+      console.error('Error cancelling grace period:', error);
+      toast.error('Failed to cancel grace period');
+    } finally {
+      setProcessingGracePeriod(false);
+    }
+  };
+
+  const fetchMetrics = async () => {
+    try {
+      setLoadingMetrics(true);
+      const now = new Date();
+      const todayStart = new Date(now);
+      todayStart.setHours(0, 0, 0, 0);
+      
+      const weekStart = new Date(now);
+      weekStart.setDate(weekStart.getDate() - 7);
+      weekStart.setHours(0, 0, 0, 0);
+      
+      const monthStart = new Date(now);
+      monthStart.setDate(monthStart.getDate() - 30);
+      monthStart.setHours(0, 0, 0, 0);
+
+      const [profilesRes, subscriptionsRes, materialsRes, projectsRes, ordersRes, printsRes] = await Promise.all([
+        supabase.from('profiles').select('id, created_at'),
+        supabase.from('user_subscriptions').select('user_id, tier, status, created_at, previous_tier, downgrade_date, expires_at, grace_period_end'),
+        supabase.from('materials').select('id, user_id, created_at'),
+        supabase.from('projects').select('id, user_id, created_at'),
+        supabase.from('orders').select('id, user_id, created_at, total_amount'),
+        supabase.from('prints').select('id, user_id, created_at')
+      ]);
+
+      const allProfiles = profilesRes.data || [];
+      const allSubscriptions = subscriptionsRes.data || [];
+      const allMaterials = materialsRes.data || [];
+      const allProjects = projectsRes.data || [];
+      const allOrders = ordersRes.data || [];
+      const allPrints = printsRes.data || [];
+
+      const totalUsers = allProfiles.length;
+      const newUsersToday = allProfiles.filter(p => new Date(p.created_at) >= todayStart).length;
+      const newUsersThisWeek = allProfiles.filter(p => new Date(p.created_at) >= weekStart).length;
+      const newUsersThisMonth = allProfiles.filter(p => new Date(p.created_at) >= monthStart).length;
+
+      const activeUserIds = new Set<string>();
+      [...allMaterials, ...allProjects, ...allOrders].forEach(item => {
+        if (item.created_at && new Date(item.created_at) >= monthStart) {
+          activeUserIds.add(item.user_id);
+        }
+      });
+      const activeUsers = activeUserIds.size;
+
+      const activeSubscriptionsByTier = {
+        free: allSubscriptions.filter(s => s.tier === 'free' && s.status === 'active').length,
+        tier_1: allSubscriptions.filter(s => s.tier === 'tier_1' && s.status === 'active').length,
+        tier_2: allSubscriptions.filter(s => s.tier === 'tier_2' && s.status === 'active').length,
+      };
+
+      const newUsersThisMonthList = allProfiles.filter(p => new Date(p.created_at) >= monthStart);
+      const newUsersByTier = { free: 0, tier_1: 0, tier_2: 0 };
+      newUsersThisMonthList.forEach(profile => {
+        const sub = allSubscriptions.find(s => s.user_id === profile.id);
+        const tier = sub?.tier || 'free';
+        newUsersByTier[tier as keyof typeof newUsersByTier]++;
+      });
+
+      const activeUsersByTier = { free: 0, tier_1: 0, tier_2: 0 };
+      activeUserIds.forEach(userId => {
+        const sub = allSubscriptions.find(s => s.user_id === userId);
+        const tier = sub?.tier || 'free';
+        activeUsersByTier[tier as keyof typeof activeUsersByTier]++;
+      });
+
+      const cancellations = allSubscriptions.filter(s => 
+        s.previous_tier === 'tier_1' && s.tier === 'free' && s.downgrade_date
+      );
+      const downgrades = allSubscriptions.filter(s => 
+        s.previous_tier === 'tier_2' && s.tier === 'tier_1' && s.downgrade_date
+      );
+
+      const metricsData = {
+        totalUsers,
+        newUsersToday,
+        newUsersThisWeek,
+        newUsersThisMonth,
+        activeUsers,
+        activeUsersByTier,
+        newUsersByTier,
+        activeSubscriptionsByTier,
+        totalCancellations: cancellations.length,
+        totalDowngrades: downgrades.length,
+        cancellationsToday: cancellations.filter(c => c.downgrade_date && new Date(c.downgrade_date) >= todayStart).length,
+        downgradesToday: downgrades.filter(d => d.downgrade_date && new Date(d.downgrade_date) >= todayStart).length,
+        totalMaterials: allMaterials.length,
+        materialsToday: allMaterials.filter(m => new Date(m.created_at) >= todayStart).length,
+        totalProjects: allProjects.length,
+        projectsToday: allProjects.filter(p => new Date(p.created_at) >= todayStart).length,
+        totalOrders: allOrders.length,
+        ordersToday: allOrders.filter(o => new Date(o.created_at) >= todayStart).length,
+        totalPrints: allPrints.length,
+        printsToday: allPrints.filter(p => new Date(p.created_at) >= todayStart).length,
+        totalRevenue: allOrders.reduce((sum, o) => sum + (parseFloat(o.total_amount?.toString() || '0') || 0), 0),
+        revenueThisMonth: allOrders.filter(o => new Date(o.created_at) >= monthStart).reduce((sum, o) => sum + (parseFloat(o.total_amount?.toString() || '0') || 0), 0),
+        usersInGracePeriod: allSubscriptions.filter(s => s.grace_period_end && new Date(s.grace_period_end) > new Date()).length,
+        usersInTrial: allSubscriptions.filter(s => s.status === 'trial' && s.expires_at && new Date(s.expires_at) > new Date()).length,
+        usersInTrialByTier: {
+          free: allSubscriptions.filter(s => s.status === 'trial' && s.tier === 'free' && s.expires_at && new Date(s.expires_at) > new Date()).length,
+          tier_1: allSubscriptions.filter(s => s.status === 'trial' && s.tier === 'tier_1' && s.expires_at && new Date(s.expires_at) > new Date()).length,
+          tier_2: allSubscriptions.filter(s => s.status === 'trial' && s.tier === 'tier_2' && s.expires_at && new Date(s.expires_at) > new Date()).length,
+        },
+      };
+
+      setMetrics(metricsData);
+    } catch (error: any) {
+      console.error('Error fetching metrics:', error);
+      toast.error('Error loading metrics');
+    } finally {
+      setLoadingMetrics(false);
     }
   };
 
@@ -1079,6 +1316,10 @@ const AdminDashboard = () => {
       fetchCreatorCodes();
     } else if (section === 'refunds') {
       fetchRefundRequests();
+    } else if (section === 'grace-period') {
+      fetchGracePeriodUsers();
+    } else if (section === 'metrics') {
+      fetchMetrics();
     }
   };
 
@@ -2062,8 +2303,348 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
         </>
-      )}
+      ) : activeSection === 'grace-period' ? (
+        <>
+          <div className="mb-4 space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={fetchGracePeriodUsers} disabled={loadingGracePeriod}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${loadingGracePeriod ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
+          </div>
+
+          <Alert className="mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Users in grace period have read-only access. Their images will be deleted when the grace period ends.
+              You can extend or cancel grace periods manually here.
+            </AlertDescription>
+          </Alert>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Users in Grace Period ({gracePeriodUsers.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingGracePeriod ? (
+                <div className="text-center py-8">Loading...</div>
+              ) : gracePeriodUsers.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No users currently in grace period
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Current Tier</TableHead>
+                      <TableHead>Previous Tier</TableHead>
+                      <TableHead>Downgrade Date</TableHead>
+                      <TableHead>Deletion Date</TableHead>
+                      <TableHead>Days Remaining</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {gracePeriodUsers.map((user) => (
+                      <TableRow key={user.user_id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{user.full_name || 'Unknown'}</div>
+                            <div className="text-sm text-muted-foreground">{user.email}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {user.tier === 'free' ? 'Free' : user.tier === 'tier_1' ? 'Pro' : 'Enterprise'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge>
+                            {user.previous_tier === 'tier_1' ? 'Pro' : 'Enterprise'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(user.downgrade_date).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="font-medium text-red-600">
+                          {new Date(user.grace_period_end).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={user.days_remaining <= 7 ? 'destructive' : user.days_remaining <= 30 ? 'default' : 'secondary'}
+                          >
+                            {user.days_remaining} days
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {user.is_read_only && (
+                            <Badge variant="outline">Read-Only</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedGracePeriodUser(user);
+                                setGracePeriodDialogOpen(true);
+                              }}
+                            >
+                              <Clock className="h-3 w-3 mr-1" />
+                              Extend
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCancelGracePeriod(user.user_id)}
+                              disabled={processingGracePeriod}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      ) : activeSection === 'metrics' ? (
+        <>
+          <div className="mb-4 space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <Select value={dateRange} onValueChange={(value: any) => setDateRange(value)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="week">Last 7 Days</SelectItem>
+                  <SelectItem value="month">Last 30 Days</SelectItem>
+                  <SelectItem value="all">All Time</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={fetchMetrics} disabled={loadingMetrics}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${loadingMetrics ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
+          </div>
+
+          {loadingMetrics ? (
+            <div className="text-center py-8">Loading metrics...</div>
+          ) : metrics ? (
+            <div className="space-y-6">
+              {/* Users Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.totalUsers}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium">New Today</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.newUsersToday}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium">New This Week</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.newUsersThisWeek}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium">New This Month</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.newUsersThisMonth}</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Activity Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium">Total Materials</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.totalMaterials}</div>
+                    <p className="text-xs text-muted-foreground mt-1">+{metrics.materialsToday} today</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.totalProjects}</div>
+                    <p className="text-xs text-muted-foreground mt-1">+{metrics.projectsToday} today</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.totalOrders}</div>
+                    <p className="text-xs text-muted-foreground mt-1">+{metrics.ordersToday} today</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium">Total Prints</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.totalPrints}</div>
+                    <p className="text-xs text-muted-foreground mt-1">+{metrics.printsToday} today</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Grace Period & Trials */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      Grace Period & Trials
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span>Usuarios en Grace Period</span>
+                      <Badge variant="outline">{metrics.usersInGracePeriod}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Usuarios en Trial</span>
+                      <Badge variant="default">{metrics.usersInTrial}</Badge>
+                    </div>
+                    <div className="space-y-2 pt-2 border-t">
+                      <p className="text-sm font-medium">Trials por Plan:</p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Free</span>
+                        <Badge variant="outline">{metrics.usersInTrialByTier.free}</Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Professional</span>
+                        <Badge variant="default">{metrics.usersInTrialByTier.tier_1}</Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Business</span>
+                        <Badge className="bg-purple-500">{metrics.usersInTrialByTier.tier_2}</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      Subscriptions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span>Active Free</span>
+                      <Badge variant="outline">{metrics.activeSubscriptionsByTier.free}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Active Professional</span>
+                      <Badge variant="default">{metrics.activeSubscriptionsByTier.tier_1}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Active Business</span>
+                      <Badge className="bg-purple-500">{metrics.activeSubscriptionsByTier.tier_2}</Badge>
+                    </div>
+                    <div className="space-y-2 pt-2 border-t">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Total Cancellations</span>
+                        <Badge variant="destructive">{metrics.totalCancellations}</Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Total Downgrades</span>
+                        <Badge variant="secondary">{metrics.totalDowngrades}</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No metrics available
+            </div>
+          )}
+        </>
+      ) : null}
         </div>
+
+      {/* Extend Grace Period Dialog */}
+      <Dialog open={gracePeriodDialogOpen} onOpenChange={setGracePeriodDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Extend Grace Period</DialogTitle>
+            <DialogDescription>
+              Extend the grace period for {selectedGracePeriodUser?.full_name || selectedGracePeriodUser?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Current Deletion Date</Label>
+              <div className="text-sm text-muted-foreground">
+                {selectedGracePeriodUser?.grace_period_end 
+                  ? new Date(selectedGracePeriodUser.grace_period_end).toLocaleDateString()
+                  : '-'}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="extension-days">Extension Days</Label>
+              <Input
+                id="extension-days"
+                type="number"
+                min="1"
+                value={extensionDays}
+                onChange={(e) => setExtensionDays(e.target.value)}
+                placeholder="30"
+              />
+              <p className="text-sm text-muted-foreground">
+                New deletion date: {selectedGracePeriodUser && new Date(
+                  new Date(selectedGracePeriodUser.grace_period_end).getTime() + 
+                  parseInt(extensionDays || '0') * 24 * 60 * 60 * 1000
+                ).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGracePeriodDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleExtendGracePeriod} disabled={processingGracePeriod}>
+              {processingGracePeriod ? 'Extending...' : 'Extend Grace Period'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Promo Code Dialog */}
       <Dialog open={promoCodeDialogOpen} onOpenChange={setPromoCodeDialogOpen}>
