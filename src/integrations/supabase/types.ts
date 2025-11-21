@@ -301,6 +301,176 @@ export type Database = {
         }
         Relationships: []
       }
+      creator_code_uses: {
+        Row: {
+          applied_at: string
+          commission_amount: number | null
+          commission_paid: boolean
+          commission_paid_at: string | null
+          creator_code_id: string
+          creator_commission_percentage: number
+          discount_percentage: number | null
+          id: string
+          tier_granted: Database["public"]["Enums"]["subscription_tier"]
+          trial_days_granted: number
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string
+          commission_amount?: number | null
+          commission_paid?: boolean
+          commission_paid_at?: string | null
+          creator_code_id: string
+          creator_commission_percentage: number
+          discount_percentage?: number | null
+          id?: string
+          tier_granted: Database["public"]["Enums"]["subscription_tier"]
+          trial_days_granted?: number
+          user_id: string
+        }
+        Update: {
+          applied_at?: string
+          commission_amount?: number | null
+          commission_paid?: boolean
+          commission_paid_at?: string | null
+          creator_code_id?: string
+          creator_commission_percentage?: number
+          discount_percentage?: number | null
+          id?: string
+          tier_granted?: Database["public"]["Enums"]["subscription_tier"]
+          trial_days_granted?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_code_uses_creator_code_id_fkey"
+            columns: ["creator_code_id"]
+            isOneToOne: false
+            referencedRelation: "creator_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creator_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          creator_commission_percentage: number
+          creator_user_id: string
+          current_uses: number
+          description: string | null
+          discount_percentage: number | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          tier_granted: Database["public"]["Enums"]["subscription_tier"]
+          trial_days: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          creator_commission_percentage?: number
+          creator_user_id: string
+          current_uses?: number
+          description?: string | null
+          discount_percentage?: number | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          tier_granted?: Database["public"]["Enums"]["subscription_tier"]
+          trial_days?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          creator_commission_percentage?: number
+          creator_user_id?: string
+          current_uses?: number
+          description?: string | null
+          discount_percentage?: number | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          tier_granted?: Database["public"]["Enums"]["subscription_tier"]
+          trial_days?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      daily_metrics: {
+        Row: {
+          calculated_at: string | null
+          cancellations: number | null
+          created_at: string | null
+          downgrades: number | null
+          id: string
+          materials_created: number | null
+          metric_date: string
+          new_subscriptions_free: number | null
+          new_subscriptions_tier_1: number | null
+          new_subscriptions_tier_2: number | null
+          new_users: number | null
+          new_users_free: number | null
+          new_users_tier_1: number | null
+          new_users_tier_2: number | null
+          orders_created: number | null
+          prints_created: number | null
+          projects_created: number | null
+          revenue: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          calculated_at?: string | null
+          cancellations?: number | null
+          created_at?: string | null
+          downgrades?: number | null
+          id?: string
+          materials_created?: number | null
+          metric_date: string
+          new_subscriptions_free?: number | null
+          new_subscriptions_tier_1?: number | null
+          new_subscriptions_tier_2?: number | null
+          new_users?: number | null
+          new_users_free?: number | null
+          new_users_tier_1?: number | null
+          new_users_tier_2?: number | null
+          orders_created?: number | null
+          prints_created?: number | null
+          projects_created?: number | null
+          revenue?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          calculated_at?: string | null
+          cancellations?: number | null
+          created_at?: string | null
+          downgrades?: number | null
+          id?: string
+          materials_created?: number | null
+          metric_date?: string
+          new_subscriptions_free?: number | null
+          new_subscriptions_tier_1?: number | null
+          new_subscriptions_tier_2?: number | null
+          new_users?: number | null
+          new_users_free?: number | null
+          new_users_tier_1?: number | null
+          new_users_tier_2?: number | null
+          orders_created?: number | null
+          prints_created?: number | null
+          projects_created?: number | null
+          revenue?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       inventory_items: {
         Row: {
           created_at: string
@@ -789,9 +959,13 @@ export type Database = {
           brand_logo_url: string | null
           company_name: string | null
           created_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
           email: string
           full_name: string | null
           id: string
+          scheduled_deletion_at: string | null
           updated_at: string | null
         }
         Insert: {
@@ -802,9 +976,13 @@ export type Database = {
           brand_logo_url?: string | null
           company_name?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
           email: string
           full_name?: string | null
           id: string
+          scheduled_deletion_at?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -815,9 +993,13 @@ export type Database = {
           brand_logo_url?: string | null
           company_name?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
           email?: string
           full_name?: string | null
           id?: string
+          scheduled_deletion_at?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -970,6 +1152,87 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      refund_requests: {
+        Row: {
+          admin_id: string | null
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          currency: string | null
+          description: string | null
+          has_demonstrable_issue: boolean | null
+          has_not_exceeded_limits: boolean | null
+          id: string
+          invoice_id: string | null
+          is_current_month: boolean | null
+          is_within_time_limit: boolean | null
+          processed_at: string | null
+          reason: string
+          refund_type: string
+          status: string
+          subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_id?: string | null
+          admin_notes?: string | null
+          amount: number
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          has_demonstrable_issue?: boolean | null
+          has_not_exceeded_limits?: boolean | null
+          id?: string
+          invoice_id?: string | null
+          is_current_month?: boolean | null
+          is_within_time_limit?: boolean | null
+          processed_at?: string | null
+          reason: string
+          refund_type: string
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_id?: string | null
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          has_demonstrable_issue?: boolean | null
+          has_not_exceeded_limits?: boolean | null
+          id?: string
+          invoice_id?: string | null
+          is_current_month?: boolean | null
+          is_within_time_limit?: boolean | null
+          processed_at?: string | null
+          reason?: string
+          refund_type?: string
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refund_requests_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refund_requests_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "user_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shopping_list: {
         Row: {
@@ -1211,6 +1474,54 @@ export type Database = {
         }
         Relationships: []
       }
+      user_activity_summary: {
+        Row: {
+          activity_date: string
+          created_at: string
+          first_activity: string | null
+          id: string
+          last_activity: string | null
+          materials_created: number
+          orders_created: number
+          prints_created: number
+          projects_created: number
+          session_count: number
+          total_minutes: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_date: string
+          created_at?: string
+          first_activity?: string | null
+          id?: string
+          last_activity?: string | null
+          materials_created?: number
+          orders_created?: number
+          prints_created?: number
+          projects_created?: number
+          session_count?: number
+          total_minutes?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_date?: string
+          created_at?: string
+          first_activity?: string | null
+          id?: string
+          last_activity?: string | null
+          materials_created?: number
+          orders_created?: number
+          prints_created?: number
+          projects_created?: number
+          session_count?: number
+          total_minutes?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_promo_codes: {
         Row: {
           applied_at: string
@@ -1272,6 +1583,7 @@ export type Database = {
           expires_at: string | null
           grace_period_end: string | null
           id: string
+          is_paid_subscription: boolean | null
           is_read_only: boolean | null
           last_payment_date: string | null
           next_billing_date: string | null
@@ -1279,6 +1591,8 @@ export type Database = {
           price_paid: number | null
           starts_at: string
           status: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           tier: Database["public"]["Enums"]["subscription_tier"]
           updated_at: string | null
           user_id: string
@@ -1290,6 +1604,7 @@ export type Database = {
           expires_at?: string | null
           grace_period_end?: string | null
           id?: string
+          is_paid_subscription?: boolean | null
           is_read_only?: boolean | null
           last_payment_date?: string | null
           next_billing_date?: string | null
@@ -1299,6 +1614,8 @@ export type Database = {
           price_paid?: number | null
           starts_at?: string
           status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string | null
           user_id: string
@@ -1310,6 +1627,7 @@ export type Database = {
           expires_at?: string | null
           grace_period_end?: string | null
           id?: string
+          is_paid_subscription?: boolean | null
           is_read_only?: boolean | null
           last_payment_date?: string | null
           next_billing_date?: string | null
@@ -1319,6 +1637,8 @@ export type Database = {
           price_paid?: number | null
           starts_at?: string
           status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string | null
           user_id?: string
@@ -1327,17 +1647,67 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      creator_earnings: {
+        Row: {
+          code: string | null
+          creator_email: string | null
+          creator_name: string | null
+          creator_user_id: string | null
+          paid_commission: number | null
+          pending_commission: number | null
+          total_commission: number | null
+          total_uses: number | null
+        }
+        Relationships: []
+      }
+      recent_user_activity: {
+        Row: {
+          avg_minutes_per_day: number | null
+          email: string | null
+          first_activity_date: string | null
+          full_name: string | null
+          last_activity_date: string | null
+          total_materials: number | null
+          total_minutes: number | null
+          total_orders: number | null
+          total_prints: number | null
+          total_projects: number | null
+          total_sessions: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      apply_creator_code: {
+        Args: { _code: string; _user_id: string }
+        Returns: Json
+      }
       apply_promo_code: {
         Args: { _code: string; _user_id: string }
         Returns: Json
       }
       bytea_to_text: { Args: { data: string }; Returns: string }
+      calculate_daily_metrics: { Args: { p_date?: string }; Returns: Json }
+      calculate_daily_metrics_range: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: Json
+      }
       check_subscription_limit: {
         Args: { _resource_type: string; _user_id: string }
         Returns: boolean
+      }
+      cleanup_old_activity_summaries: { Args: never; Returns: number }
+      create_refund_request: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_invoice_id: string
+          p_reason: string
+          p_refund_type: string
+          p_user_id: string
+        }
+        Returns: Json
       }
       generate_invoice_number: { Args: never; Returns: string }
       get_subscription_limits: {
@@ -1486,7 +1856,25 @@ export type Database = {
         Args: { curlopt: string; value: string }
         Returns: boolean
       }
+      permanently_delete_expired_users: { Args: never; Returns: Json }
+      restore_deleted_user: { Args: { p_user_id: string }; Returns: Json }
+      schedule_user_deletion: {
+        Args: { p_deleted_by: string; p_reason?: string; p_user_id: string }
+        Returns: Json
+      }
       text_to_bytea: { Args: { data: string }; Returns: string }
+      upsert_daily_activity: {
+        Args: {
+          p_activity_date: string
+          p_materials_created?: number
+          p_orders_created?: number
+          p_prints_created?: number
+          p_projects_created?: number
+          p_session_minutes?: number
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       urlencode:
         | { Args: { data: Json }; Returns: string }
         | {
@@ -1501,6 +1889,10 @@ export type Database = {
               error: true
             } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
           }
+      validate_refund_request: {
+        Args: { p_invoice_id: string; p_refund_type: string; p_user_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "user"

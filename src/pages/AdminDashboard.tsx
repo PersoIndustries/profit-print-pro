@@ -152,8 +152,8 @@ const AdminDashboard = () => {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [invoiceFilters, setInvoiceFilters] = useState({
-    userId: '',
-    status: '',
+    userId: 'all',
+    status: 'all',
     dateFrom: '',
     dateTo: '',
   });
@@ -472,10 +472,10 @@ const AdminDashboard = () => {
         .order('created_at', { ascending: false });
 
       // Apply filters
-      if (invoiceFilters.userId) {
+      if (invoiceFilters.userId && invoiceFilters.userId !== 'all') {
         query = query.eq('user_id', invoiceFilters.userId);
       }
-      if (invoiceFilters.status) {
+      if (invoiceFilters.status && invoiceFilters.status !== 'all') {
         query = query.eq('status', invoiceFilters.status);
       }
       if (invoiceFilters.dateFrom) {
@@ -1508,7 +1508,7 @@ const AdminDashboard = () => {
                     <SelectValue placeholder="Todos los usuarios" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos los usuarios</SelectItem>
+                    <SelectItem value="all">Todos los usuarios</SelectItem>
                     {allUsers.map((u) => (
                       <SelectItem key={u.id} value={u.id}>
                         {u.email}
@@ -1527,7 +1527,7 @@ const AdminDashboard = () => {
                     <SelectValue placeholder="Todos los estados" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos los estados</SelectItem>
+                    <SelectItem value="all">Todos los estados</SelectItem>
                     <SelectItem value="paid">Pagado</SelectItem>
                     <SelectItem value="pending">Pendiente</SelectItem>
                     <SelectItem value="failed">Fallido</SelectItem>
