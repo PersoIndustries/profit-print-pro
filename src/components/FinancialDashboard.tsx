@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, DollarSign, Users, Calendar } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Users, Calendar, BarChart3 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 interface MonthlyRevenue {
   month: string;
@@ -286,6 +288,115 @@ export function FinancialDashboard() {
                 </span>
               )}
             </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Revenue Charts */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Tendencia de Ingresos Mensuales
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                total: {
+                  label: "Ingresos Totales",
+                  color: "hsl(var(--primary))",
+                },
+                promoLost: {
+                  label: "Pérdidas por Promo",
+                  color: "hsl(var(--destructive))",
+                },
+              }}
+              className="h-[300px]"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={stats.monthlyRevenue}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis
+                    dataKey="month"
+                    tickFormatter={(value) => {
+                      const date = new Date(value + "-01");
+                      return date.toLocaleDateString("es-ES", { month: "short", year: "2-digit" });
+                    }}
+                    className="text-xs"
+                  />
+                  <YAxis className="text-xs" />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="total"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    name="Ingresos Totales"
+                    dot={{ fill: "hsl(var(--primary))" }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="promoLost"
+                    stroke="hsl(var(--destructive))"
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    name="Pérdidas por Promo"
+                    dot={{ fill: "hsl(var(--destructive))" }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Ingresos por Plan (Últimos 6 Meses)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                tier_1: {
+                  label: "PRO",
+                  color: "hsl(var(--chart-1))",
+                },
+                tier_2: {
+                  label: "BUSINESS",
+                  color: "hsl(var(--chart-2))",
+                },
+                free: {
+                  label: "FREE",
+                  color: "hsl(var(--muted))",
+                },
+              }}
+              className="h-[300px]"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.monthlyRevenue.slice(-6)}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis
+                    dataKey="month"
+                    tickFormatter={(value) => {
+                      const date = new Date(value + "-01");
+                      return date.toLocaleDateString("es-ES", { month: "short" });
+                    }}
+                    className="text-xs"
+                  />
+                  <YAxis className="text-xs" />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Legend />
+                  <Bar dataKey="free" stackId="a" fill="hsl(var(--muted))" name="FREE" />
+                  <Bar dataKey="tier_1" stackId="a" fill="hsl(var(--chart-1))" name="PRO" />
+                  <Bar dataKey="tier_2" stackId="a" fill="hsl(var(--chart-2))" name="BUSINESS" />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>
