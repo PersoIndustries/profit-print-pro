@@ -526,6 +526,24 @@ export default function CatalogDetail() {
     setProductSectionModalOpen(true);
   };
 
+  // Calcular el elemento activo una sola vez para optimizar el DragOverlay
+  // IMPORTANTE: Este hook debe estar ANTES de los returns condicionales
+  const activeItem = useMemo(() => {
+    if (!activeId || !sections || !projects) return null;
+    
+    const activeSection = sections.find(s => s.id === activeId);
+    if (activeSection) {
+      return { type: 'section' as const, data: activeSection };
+    }
+    
+    const activeProject = projects.find(p => p.id === activeId);
+    if (activeProject) {
+      return { type: 'project' as const, data: activeProject };
+    }
+    
+    return null;
+  }, [activeId, sections, projects]);
+
   if (!user) {
     return null;
   }
@@ -551,23 +569,6 @@ export default function CatalogDetail() {
       </div>
     );
   }
-
-  // Calcular el elemento activo una sola vez para optimizar el DragOverlay
-  const activeItem = useMemo(() => {
-    if (!activeId) return null;
-    
-    const activeSection = sections.find(s => s.id === activeId);
-    if (activeSection) {
-      return { type: 'section' as const, data: activeSection };
-    }
-    
-    const activeProject = projects.find(p => p.id === activeId);
-    if (activeProject) {
-      return { type: 'project' as const, data: activeProject };
-    }
-    
-    return null;
-  }, [activeId, sections, projects]);
 
   return (
     <div className="container mx-auto p-6">
