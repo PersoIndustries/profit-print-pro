@@ -527,7 +527,8 @@ const Settings = () => {
       if (error) throw error;
 
       setRefundValidation(data);
-      if (data?.eligible) {
+      const validation = data as any;
+      if (validation?.eligible) {
         toast.success('La solicitud cumple con todos los requisitos');
       } else {
         toast.error('La solicitud no cumple con los requisitos');
