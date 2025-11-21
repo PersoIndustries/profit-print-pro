@@ -110,13 +110,7 @@ export function AdminSidebar({ activeSection, onSectionChange, pendingRefundCoun
                   <SidebarMenuItem key={item.section}>
                     <SidebarMenuButton
                       isActive={activeSection === item.section}
-                      onClick={() => {
-                        if (item.external && item.path) {
-                          window.location.href = item.path;
-                        } else {
-                          onSectionChange(item.section);
-                        }
-                      }}
+                      onClick={() => onSectionChange(item.section)}
                       tooltip={item.title}
                     >
                       <item.icon className="h-4 w-4" />

@@ -82,15 +82,15 @@ export function FinancialDashboard() {
             const tier = promoCode.tier as string;
             const price = tierPrices[tier] || 0;
             
-            // Si el código da acceso gratuito, perdemos el precio completo
-            // Si da descuento, perdemos el porcentaje del descuento
-            if (price > 0) {
-              // Asumimos que si tienen código promocional, no pagaron
-              // Calculamos cuántos meses han usado el servicio
-              const appliedDate = new Date(userPromo.applied_at || userPromo.created_at);
-              const monthsUsed = Math.max(1, Math.floor((Date.now() - appliedDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
-              promoCodeLoss += price * monthsUsed;
-            }
+              // Si el código da acceso gratuito, perdemos el precio completo
+              // Si da descuento, perdemos el porcentaje del descuento
+              if (price > 0) {
+                // Asumimos que si tienen código promocional, no pagaron
+                // Calculamos cuántos meses han usado el servicio
+                const appliedDate = new Date(userPromo.applied_at);
+                const monthsUsed = Math.max(1, Math.floor((Date.now() - appliedDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
+                promoCodeLoss += price * monthsUsed;
+              }
           }
         }
       }
@@ -132,7 +132,7 @@ export function FinancialDashboard() {
         userPromoCodes.forEach((userPromo) => {
           const promoCode = userPromo.promo_code;
           if (promoCode && promoCode.tier) {
-            const appliedDate = new Date(userPromo.applied_at || userPromo.created_at);
+            const appliedDate = new Date(userPromo.applied_at);
             const monthKey = `${appliedDate.getFullYear()}-${String(appliedDate.getMonth() + 1).padStart(2, "0")}`;
             
             if (!monthlyData[monthKey]) {
