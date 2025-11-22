@@ -266,9 +266,25 @@ export default function CatalogDetail() {
       }));
 
       setSections(sectionsWithProjects);
+      
+      // Guardar proyectos sin sección para mostrarlos al final
+      const projectsWithoutSection = projectsWithProducts
+        .filter(p => p.catalog_section_id === null)
+        .sort((a, b) => a.position - b.position);
+      
+      // Si hay proyectos sin sección, crear una "sección" especial para ellos
+      if (projectsWithoutSection.length > 0) {
+        setSections([...sectionsWithProjects, {
+          id: 'no-section',
+          title: 'Proyectos sin sección',
+          position: 999999,
+          display_type: 'list' as const,
+          projects: projectsWithoutSection,
+        }]);
+      }
 
       // Expand all by default
-      setExpandedSections(new Set(sectionsWithProjects.map(s => s.id)));
+      setExpandedSections(new Set([...sectionsWithProjects.map(s => s.id), 'no-section']));
       setExpandedProjects(new Set(projectsWithProducts.map(p => p.id)));
     } catch (error) {
       console.error("Error fetching catalog data:", error);

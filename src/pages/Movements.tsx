@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Trash } from "lucide-react";
+import { Loader2, Trash, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -42,6 +42,8 @@ const Movements = () => {
   const [movements, setMovements] = useState<Movement[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [isWasteDialogOpen, setIsWasteDialogOpen] = useState(false);
+  const [isAdjustmentDialogOpen, setIsAdjustmentDialogOpen] = useState(false);
+  const [adjustmentType, setAdjustmentType] = useState<'waste' | 'adjustment' | 'other'>('adjustment');
   
   const [wasteForm, setWasteForm] = useState({
     material_id: "",
@@ -119,6 +121,7 @@ const Movements = () => {
 
     try {
       const quantityGrams = parseFloat(wasteForm.quantity_grams);
+      const movementType = adjustmentType;
 
       const { data: inventoryData } = await supabase
         .from("inventory_items")
@@ -127,19 +130,38 @@ const Movements = () => {
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (!inventoryData || inventoryData.quantity_grams < quantityGrams) {
+      // Para ajustes, permitir incluso si no hay inventario (se creará en negativo si es necesario)
+      if (movementType === 'waste' && (!inventoryData || inventoryData.quantity_grams < quantityGrams)) {
         toast.error(t('inventory.messages.insufficientStock'));
         return;
       }
 
-      const { error: updateError } = await supabase
-        .from("inventory_items")
-        .update({
-          quantity_grams: inventoryData.quantity_grams - quantityGrams
-        })
-        .eq("id", inventoryData.id);
+      if (inventoryData) {
+        const newQuantity = movementType === 'waste' 
+          ? inventoryData.quantity_grams - quantityGrams
+          : inventoryData.quantity_grams + quantityGrams;
 
-      if (updateError) throw updateError;
+        const { error: updateError } = await supabase
+          .from("inventory_items")
+          .update({
+            quantity_grams: newQuantity
+          })
+          .eq("id", inventoryData.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // Crear nuevo item de inventario si no existe (para ajustes)
+        const { error: createError } = await supabase
+          .from("inventory_items")
+          .insert([{
+            user_id: user.id,
+            material_id: wasteForm.material_id,
+            quantity_grams: quantityGrams,
+            min_stock_alert: 500
+          }]);
+
+        if (createError) throw createError;
+      }
 
       const { error: movementError } = await supabase
         .from("inventory_movements")
@@ -147,16 +169,22 @@ const Movements = () => {
           {
             user_id: user.id,
             material_id: wasteForm.material_id,
-            movement_type: "waste",
-            quantity_grams: quantityGrams,
+            movement_type: movementType,
+            quantity_grams: movementType === 'waste' ? quantityGrams : quantityGrams,
             notes: wasteForm.notes || null
           }
         ]);
 
       if (movementError) throw movementError;
 
-      toast.success(t('inventory.messages.wasteRegistered'));
-      setIsWasteDialogOpen(false);
+      const messages = {
+        waste: 'Desperdicio registrado correctamente',
+        adjustment: 'Ajuste registrado correctamente',
+        other: 'Movimiento registrado correctamente'
+      };
+
+      toast.success(messages[movementType]);
+      setIsAdjustmentDialogOpen(false);
       setWasteForm({
         material_id: "",
         quantity_grams: "",
@@ -164,7 +192,7 @@ const Movements = () => {
       });
       fetchData();
     } catch (error: any) {
-      toast.error(t('inventory.messages.errorRegisteringWaste'));
+      toast.error('Error al registrar el movimiento');
     }
   };
 
@@ -217,10 +245,12 @@ const Movements = () => {
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>{t('inventory.tables.movementHistory')}</CardTitle>
-            <Button onClick={() => setIsWasteDialogOpen(true)} variant="outline" className="shadow-sm">
-              <Trash className="w-4 h-4 mr-2" />
-              {t('inventory.dialogs.registerWaste')}
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => setIsAdjustmentDialogOpen(true)} variant="outline" className="shadow-sm">
+                <Edit className="w-4 h-4 mr-2" />
+                Ajuste Manual
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -313,6 +343,86 @@ const Movements = () => {
                 {t('common.cancel')}
               </Button>
               <Button type="submit">{t('inventory.dialogs.registerWaste')}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para ajustes manuales */}
+      <Dialog open={isAdjustmentDialogOpen} onOpenChange={setIsAdjustmentDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ajuste Manual de Inventario</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveWaste} className="space-y-4">
+            <div>
+              <Label htmlFor="adjustment_type">Tipo de Movimiento *</Label>
+              <Select
+                value={adjustmentType}
+                onValueChange={(value: 'waste' | 'adjustment' | 'other') => setAdjustmentType(value)}
+              >
+                <SelectTrigger id="adjustment_type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="waste">Desperdicio</SelectItem>
+                  <SelectItem value="adjustment">Corrección de Stock</SelectItem>
+                  <SelectItem value="other">Otros</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="adjustment_material">{t('inventory.material')} *</Label>
+              <Select
+                value={wasteForm.material_id}
+                onValueChange={(value) => setWasteForm({ ...wasteForm, material_id: value })}
+              >
+                <SelectTrigger id="adjustment_material">
+                  <SelectValue placeholder="Seleccionar material" />
+                </SelectTrigger>
+                <SelectContent>
+                  {materials.map((mat) => (
+                    <SelectItem key={mat.id} value={mat.id}>
+                      {mat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="adjustment_quantity">
+                {adjustmentType === 'waste' ? 'Cantidad a Restar (g) *' : 'Cantidad a Ajustar (g) *'}
+              </Label>
+              <Input
+                id="adjustment_quantity"
+                type="number"
+                step="1"
+                value={wasteForm.quantity_grams}
+                onChange={(e) => setWasteForm({ ...wasteForm, quantity_grams: e.target.value })}
+                required
+                placeholder={adjustmentType === 'waste' ? 'Gramos a descontar' : 'Gramos a agregar'}
+              />
+              {adjustmentType !== 'waste' && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Esta cantidad se agregará al inventario actual
+                </p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="adjustment_notes">{t('inventory.formLabels.notes')}</Label>
+              <Textarea
+                id="adjustment_notes"
+                value={wasteForm.notes}
+                onChange={(e) => setWasteForm({ ...wasteForm, notes: e.target.value })}
+                rows={3}
+                placeholder="Describe el motivo del ajuste..."
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button type="button" variant="outline" onClick={() => setIsAdjustmentDialogOpen(false)}>
+                {t('common.cancel')}
+              </Button>
+              <Button type="submit">Registrar Ajuste</Button>
             </div>
           </form>
         </DialogContent>

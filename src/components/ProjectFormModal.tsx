@@ -969,87 +969,37 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
             <Label htmlFor="tags">Tags</Label>
             <div className="space-y-2">
               <div className="flex gap-2">
-                <Popover open={tagInputOpen} onOpenChange={setTagInputOpen}>
-                  <PopoverTrigger asChild>
-                    <div className="flex-1">
-                      <Input
-                        id="tags"
-                        value={newTag}
-                        onChange={(e) => {
-                          setNewTag(e.target.value);
-                          setTagInputOpen(true);
-                        }}
-                        onKeyPress={handleTagKeyPress}
-                        onFocus={() => setTagInputOpen(true)}
-                        placeholder="Escribe un tag y presiona Enter"
-                      />
-                    </div>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[300px] p-0" align="start" side="bottom">
-                    <Command>
-                      <CommandInput 
-                        placeholder="Buscar tags..." 
-                        value={newTag}
-                        onValueChange={setNewTag}
-                      />
-                      <CommandList>
-                        <CommandEmpty>
-                          {newTag.trim() ? (
-                            <div className="py-2 text-center text-sm">
-                              <div className="mb-2">No se encontraron tags</div>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => addTag()}
-                                className="w-full"
-                              >
-                                <Plus className="w-3 h-3 mr-1" />
-                                Crear "{newTag.trim()}"
-                              </Button>
-                            </div>
-                          ) : (
-                            "Escribe para buscar o crear un tag"
-                          )}
-                        </CommandEmpty>
-                        {filteredTags.length > 0 && (
-                          <CommandGroup heading="Tags existentes">
-                            {filteredTags.map((tag) => (
-                              <CommandItem
-                                key={tag}
-                                value={tag}
-                                onSelect={() => addTag(tag)}
-                                className="cursor-pointer"
-                              >
-                                <Tag className="w-3 h-3 mr-2" />
-                                {tag}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        )}
-                        {newTag.trim() && !tags.includes(newTag.trim()) && (
-                          <CommandGroup>
-                            <CommandItem
-                              value={newTag.trim()}
-                              onSelect={() => addTag()}
-                              className="cursor-pointer font-medium"
-                            >
-                              <Plus className="w-3 h-3 mr-2" />
-                              Crear nuevo tag: "{newTag.trim()}"
-                            </CommandItem>
-                          </CommandGroup>
-                        )}
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => addTag()}
-                  disabled={!newTag.trim()}
-                >
-                  <Plus className="w-4 h-4" />
+                <div className="flex-1 relative">
+                  <Input
+                    id="tags"
+                    value={newTag}
+                    onChange={(e) => setNewTag(e.target.value)}
+                    onKeyPress={handleTagKeyPress}
+                    placeholder="Escribe un tag y presiona Enter"
+                  />
+                  {newTag.trim() && filteredTags.length > 0 && (
+                    <Card className="absolute z-50 w-full mt-1 shadow-lg">
+                      <CardContent className="p-2 max-h-[200px] overflow-auto">
+                        {filteredTags.map((tag) => (
+                          <Button
+                            key={tag}
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="w-full justify-start"
+                            onClick={() => addTag(tag)}
+                          >
+                            <Tag className="w-3 h-3 mr-2" />
+                            {tag}
+                          </Button>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+                <Button type="button" onClick={() => addTag()}>
+                  <Plus className="w-4 h-4 mr-1" />
+                  Añadir
                 </Button>
               </div>
               {tags.length > 0 && (
