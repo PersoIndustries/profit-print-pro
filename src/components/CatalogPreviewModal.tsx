@@ -31,11 +31,21 @@ interface Project {
   image_url: string | null;
   colors: string[] | null;
   products: Product[];
+  catalog_section_id: string | null;
+}
+
+interface Section {
+  id: string;
+  title: string;
+  position: number;
+  display_type: 'list' | 'grid' | 'full_page';
+  projects: Project[];
 }
 
 export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName, showPoweredBy = true, brandLogoUrl = null }: CatalogPreviewModalProps) {
   const { user } = useAuth();
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [projectsWithoutSection, setProjectsWithoutSection] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [userBrandLogoUrl, setUserBrandLogoUrl] = useState<string | null>(null);
@@ -68,21 +78,32 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
     try {
       setLoading(true);
 
+      // Fetch sections
+      const { data: sectionsData, error: sectionsError } = await supabase
+        .from("catalog_sections")
+        .select("*")
+        .eq("catalog_id", catalogId)
+        .order("position", { ascending: true });
+
+      if (sectionsError) throw sectionsError;
+
+      // Fetch all projects
       const { data: projectsData, error: projectsError } = await supabase
         .from("catalog_projects")
         .select("*")
         .eq("catalog_id", catalogId)
-        .order("name");
+        .order("position", { ascending: true });
 
       if (projectsError) throw projectsError;
 
+      // Fetch products for all projects
       const projectsWithProducts = await Promise.all(
         (projectsData || []).map(async (project) => {
           const { data: productsData } = await supabase
             .from("catalog_products")
             .select("*")
             .eq("catalog_project_id", project.id)
-            .order("reference_code");
+            .order("position", { ascending: true });
 
           return {
             ...project,
@@ -92,7 +113,22 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
         })
       );
 
-      setProjects(projectsWithProducts);
+      // Organize projects by section
+      const sectionsWithProjects = (sectionsData || []).map((section: any) => ({
+        ...section,
+        display_type: (section.display_type || 'list') as 'list' | 'grid' | 'full_page',
+        projects: projectsWithProducts
+          .filter(p => p.catalog_section_id === section.id)
+          .sort((a, b) => a.position - b.position),
+      }));
+
+      // Projects without section
+      const orphanProjects = projectsWithProducts
+        .filter(p => p.catalog_section_id === null)
+        .sort((a, b) => a.position - b.position);
+
+      setSections(sectionsWithProjects);
+      setProjectsWithoutSection(orphanProjects);
     } catch (error) {
       console.error("Error fetching catalog data:", error);
       toast.error("Error al cargar los datos del catálogo");
@@ -111,24 +147,45 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
       let yPosition = margin;
 
       // Cover page
-      pdf.setFontSize(24);
+      pdf.setFontSize(26);
       pdf.setTextColor(147, 51, 234);
-      pdf.text(catalogName, pageWidth / 2, 60, { align: "center" });
+      pdf.text(catalogName, pageWidth / 2, 80, { align: "center" });
 
-      pdf.setFontSize(12);
+      pdf.setFontSize(14);
       pdf.setTextColor(100, 100, 100);
-      pdf.text("Catálogo de Productos", pageWidth / 2, 80, { align: "center" });
+      pdf.text("Catálogo de Productos", pageWidth / 2, 95, { align: "center" });
 
-      // Projects and products
-      let isFirstProject = true;
-      for (const project of projects) {
-        // Check if we need a new page (only if not first project and not enough space)
-        const estimatedProjectHeight = 80 + (project.products.length * 6);
-        if (!isFirstProject && yPosition + estimatedProjectHeight > pageHeight - margin) {
+      // Start content on new page
+      pdf.addPage();
+      yPosition = margin;
+
+      // Process sections with their projects
+      for (const section of sections) {
+        // Section title - starts on new page
+        if (yPosition > margin + 10) {
           pdf.addPage();
           yPosition = margin;
         }
-        isFirstProject = false;
+
+        pdf.setFontSize(20);
+        pdf.setTextColor(147, 51, 234);
+        pdf.text(section.title, margin, yPosition);
+        yPosition += 15;
+
+        // Draw separator line
+        pdf.setDrawColor(147, 51, 234);
+        pdf.setLineWidth(0.5);
+        pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += 10;
+
+        // Process projects in this section
+        for (const project of section.projects) {
+          // Check if we need a new page
+          const estimatedProjectHeight = 85 + (project.products.length * 6);
+          if (yPosition + estimatedProjectHeight > pageHeight - margin) {
+            pdf.addPage();
+            yPosition = margin;
+          }
 
         // Project header
         pdf.setFontSize(18);
@@ -266,12 +323,162 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
           }
         }
 
-        // Update yPosition to the bottom of the tallest column
-        yPosition = Math.max(leftColumnY, rightColumnY) + 10;
-        
-        // Add some space between projects
-        if (yPosition < pageHeight - margin - 20) {
-          yPosition += 5;
+          // Update yPosition to the bottom of the tallest column
+          yPosition = Math.max(leftColumnY, rightColumnY) + 15;
+        }
+      }
+
+      // Process projects without section if any
+      if (projectsWithoutSection.length > 0) {
+        // Add section for orphan projects
+        if (yPosition > margin + 10) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+
+        pdf.setFontSize(20);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text("Otros Proyectos", margin, yPosition);
+        yPosition += 15;
+
+        pdf.setDrawColor(100, 100, 100);
+        pdf.setLineWidth(0.5);
+        pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += 10;
+
+        for (const project of projectsWithoutSection) {
+          const estimatedProjectHeight = 85 + (project.products.length * 6);
+          if (yPosition + estimatedProjectHeight > pageHeight - margin) {
+            pdf.addPage();
+            yPosition = margin;
+          }
+
+          // Project header
+          pdf.setFontSize(18);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text(project.name, margin, yPosition);
+          yPosition += 12;
+
+          const imageSize = 60;
+          const leftColumnWidth = imageSize + 10;
+          const rightColumnStartX = margin + leftColumnWidth;
+          const rightColumnWidth = pageWidth - rightColumnStartX - margin;
+          let leftColumnY = yPosition;
+          let rightColumnY = yPosition;
+
+          if (project.image_url) {
+            try {
+              const imgData = await fetch(project.image_url)
+                .then(res => res.blob())
+                .then(blob => new Promise<string>((resolve) => {
+                  const reader = new FileReader();
+                  reader.onloadend = () => resolve(reader.result as string);
+                  reader.readAsDataURL(blob);
+                }));
+              
+              pdf.addImage(imgData, 'JPEG', margin, leftColumnY, imageSize, imageSize);
+              leftColumnY += imageSize + 5;
+            } catch (error) {
+              console.error("Error loading image:", error);
+            }
+          }
+
+          if (project.description) {
+            pdf.setFontSize(9);
+            pdf.setTextColor(80, 80, 80);
+            const lines = pdf.splitTextToSize(project.description, leftColumnWidth - 5);
+            pdf.text(lines, margin, leftColumnY);
+            leftColumnY += lines.length * 4 + 5;
+          }
+
+          if (project.colors && project.colors.length > 0) {
+            pdf.setFontSize(9);
+            pdf.setTextColor(0, 0, 0);
+            pdf.text("Colores:", margin, leftColumnY);
+            leftColumnY += 6;
+
+            let xPos = margin;
+            project.colors.forEach((color) => {
+              const rgb = hexToRgb(color);
+              if (rgb) {
+                pdf.setFillColor(rgb.r, rgb.g, rgb.b);
+                pdf.rect(xPos, leftColumnY - 2, 6, 6, 'F');
+                pdf.setDrawColor(200, 200, 200);
+                pdf.rect(xPos, leftColumnY - 2, 6, 6);
+                xPos += 9;
+              }
+            });
+            leftColumnY += 10;
+          }
+
+          if (project.products.length > 0) {
+            pdf.setFontSize(9);
+            pdf.setFillColor(240, 240, 240);
+            pdf.rect(rightColumnStartX, rightColumnY - 5, rightColumnWidth, 7, 'F');
+            pdf.setTextColor(0, 0, 0);
+            pdf.text("Ref.", rightColumnStartX + 2, rightColumnY);
+            pdf.text("Nombre", rightColumnStartX + 20, rightColumnY);
+            pdf.text("Dim.", rightColumnStartX + 70, rightColumnY);
+            pdf.text("Precio", rightColumnStartX + rightColumnWidth - 25, rightColumnY, { align: "right" });
+            rightColumnY += 7;
+
+            for (const product of project.products) {
+              if (rightColumnY > pageHeight - margin - 10) {
+                pdf.addPage();
+                yPosition = margin;
+                leftColumnY = margin + 12;
+                rightColumnY = margin + 12;
+                
+                pdf.setFontSize(18);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text(project.name, margin, yPosition);
+                
+                if (project.image_url) {
+                  try {
+                    const imgData = await fetch(project.image_url)
+                      .then(res => res.blob())
+                      .then(blob => new Promise<string>((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result as string);
+                        reader.readAsDataURL(blob);
+                      }));
+                    
+                    pdf.addImage(imgData, 'JPEG', margin, leftColumnY, imageSize, imageSize);
+                  } catch (error) {
+                    console.error("Error loading image:", error);
+                  }
+                }
+
+                pdf.setFontSize(9);
+                pdf.setFillColor(240, 240, 240);
+                pdf.rect(rightColumnStartX, rightColumnY - 5, rightColumnWidth, 7, 'F');
+                pdf.setTextColor(0, 0, 0);
+                pdf.text("Ref.", rightColumnStartX + 2, rightColumnY);
+                pdf.text("Nombre", rightColumnStartX + 20, rightColumnY);
+                pdf.text("Dim.", rightColumnStartX + 70, rightColumnY);
+                pdf.text("Precio", rightColumnStartX + rightColumnWidth - 25, rightColumnY, { align: "right" });
+                rightColumnY += 7;
+              }
+
+              pdf.setFontSize(8);
+              pdf.setTextColor(60, 60, 60);
+              pdf.text(product.reference_code, rightColumnStartX + 2, rightColumnY);
+              
+              const nameLines = pdf.splitTextToSize(product.name, 45);
+              pdf.text(nameLines, rightColumnStartX + 20, rightColumnY);
+              
+              if (product.dimensions) {
+                const dimLines = pdf.splitTextToSize(product.dimensions, 20);
+                pdf.text(dimLines, rightColumnStartX + 70, rightColumnY);
+              }
+              
+              pdf.text(`${product.price.toFixed(2)} €`, rightColumnStartX + rightColumnWidth - 25, rightColumnY, { align: "right" });
+              
+              rightColumnY += Math.max(5, nameLines.length * 3.5 + 1);
+            }
+          }
+
+          yPosition = Math.max(leftColumnY, rightColumnY) + 15;
         }
       }
 
@@ -386,76 +593,157 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
               <p className="text-muted-foreground">Catálogo de Productos</p>
             </div>
 
-            {/* Projects */}
-            {projects.map((project) => (
-              <div key={project.id} className="space-y-4 border-b pb-8">
-                <h2 className="text-2xl font-bold">{project.name}</h2>
-
-                <div className="flex gap-6">
-                  {/* Image - Left side, square */}
-                  {project.image_url && (
-                    <div className="flex-shrink-0">
-                      <img
-                        src={project.image_url}
-                        alt={project.name}
-                        className="w-48 h-48 object-cover rounded-md"
-                      />
-                    </div>
-                  )}
-
-                  {/* Content - Right side */}
-                  <div className="flex-1 space-y-4">
-                    {project.description && (
-                      <p className="text-muted-foreground">{project.description}</p>
-                    )}
-
-                    {project.colors && project.colors.length > 0 && (
-                      <div>
-                        <p className="text-sm font-medium mb-2">Colores disponibles:</p>
-                        <div className="flex gap-2">
-                          {project.colors.map((color, idx) => (
-                            <div
-                              key={idx}
-                              className="w-8 h-8 rounded-md border-2 border-border"
-                              style={{ backgroundColor: color }}
-                              title={color}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {project.products.length > 0 && (
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-semibold">Productos</h3>
-                        <div className="border rounded-md overflow-hidden">
-                          <table className="w-full">
-                            <thead className="bg-muted">
-                              <tr>
-                                <th className="text-left p-2 text-sm font-medium">Ref.</th>
-                                <th className="text-left p-2 text-sm font-medium">Nombre</th>
-                                <th className="text-left p-2 text-sm font-medium">Dimensiones</th>
-                                <th className="text-right p-2 text-sm font-medium">Precio</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {project.products.map((product) => (
-                                <tr key={product.id} className="border-t">
-                                  <td className="p-2 text-sm">{product.reference_code}</td>
-                                  <td className="p-2 text-sm">{product.name}</td>
-                                  <td className="p-2 text-sm">{product.dimensions || "-"}</td>
-                                  <td className="p-2 text-sm text-right font-medium">{product.price.toFixed(2)} €</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+            {/* Sections and Projects */}
+            {sections.map((section) => (
+              <div key={section.id} className="space-y-6">
+                <div className="border-b-2 border-primary pb-2">
+                  <h2 className="text-3xl font-bold text-primary">{section.title}</h2>
                 </div>
+                {section.projects.map((project) => (
+                  <div key={project.id} className="space-y-4 border-b pb-8 pl-4">
+                    <h3 className="text-2xl font-bold">{project.name}</h3>
+
+                    <div className="flex gap-6">
+                      {project.image_url && (
+                        <div className="flex-shrink-0">
+                          <img
+                            src={project.image_url}
+                            alt={project.name}
+                            className="w-48 h-48 object-cover rounded-md"
+                          />
+                        </div>
+                      )}
+
+                      <div className="flex-1 space-y-4">
+                        {project.description && (
+                          <p className="text-muted-foreground">{project.description}</p>
+                        )}
+
+                        {project.colors && project.colors.length > 0 && (
+                          <div>
+                            <p className="text-sm font-medium mb-2">Colores disponibles:</p>
+                            <div className="flex gap-2">
+                              {project.colors.map((color, idx) => (
+                                <div
+                                  key={idx}
+                                  className="w-8 h-8 rounded-md border-2 border-border"
+                                  style={{ backgroundColor: color }}
+                                  title={color}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {project.products.length > 0 && (
+                          <div className="space-y-2">
+                            <h4 className="text-lg font-semibold">Productos</h4>
+                            <div className="border rounded-md overflow-hidden">
+                              <table className="w-full">
+                                <thead className="bg-muted">
+                                  <tr>
+                                    <th className="text-left p-2 text-sm font-medium">Ref.</th>
+                                    <th className="text-left p-2 text-sm font-medium">Nombre</th>
+                                    <th className="text-left p-2 text-sm font-medium">Dimensiones</th>
+                                    <th className="text-right p-2 text-sm font-medium">Precio</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {project.products.map((product) => (
+                                    <tr key={product.id} className="border-t">
+                                      <td className="p-2 text-sm">{product.reference_code}</td>
+                                      <td className="p-2 text-sm">{product.name}</td>
+                                      <td className="p-2 text-sm">{product.dimensions || "-"}</td>
+                                      <td className="p-2 text-sm text-right font-medium">{product.price.toFixed(2)} €</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ))}
+
+            {/* Projects without section */}
+            {projectsWithoutSection.length > 0 && (
+              <div className="space-y-6">
+                <div className="border-b-2 border-muted-foreground/30 pb-2">
+                  <h2 className="text-3xl font-bold text-muted-foreground">Otros Proyectos</h2>
+                </div>
+                {projectsWithoutSection.map((project) => (
+                  <div key={project.id} className="space-y-4 border-b pb-8 pl-4">
+                    <h3 className="text-2xl font-bold">{project.name}</h3>
+
+                    <div className="flex gap-6">
+                      {project.image_url && (
+                        <div className="flex-shrink-0">
+                          <img
+                            src={project.image_url}
+                            alt={project.name}
+                            className="w-48 h-48 object-cover rounded-md"
+                          />
+                        </div>
+                      )}
+
+                      <div className="flex-1 space-y-4">
+                        {project.description && (
+                          <p className="text-muted-foreground">{project.description}</p>
+                        )}
+
+                        {project.colors && project.colors.length > 0 && (
+                          <div>
+                            <p className="text-sm font-medium mb-2">Colores disponibles:</p>
+                            <div className="flex gap-2">
+                              {project.colors.map((color, idx) => (
+                                <div
+                                  key={idx}
+                                  className="w-8 h-8 rounded-md border-2 border-border"
+                                  style={{ backgroundColor: color }}
+                                  title={color}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {project.products.length > 0 && (
+                          <div className="space-y-2">
+                            <h4 className="text-lg font-semibold">Productos</h4>
+                            <div className="border rounded-md overflow-hidden">
+                              <table className="w-full">
+                                <thead className="bg-muted">
+                                  <tr>
+                                    <th className="text-left p-2 text-sm font-medium">Ref.</th>
+                                    <th className="text-left p-2 text-sm font-medium">Nombre</th>
+                                    <th className="text-left p-2 text-sm font-medium">Dimensiones</th>
+                                    <th className="text-right p-2 text-sm font-medium">Precio</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {project.products.map((product) => (
+                                    <tr key={product.id} className="border-t">
+                                      <td className="p-2 text-sm">{product.reference_code}</td>
+                                      <td className="p-2 text-sm">{product.name}</td>
+                                      <td className="p-2 text-sm">{product.dimensions || "-"}</td>
+                                      <td className="p-2 text-sm text-right font-medium">{product.price.toFixed(2)} €</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>
