@@ -17,6 +17,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Plus, ShoppingCart, History, Trash, Edit, Star, Info, Disc, Droplet, KeyRound, Wrench, Paintbrush, FileBox, Package, PackagePlus, Printer, ListPlus, ArrowUpDown, ArrowUp, ArrowDown, Search, Filter, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -136,6 +146,8 @@ const Inventory = () => {
   const [shoppingListItemName, setShoppingListItemName] = useState("");
   const [shoppingListItemQuantity, setShoppingListItemQuantity] = useState("");
   const [shoppingListItemEstimatedPrice, setShoppingListItemEstimatedPrice] = useState("");
+  const [materialToDelete, setMaterialToDelete] = useState<Material | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   // Paginación automática (solo cuando hay >50 items)
   const [currentPage, setCurrentPage] = useState(1);
@@ -402,17 +414,24 @@ const Inventory = () => {
     }
   };
 
-  const handleDeleteMaterial = async (id: string) => {
-    if (!confirm(t('inventory.dialogs.confirmDeleteMaterial'))) return;
+  const handleDeleteMaterial = async () => {
+    if (!materialToDelete) return;
 
     try {
-      const { error } = await supabase.from("materials").delete().eq("id", id);
+      const { error } = await supabase.from("materials").delete().eq("id", materialToDelete.id);
       if (error) throw error;
       toast.success(t('inventory.messages.materialDeleted'));
+      setShowDeleteDialog(false);
+      setMaterialToDelete(null);
       fetchData();
     } catch (error: any) {
       toast.error(t('inventory.messages.errorDeletingMaterial'));
     }
+  };
+
+  const openDeleteDialog = (material: Material) => {
+    setMaterialToDelete(material);
+    setShowDeleteDialog(true);
   };
 
   const fetchShoppingLists = async () => {
@@ -846,10 +865,11 @@ const Inventory = () => {
     const matchesSearch = material.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === "all" || material.type === filterType;
     
-    // Si showLowStock está activo, filtrar solo materiales con stock bajo (solo Pro y Business)
+    // Si showLowStock está activo, filtrar solo materiales con stock bajo o sin stock (solo Pro y Business)
     if (showLowStock && (isPro || isEnterprise)) {
       const inventoryItem = inventory.find(inv => inv.material_id === material.id);
-      if (!inventoryItem) return false; // No mostrar materiales sin stock
+      // Incluir materiales sin stock Y materiales con stock bajo
+      if (!inventoryItem) return matchesSearch && matchesType; // Mostrar materiales sin stock
       const pending = pendingMaterials[material.id] || 0;
       const realStock = inventoryItem.quantity_grams - pending;
       return matchesSearch && matchesType && realStock < (inventoryItem.min_stock_alert || 0);
@@ -956,7 +976,7 @@ const Inventory = () => {
                       className="w-4 h-4 rounded border-input cursor-pointer"
                     />
                     <Label htmlFor="low-stock-toggle-main" className="cursor-pointer text-sm whitespace-nowrap">
-                      {t('inventory.onlyLowStock')}
+                      Stock bajo
                     </Label>
                   </div>
                 )}
@@ -1269,7 +1289,7 @@ const Inventory = () => {
                                 <Button
                                   variant="destructive"
                                   size="icon"
-                                  onClick={() => handleDeleteMaterial(material.id)}
+                                  onClick={() => openDeleteDialog(material)}
                                 >
                                   <Trash className="w-4 h-4" />
                                 </Button>
@@ -1974,6 +1994,31 @@ const Inventory = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* AlertDialog para confirmación de eliminación de material */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro de eliminar este material?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>Esta acción no se puede deshacer. El material "{materialToDelete?.name}" será eliminado permanentemente.</p>
+              <div className="bg-muted p-3 rounded-md mt-3">
+                <p className="font-medium text-sm mb-2">ℹ️ Importante sobre reconexión de stock:</p>
+                <p className="text-sm text-muted-foreground">
+                  Si eliminas este material y luego quieres volver a conectarlo con el stock existente en el inventario, 
+                  deberás crear un nuevo material con <strong>exactamente el mismo nombre</strong>: "{materialToDelete?.name}"
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteMaterial} className="bg-destructive hover:bg-destructive/90">
+              Eliminar Material
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
