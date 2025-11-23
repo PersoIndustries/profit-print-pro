@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Trash2, Plus, Package, Edit, Kanban, Calendar, TrendingUp, User, Mail, Euro, FileText, Search } from "lucide-react";
+import placeholderImage from "@/assets/placeholder.jpg";
 import { OrderFormModal } from "@/components/OrderFormModal";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { CalendarView } from "@/components/CalendarView";
