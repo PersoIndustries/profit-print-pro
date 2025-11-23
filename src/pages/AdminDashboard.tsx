@@ -51,6 +51,8 @@ const AdminDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 20;
+  const [userDateFrom, setUserDateFrom] = useState<string>('');
+  const [userDateTo, setUserDateTo] = useState<string>('');
   
   // Form states for user management
   const [newTier, setNewTier] = useState<string>('');
@@ -1057,24 +1059,45 @@ const AdminDashboard = () => {
     }
   }, [user, authLoading, isAdmin, adminLoading, navigate, activeSection]);
 
-  // Filter users based on search query
+  // Filter users based on search query and date range
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredUsers(users);
-      setCurrentPage(1);
-      return;
+    let filtered = [...users];
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(user => 
+        user.email.toLowerCase().includes(query) ||
+        (user.full_name && user.full_name.toLowerCase().includes(query)) ||
+        user.tier.toLowerCase().includes(query) ||
+        user.subscription_status.toLowerCase().includes(query)
+      );
     }
 
-    const query = searchQuery.toLowerCase();
-    const filtered = users.filter(user => 
-      user.email.toLowerCase().includes(query) ||
-      (user.full_name && user.full_name.toLowerCase().includes(query)) ||
-      user.tier.toLowerCase().includes(query) ||
-      user.subscription_status.toLowerCase().includes(query)
-    );
+    // Filter by date range (joined date)
+    if (userDateFrom) {
+      const fromDate = new Date(userDateFrom);
+      fromDate.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(user => {
+        const userDate = new Date(user.created_at);
+        userDate.setHours(0, 0, 0, 0);
+        return userDate >= fromDate;
+      });
+    }
+
+    if (userDateTo) {
+      const toDate = new Date(userDateTo);
+      toDate.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(user => {
+        const userDate = new Date(user.created_at);
+        userDate.setHours(0, 0, 0, 0);
+        return userDate <= toDate;
+      });
+    }
+
     setFilteredUsers(filtered);
     setCurrentPage(1);
-  }, [searchQuery, users]);
+  }, [searchQuery, users, userDateFrom, userDateTo]);
 
   // Fetch pending refund requests count for alert
   useEffect(() => {
@@ -2074,16 +2097,18 @@ const AdminDashboard = () => {
 
         <Card>
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>{t('admin.userList')} ({filteredUsers.length})</CardTitle>
-              <div className="flex gap-2">
-                <div className="relative">
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-between items-center">
+                <CardTitle>{t('admin.userList')} ({filteredUsers.length})</CardTitle>
+              </div>
+              <div className="flex flex-wrap gap-2 items-end">
+                <div className="relative flex-1 min-w-[200px]">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Buscar por email, nombre, tier..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8 w-64"
+                    className="pl-8"
                   />
                   {searchQuery && (
                     <Button
@@ -2093,6 +2118,41 @@ const AdminDashboard = () => {
                       onClick={() => setSearchQuery('')}
                     >
                       <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+                <div className="flex gap-2 items-center">
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor="dateFrom" className="text-xs text-muted-foreground">Desde</Label>
+                    <Input
+                      id="dateFrom"
+                      type="date"
+                      value={userDateFrom}
+                      onChange={(e) => setUserDateFrom(e.target.value)}
+                      className="w-40"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor="dateTo" className="text-xs text-muted-foreground">Hasta</Label>
+                    <Input
+                      id="dateTo"
+                      type="date"
+                      value={userDateTo}
+                      onChange={(e) => setUserDateTo(e.target.value)}
+                      className="w-40"
+                    />
+                  </div>
+                  {(userDateFrom || userDateTo) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setUserDateFrom('');
+                        setUserDateTo('');
+                      }}
+                      className="h-9"
+                    >
+                      <X className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
