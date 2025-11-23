@@ -981,6 +981,56 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchAdminData = async () => {
+    try {
+      // Fetch all non-deleted profiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, email, full_name, created_at")
+        .is('deleted_at', null);
+
+      if (profilesError) throw profilesError;
+
+      if (!profiles || profiles.length === 0) {
+        setUsers([]);
+        setTotalUsers(0);
+        setFilteredUsers([]);
+        setLoading(false);
+        return;
+      }
+
+      const userStatsPromises = profiles.map(async (profile) => {
+        const [subRes, roleRes, materialsRes, projectsRes, ordersRes] = await Promise.all([
+          supabase.from('user_subscriptions' as any).select('tier, status, is_paid_subscription, stripe_subscription_id').eq('user_id', profile.id).maybeSingle(),
+          supabase.from('user_roles').select('role').eq('user_id', profile.id).maybeSingle(),
+          supabase.from('materials').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
+          supabase.from('projects').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
+          supabase.from('orders').select('id', { count: 'exact', head: true }).eq('user_id', profile.id)
+        ]);
+
+        return {
+          ...profile,
+          tier: (subRes.data as any)?.tier || 'free',
+          subscription_status: (subRes.data as any)?.status || 'active',
+          role: roleRes.data?.role || 'user',
+          materials_count: materialsRes.count || 0,
+          projects_count: projectsRes.count || 0,
+          orders_count: ordersRes.count || 0
+        };
+      });
+
+      const userStats = await Promise.all(userStatsPromises);
+      setUsers(userStats);
+      setTotalUsers(userStats.length);
+      setFilteredUsers(userStats);
+    } catch (error) {
+      console.error("Error fetching admin data:", error);
+      toast.error("Error loading admin data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     // Reset redirect flag cuando cambia el usuario
     if (user) {
@@ -1121,56 +1171,6 @@ const AdminDashboard = () => {
   const startIndex = (currentPage - 1) * usersPerPage;
   const endIndex = startIndex + usersPerPage;
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
-
-  const fetchAdminData = async () => {
-    try {
-      // Fetch all non-deleted profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, email, full_name, created_at")
-        .is('deleted_at', null);
-
-      if (profilesError) throw profilesError;
-
-      if (!profiles || profiles.length === 0) {
-        setUsers([]);
-        setTotalUsers(0);
-        setFilteredUsers([]);
-        setLoading(false);
-        return;
-      }
-
-      const userStatsPromises = profiles.map(async (profile) => {
-        const [subRes, roleRes, materialsRes, projectsRes, ordersRes] = await Promise.all([
-          supabase.from('user_subscriptions' as any).select('tier, status, is_paid_subscription, stripe_subscription_id').eq('user_id', profile.id).maybeSingle(),
-          supabase.from('user_roles').select('role').eq('user_id', profile.id).maybeSingle(),
-          supabase.from('materials').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
-          supabase.from('projects').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
-          supabase.from('orders').select('id', { count: 'exact', head: true }).eq('user_id', profile.id)
-        ]);
-
-        return {
-          ...profile,
-          tier: (subRes.data as any)?.tier || 'free',
-          subscription_status: (subRes.data as any)?.status || 'active',
-          role: roleRes.data?.role || 'user',
-          materials_count: materialsRes.count || 0,
-          projects_count: projectsRes.count || 0,
-          orders_count: ordersRes.count || 0
-        };
-      });
-
-      const userStats = await Promise.all(userStatsPromises);
-      setUsers(userStats);
-      setTotalUsers(userStats.length);
-      setFilteredUsers(userStats);
-    } catch (error) {
-      console.error("Error fetching admin data:", error);
-      toast.error("Error loading admin data");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const openUserDialog = async (userStat: UserStats, action: 'changeTier' | 'cancel' | 'refund' | 'addTrial' | 'changeBillingPeriod') => {
     setSelectedUser(userStat);
@@ -1405,14 +1405,7 @@ const AdminDashboard = () => {
     }
   };
 
-  if (loading || adminLoading) {
-    return <div className="flex items-center justify-center min-h-screen">{t('common.loading')}</div>;
-  }
-
-  if (!isAdmin) {
-    return null;
-  }
-
+  // Calcular usuarios activos
   const activeUsers = users.filter(u => {
     const createdDate = new Date(u.created_at);
     const thirtyDaysAgo = new Date();
@@ -1421,27 +1414,41 @@ const AdminDashboard = () => {
   }).length;
 
   // Mostrar loading mientras se verifica el auth o el admin
-  if (authLoading || adminLoading) {
+  if (authLoading || adminLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">
-            {authLoading ? 'Verificando autenticación...' : 'Verificando permisos de administrador...'}
+            {authLoading ? 'Verificando autenticación...' : adminLoading ? 'Verificando permisos de administrador...' : 'Cargando datos...'}
           </p>
         </div>
       </div>
     );
   }
 
-  // Si no hay usuario después de cargar, mostrar nada (el useEffect redirige)
+  // Si no hay usuario después de cargar, mostrar loading (el useEffect redirige)
   if (!user) {
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Redirigiendo...</p>
+        </div>
+      </div>
+    );
   }
 
-  // Si no es admin DESPUÉS de que todo cargó, mostrar nada (el useEffect redirige)
+  // Si no es admin DESPUÉS de que todo cargó, mostrar loading (el useEffect redirige)
   if (!isAdmin && !adminLoading && !authLoading) {
-    return null; // El useEffect ya redirigió o está por redirigir
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Redirigiendo...</p>
+        </div>
+      </div>
+    );
   }
 
   const handleSectionChange = (section: string) => {
