@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Save, Trash2, Plus, GripVertical, Upload, X, Crown, Tag } from "lucide-react";
 import { useTierFeatures } from "@/hooks/useTierFeatures";
 import { toast } from "sonner";
+import placeholderImage from "@/assets/placeholder.jpg";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog,

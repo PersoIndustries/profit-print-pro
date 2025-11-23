@@ -492,6 +492,8 @@
       "namePlaceholder": "Project name",
       "description": "Description",
       "descriptionPlaceholder": "Project description (optional)",
+      "creator": "Creator",
+      "creatorPlaceholder": "E.g: John Doe",
       "image": "Image (500x500 JPG)",
       "imageHelpText": "Image must be JPG and exactly 500x500 pixels",
       "uploadImage": "Upload Image",

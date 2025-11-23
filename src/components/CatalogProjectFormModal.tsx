@@ -204,6 +204,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
         image_url: imageUrl,
         project_id: useExistingProject && selectedProjectId ? selectedProjectId : null,
         colors: colors.length > 0 ? colors : null,
+        creator: creator || null,
       };
 
       if (projectId) {

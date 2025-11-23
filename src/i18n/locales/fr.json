@@ -481,6 +481,8 @@
       "namePlaceholder": "Nom du projet",
       "description": "Description",
       "descriptionPlaceholder": "Description du projet (optionnel)",
+      "creator": "Créateur",
+      "creatorPlaceholder": "Ex: Jean Dupont",
       "image": "Image (500x500 JPG)",
       "imageHelpText": "L'image doit être JPG et exactement 500x500 pixels",
       "uploadImage": "Télécharger une Image",

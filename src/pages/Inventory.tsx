@@ -135,6 +135,10 @@ const Inventory = () => {
   const [selectedPrint, setSelectedPrint] = useState<typeof stockPrints[0] | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [materialToDelete, setMaterialToDelete] = useState<Material | null>(null);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [selectedColor, setSelectedColor] = useState("#000000");
   const [stockPrints, setStockPrints] = useState<any[]>([]);
   const [printers, setPrinters] = useState<Printer[]>([]);
   const [isPrinterDialogOpen, setIsPrinterDialogOpen] = useState(false);
@@ -147,8 +151,6 @@ const Inventory = () => {
   const [shoppingListItemName, setShoppingListItemName] = useState("");
   const [shoppingListItemQuantity, setShoppingListItemQuantity] = useState("");
   const [shoppingListItemEstimatedPrice, setShoppingListItemEstimatedPrice] = useState("");
-  const [materialToDelete, setMaterialToDelete] = useState<Material | null>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   // Paginación automática (solo cuando hay >50 items)
   const [currentPage, setCurrentPage] = useState(1);

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader2, Download } from "lucide-react";
 import jsPDF from "jspdf";
+import placeholderImage from "@/assets/placeholder.jpg";
 
 interface CatalogPreviewModalProps {
   open: boolean;
@@ -32,6 +33,7 @@ interface Project {
   colors: string[] | null;
   products: Product[];
   catalog_section_id: string | null;
+  creator: string | null;
 }
 
 interface Section {
@@ -191,7 +193,17 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
         pdf.setFontSize(18);
         pdf.setTextColor(0, 0, 0);
         pdf.text(project.name, margin, yPosition);
-        yPosition += 12;
+        yPosition += 10;
+        
+        // Creator
+        if (project.creator) {
+          pdf.setFontSize(10);
+          pdf.setTextColor(100, 100, 100);
+          pdf.text(`Creador: ${project.creator}`, margin, yPosition);
+          yPosition += 8;
+        } else {
+          yPosition += 2;
+        }
 
         // Layout: Image and description on left, table on right
         const imageSize = 60;
@@ -357,7 +369,17 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
           pdf.setFontSize(18);
           pdf.setTextColor(0, 0, 0);
           pdf.text(project.name, margin, yPosition);
-          yPosition += 12;
+          yPosition += 10;
+          
+          // Creator
+          if (project.creator) {
+            pdf.setFontSize(10);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text(`Creador: ${project.creator}`, margin, yPosition);
+            yPosition += 8;
+          } else {
+            yPosition += 2;
+          }
 
           const imageSize = 60;
           const leftColumnWidth = imageSize + 10;
@@ -585,34 +607,39 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto border rounded-md p-6 bg-background">
-          <div className="max-w-4xl mx-auto space-y-8">
-            {/* Cover */}
-            <div className="text-center py-12 border-b">
-              <h1 className="text-4xl font-bold text-primary mb-4">{catalogName}</h1>
-              <p className="text-muted-foreground">Catálogo de Productos</p>
+        <div className="flex-1 overflow-y-auto border rounded-md bg-gray-100 p-4">
+          {/* A4 Page Container */}
+          <div className="mx-auto space-y-4" style={{ width: '794px' }}>
+            {/* Cover Page */}
+            <div className="bg-white shadow-lg" style={{ minHeight: '1123px', padding: '60px' }}>
+              <div className="text-center py-12 border-b">
+                <h1 className="text-4xl font-bold text-primary mb-4">{catalogName}</h1>
+                <p className="text-muted-foreground">Catálogo de Productos</p>
+              </div>
             </div>
 
             {/* Sections and Projects */}
-            {sections.map((section) => (
-              <div key={section.id} className="space-y-6">
-                <div className="border-b-2 border-primary pb-2">
+            {sections.map((section, sectionIdx) => (
+              <div key={section.id} className="bg-white shadow-lg" style={{ minHeight: '1123px', padding: '60px' }}>
+                <div className="border-b-2 border-primary pb-2 mb-6">
                   <h2 className="text-3xl font-bold text-primary">{section.title}</h2>
                 </div>
-                {section.projects.map((project) => (
-                  <div key={project.id} className="space-y-4 border-b pb-8 pl-4">
+                {section.projects.map((project, projectIdx) => (
+                  <div key={project.id} className="space-y-4 border-b pb-8 mb-8 last:border-0">
                     <h3 className="text-2xl font-bold">{project.name}</h3>
+                    
+                    {project.creator && (
+                      <p className="text-sm text-muted-foreground">Creador: {project.creator}</p>
+                    )}
 
                     <div className="flex gap-6">
-                      {project.image_url && (
-                        <div className="flex-shrink-0">
-                          <img
-                            src={project.image_url}
-                            alt={project.name}
-                            className="w-48 h-48 object-cover rounded-md"
-                          />
-                        </div>
-                      )}
+                      <div className="flex-shrink-0">
+                        <img
+                          src={project.image_url || placeholderImage}
+                          alt={project.name}
+                          className="w-48 h-48 object-cover rounded-md"
+                        />
+                      </div>
 
                       <div className="flex-1 space-y-4">
                         {project.description && (
@@ -671,24 +698,26 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
 
             {/* Projects without section */}
             {projectsWithoutSection.length > 0 && (
-              <div className="space-y-6">
-                <div className="border-b-2 border-muted-foreground/30 pb-2">
+              <div className="bg-white shadow-lg" style={{ minHeight: '1123px', padding: '60px' }}>
+                <div className="border-b-2 border-muted-foreground/30 pb-2 mb-6">
                   <h2 className="text-3xl font-bold text-muted-foreground">Otros Proyectos</h2>
                 </div>
                 {projectsWithoutSection.map((project) => (
-                  <div key={project.id} className="space-y-4 border-b pb-8 pl-4">
+                  <div key={project.id} className="space-y-4 border-b pb-8 mb-8 last:border-0">
                     <h3 className="text-2xl font-bold">{project.name}</h3>
+                    
+                    {project.creator && (
+                      <p className="text-sm text-muted-foreground">Creador: {project.creator}</p>
+                    )}
 
                     <div className="flex gap-6">
-                      {project.image_url && (
-                        <div className="flex-shrink-0">
-                          <img
-                            src={project.image_url}
-                            alt={project.name}
-                            className="w-48 h-48 object-cover rounded-md"
-                          />
-                        </div>
-                      )}
+                      <div className="flex-shrink-0">
+                        <img
+                          src={project.image_url || placeholderImage}
+                          alt={project.name}
+                          className="w-48 h-48 object-cover rounded-md"
+                        />
+                      </div>
 
                       <div className="flex-1 space-y-4">
                         {project.description && (

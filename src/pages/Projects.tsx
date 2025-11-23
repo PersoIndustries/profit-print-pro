@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Loader2, Trash2, Edit, List, Grid3x3, Crown, ArrowLeft, Clock, Package, Euro, Weight, FileText } from "lucide-react";
 import { toast } from "sonner";
+import placeholderImage from "@/assets/placeholder.jpg";
 import { ProjectFormModal } from "@/components/ProjectFormModal";
 import { useTierFeatures } from "@/hooks/useTierFeatures";
 import { Badge } from "@/components/ui/badge";
@@ -303,10 +304,10 @@ const Projects = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {paginatedProjects.map((project) => (
             <Card key={project.id} className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleViewProject(project)}>
-              {canAddImages && project.image_url && (
+              {canAddImages && (
                 <div className="h-32 overflow-hidden bg-muted">
                   <img 
-                    src={project.image_url} 
+                    src={project.image_url || placeholderImage} 
                     alt={project.name} 
                     className="w-full h-full object-cover"
                   />
@@ -413,10 +414,10 @@ const Projects = () => {
             <Card key={project.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleViewProject(project)}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
-                  {canAddImages && project.image_url && (
+                  {canAddImages && (
                     <div className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
                       <img 
-                        src={project.image_url} 
+                        src={project.image_url || placeholderImage} 
                         alt={project.name} 
                         className="w-full h-full object-cover"
                       />
