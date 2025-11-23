@@ -94,5 +94,27 @@
     "delete": "Eliminar",
     "cancel": "Cancelar",
     "comingSoon": "Próximamente"
+  },
+  "admin": {
+    "title": "Panel de Administración",
+    "users": "Usuarios",
+    "overview": "Resumen",
+    "totalUsers": "Total de Usuarios",
+    "activeUsers": "Usuarios Activos",
+    "freeUsers": "Usuarios Gratuitos",
+    "tier1Users": "Usuarios Tier 1",
+    "tier2Users": "Usuarios Tier 2",
+    "userManagement": "Gestión de Usuarios",
+    "userList": "Lista de Usuarios",
+    "email": "Email",
+    "name": "Nombre",
+    "tier": "Tier",
+    "status": "Estado",
+    "joined": "Registrado",
+    "actions": "Acciones",
+    "changeTier": "Cambiar Tier",
+    "cancelSubscription": "Cancelar Suscripción",
+    "processRefund": "Procesar Reembolso",
+    "viewDetails": "Ver Detalles"
   }
 }
