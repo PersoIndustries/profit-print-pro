@@ -157,9 +157,23 @@ export function FinancialDashboard() {
         });
       }
 
-      const monthlyRevenue = Object.values(monthlyData)
+      let monthlyRevenue = Object.values(monthlyData)
         .sort((a, b) => a.month.localeCompare(b.month))
         .slice(-12); // Últimos 12 meses
+
+      // Si no hay datos, asegurar que al menos haya un mes (el actual) con valores en 0
+      if (monthlyRevenue.length === 0) {
+        const now = new Date();
+        const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+        monthlyRevenue = [{
+          month: currentMonthKey,
+          free: 0,
+          tier_1: 0,
+          tier_2: 0,
+          total: 0,
+          promoLost: 0,
+        }];
+      }
 
       const totalRevenue = invoices?.reduce((sum, inv) => sum + Math.abs(Number(inv.amount)), 0) || 0;
       const refundedAmount = refundedInvoices?.reduce((sum, inv) => sum + Math.abs(Number(inv.amount)), 0) || 0;
@@ -175,6 +189,25 @@ export function FinancialDashboard() {
       });
     } catch (error: any) {
       console.error("Error fetching financial data:", error);
+      // En caso de error, establecer valores por defecto para que siempre se muestre el dashboard
+      const now = new Date();
+      const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      setStats({
+        totalRevenue: 0,
+        monthlyRevenue: [{
+          month: currentMonthKey,
+          free: 0,
+          tier_1: 0,
+          tier_2: 0,
+          total: 0,
+          promoLost: 0,
+        }],
+        promoCodeLoss: 0,
+        totalInvoices: 0,
+        paidInvoices: 0,
+        pendingInvoices: 0,
+        refundedAmount: 0,
+      });
     } finally {
       setLoading(false);
     }
@@ -191,13 +224,38 @@ export function FinancialDashboard() {
     );
   }
 
-  if (!stats) {
-    return <div>No hay datos disponibles</div>;
-  }
+  // Asegurar que stats siempre tenga valores por defecto
+  const finalStats: FinancialStats = stats || (() => {
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    return {
+      totalRevenue: 0,
+      monthlyRevenue: [{
+        month: currentMonthKey,
+        free: 0,
+        tier_1: 0,
+        tier_2: 0,
+        total: 0,
+        promoLost: 0,
+      }],
+      promoCodeLoss: 0,
+      totalInvoices: 0,
+      paidInvoices: 0,
+      pendingInvoices: 0,
+      refundedAmount: 0,
+    };
+  })();
 
-  const currentMonthRevenue = stats.monthlyRevenue[stats.monthlyRevenue.length - 1];
-  const previousMonthRevenue = stats.monthlyRevenue[stats.monthlyRevenue.length - 2];
-  const monthOverMonthGrowth = previousMonthRevenue
+  const currentMonthRevenue = finalStats.monthlyRevenue[finalStats.monthlyRevenue.length - 1] || {
+    month: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`,
+    free: 0,
+    tier_1: 0,
+    tier_2: 0,
+    total: 0,
+    promoLost: 0,
+  };
+  const previousMonthRevenue = finalStats.monthlyRevenue[finalStats.monthlyRevenue.length - 2];
+  const monthOverMonthGrowth = previousMonthRevenue && previousMonthRevenue.total > 0
     ? ((currentMonthRevenue.total - previousMonthRevenue.total) / previousMonthRevenue.total) * 100
     : 0;
 
@@ -232,7 +290,7 @@ export function FinancialDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">€{stats.totalRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">€{finalStats.totalRevenue.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">Todos los tiempos</p>
           </CardContent>
         </Card>
@@ -266,7 +324,7 @@ export function FinancialDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
-              €{stats.promoCodeLoss.toFixed(2)}
+              €{finalStats.promoCodeLoss.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
               Ingresos potenciales perdidos
@@ -280,11 +338,11 @@ export function FinancialDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.paidInvoices}</div>
+            <div className="text-2xl font-bold">{finalStats.paidInvoices}</div>
             <p className="text-xs text-muted-foreground">
-              {stats.refundedAmount > 0 && (
+              {finalStats.refundedAmount > 0 && (
                 <span className="text-red-500">
-                  €{stats.refundedAmount.toFixed(2)} reembolsados
+                  €{finalStats.refundedAmount.toFixed(2)} reembolsados
                 </span>
               )}
             </p>
@@ -316,7 +374,7 @@ export function FinancialDashboard() {
               className="h-[300px]"
             >
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={stats.monthlyRevenue}>
+                <LineChart data={finalStats.monthlyRevenue}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis
                     dataKey="month"
@@ -378,7 +436,7 @@ export function FinancialDashboard() {
               className="h-[300px]"
             >
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.monthlyRevenue.slice(-6)}>
+                <BarChart data={finalStats.monthlyRevenue.slice(-6)}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis
                     dataKey="month"
@@ -420,7 +478,7 @@ export function FinancialDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {stats.monthlyRevenue.slice().reverse().map((month) => (
+              {finalStats.monthlyRevenue.slice().reverse().map((month) => (
                 <TableRow key={month.month}>
                   <TableCell className="font-medium">
                     {new Date(month.month + "-01").toLocaleDateString("es-ES", {
