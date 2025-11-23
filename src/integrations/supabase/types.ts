@@ -157,6 +157,7 @@ export type Database = {
           catalog_section_id: string | null
           colors: Json | null
           created_at: string | null
+          creator: string | null
           description: string | null
           id: string
           image_url: string | null
@@ -170,6 +171,7 @@ export type Database = {
           catalog_section_id?: string | null
           colors?: Json | null
           created_at?: string | null
+          creator?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
@@ -183,6 +185,7 @@ export type Database = {
           catalog_section_id?: string | null
           colors?: Json | null
           created_at?: string | null
+          creator?: string | null
           description?: string | null
           id?: string
           image_url?: string | null

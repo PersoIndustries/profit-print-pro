@@ -415,6 +415,11 @@ const Inventory = () => {
     }
   };
 
+  const openDeleteDialog = (material: Material) => {
+    setMaterialToDelete(material);
+    setShowDeleteDialog(true);
+  };
+
   const handleDeleteMaterial = async () => {
     if (!materialToDelete) return;
 
@@ -428,11 +433,6 @@ const Inventory = () => {
     } catch (error: any) {
       toast.error(t('inventory.messages.errorDeletingMaterial'));
     }
-  };
-
-  const openDeleteDialog = (material: Material) => {
-    setMaterialToDelete(material);
-    setShowDeleteDialog(true);
   };
 
   const fetchShoppingLists = async () => {
@@ -1344,26 +1344,28 @@ const Inventory = () => {
         {/* Subtab de Objetos (Impresiones para vender) */}
         <TabsContent value="objects">
           <Card>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle>Stock de Objetos</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Impresiones completadas para vender que aún no han sido asignadas a pedidos
-                  </p>
+                <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle>Productos</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Impresiones completadas para vender que aún no han sido asignadas a pedidos
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    {stockPrints.length > 0 && (
+                      <Button
+                        variant="outline"
+                        onClick={() => window.print()}
+                        className="shadow-sm"
+                      >
+                        <PrinterIcon className="w-4 h-4 mr-2" />
+                        Imprimir
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                {stockPrints.length > 0 && (
-                  <Button
-                    variant="outline"
-                    onClick={() => window.print()}
-                    className="shadow-sm"
-                  >
-                    <Printer className="w-4 h-4 mr-2" />
-                    Imprimir
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
+              </CardHeader>
             <CardContent>
               {stockPrints.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
@@ -1653,27 +1655,47 @@ const Inventory = () => {
             {materialForm.display_mode === 'color' && (
               <div>
                 <Label htmlFor="color">{t('inventory.formLabels.color')}</Label>
-                <Select
-                  value={materialForm.color}
-                  onValueChange={(value) => setMaterialForm({ ...materialForm, color: value })}
-                >
-                  <SelectTrigger id="color">
-                    <SelectValue placeholder={t('inventory.dialogs.selectColor')} />
-                  </SelectTrigger>
-                  <SelectContent>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-10 h-10 rounded border cursor-pointer"
+                      style={{ backgroundColor: materialForm.color || '#000000' }}
+                      onClick={() => setShowColorPicker(!showColorPicker)}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowColorPicker(!showColorPicker)}
+                    >
+                      {showColorPicker ? 'Cerrar selector' : 'Selector de color'}
+                    </Button>
+                  </div>
+                  {showColorPicker && (
+                    <div className="mt-2">
+                      <HexColorPicker
+                        color={materialForm.color || '#000000'}
+                        onChange={(color) => {
+                          setMaterialForm({ ...materialForm, color });
+                          setSelectedColor(color);
+                        }}
+                      />
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">O selecciona un color predefinido:</p>
+                  <div className="flex flex-wrap gap-2">
                     {PREDEFINED_COLORS.map((color) => (
-                      <SelectItem key={color.value} value={color.value}>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-4 h-4 rounded-full border"
-                            style={{ backgroundColor: color.value }}
-                          />
-                          {color.name}
-                        </div>
-                      </SelectItem>
+                      <button
+                        key={color.value}
+                        type="button"
+                        className="w-8 h-8 rounded border-2 hover:scale-110 transition-transform"
+                        style={{ backgroundColor: color.value, borderColor: materialForm.color === color.value ? '#000' : 'transparent' }}
+                        onClick={() => setMaterialForm({ ...materialForm, color: color.value })}
+                        title={color.name}
+                      />
                     ))}
-                  </SelectContent>
-                </Select>
+                  </div>
+                </div>
               </div>
             )}
             <div className="flex gap-2 justify-end">
