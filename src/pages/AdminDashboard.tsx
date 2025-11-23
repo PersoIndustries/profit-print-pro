@@ -1051,6 +1051,9 @@ const AdminDashboard = () => {
       if (activeSection === 'invoices') {
         fetchInvoices();
       }
+      if (activeSection === 'user-analysis') {
+        fetchMetrics();
+      }
     }
   }, [user, authLoading, isAdmin, adminLoading, navigate, activeSection]);
 
@@ -2023,7 +2026,7 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
         </>
-      ) : activeSection === 'users' || activeSection === 'user-analysis' ? (
+      ) : activeSection === 'users' ? (
         <>
           {/* Action Menu - Two Rows */}
           <div className="mb-4 space-y-2">
@@ -2355,6 +2358,234 @@ const AdminDashboard = () => {
             )}
           </CardContent>
         </Card>
+        </>
+      ) : activeSection === 'user-analysis' ? (
+        <>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold mb-2">Análisis de Usuarios</h2>
+            <p className="text-muted-foreground">Estadísticas y métricas detalladas sobre los usuarios de la plataforma</p>
+          </div>
+
+          {loadingMetrics ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin" />
+            </div>
+          ) : metrics ? (
+            <div className="space-y-6">
+              {/* Métricas principales */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Usuarios</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.totalUsers}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {metrics.newUsersToday} nuevos hoy
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Usuarios Activos</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.activeUsers}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Últimos 30 días
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">En Trial</CardTitle>
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.usersInTrial}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {metrics.usersInTrialByTier?.tier_1 || 0} Pro, {metrics.usersInTrialByTier?.tier_2 || 0} Business
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Grace Period</CardTitle>
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{metrics.usersInGracePeriod}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Acceso de solo lectura
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Distribución por Tier */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Distribución por Tier (Activos)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-muted"></div>
+                          <span>Free</span>
+                        </div>
+                        <span className="font-semibold">{metrics.activeUsersByTier?.free || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-secondary"></div>
+                          <span>Professional</span>
+                        </div>
+                        <span className="font-semibold">{metrics.activeUsersByTier?.tier_1 || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-primary"></div>
+                          <span>Business</span>
+                        </div>
+                        <span className="font-semibold">{metrics.activeUsersByTier?.tier_2 || 0}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Nuevos Usuarios por Tier</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span>Este mes</span>
+                        <span className="font-semibold">{metrics.newUsersThisMonth}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Esta semana</span>
+                        <span className="font-semibold">{metrics.newUsersThisWeek}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Hoy</span>
+                        <span className="font-semibold">{metrics.newUsersToday}</span>
+                      </div>
+                      <div className="pt-4 border-t space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span>Free</span>
+                          <span>{metrics.newUsersByTier?.free || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span>Professional</span>
+                          <span>{metrics.newUsersByTier?.tier_1 || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span>Business</span>
+                          <span>{metrics.newUsersByTier?.tier_2 || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Suscripciones y Cancelaciones */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Suscripciones Activas</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span>Free</span>
+                        <span className="font-semibold">{metrics.activeSubscriptionsByTier?.free || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Professional</span>
+                        <span className="font-semibold">{metrics.activeSubscriptionsByTier?.tier_1 || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Business</span>
+                        <span className="font-semibold">{metrics.activeSubscriptionsByTier?.tier_2 || 0}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Cancelaciones y Downgrades</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span>Total Cancelaciones</span>
+                        <span className="font-semibold text-destructive">{metrics.totalCancellations}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Cancelaciones Hoy</span>
+                        <span className="font-semibold">{metrics.cancellationsToday}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Total Downgrades</span>
+                        <span className="font-semibold text-orange-600">{metrics.totalDowngrades}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Downgrades Hoy</span>
+                        <span className="font-semibold">{metrics.downgradesToday}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Actividad de Usuarios */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Actividad de Usuarios</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Materiales</p>
+                      <p className="text-2xl font-bold">{metrics.totalMaterials}</p>
+                      <p className="text-xs text-muted-foreground">{metrics.materialsToday} creados hoy</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Proyectos</p>
+                      <p className="text-2xl font-bold">{metrics.totalProjects}</p>
+                      <p className="text-xs text-muted-foreground">{metrics.projectsToday} creados hoy</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Pedidos</p>
+                      <p className="text-2xl font-bold">{metrics.totalOrders}</p>
+                      <p className="text-xs text-muted-foreground">{metrics.ordersToday} hoy</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Impresiones</p>
+                      <p className="text-2xl font-bold">{metrics.totalPrints}</p>
+                      <p className="text-xs text-muted-foreground">{metrics.printsToday} hoy</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="text-muted-foreground">No se pudieron cargar los datos de análisis</p>
+              </CardContent>
+            </Card>
+          )}
         </>
       ) : activeSection === 'limits' ? (
         <>
