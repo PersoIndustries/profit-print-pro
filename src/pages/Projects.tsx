@@ -534,19 +534,7 @@ const Projects = () => {
           {selectedProject && (
             <>
               <DialogHeader>
-                <div className="flex items-center justify-between">
-                  <DialogTitle className="text-2xl">{selectedProject.name}</DialogTitle>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSelectedProject(null);
-                      handleEditProject(selectedProject.id);
-                    }}
-                  >
-                    <Edit className="w-4 h-4 mr-2" />
-                    {t('common.edit')}
-                  </Button>
-                </div>
+                <DialogTitle className="text-2xl">{selectedProject.name}</DialogTitle>
               </DialogHeader>
 
               <div className="space-y-6 mt-4">
@@ -734,6 +722,20 @@ const Projects = () => {
                     )}
                   </CardContent>
                 </Card>
+              </div>
+
+              {/* Botón Edit en la parte inferior */}
+              <div className="flex justify-end pt-4 border-t mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedProject(null);
+                    handleEditProject(selectedProject.id);
+                  }}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  {t('common.edit')}
+                </Button>
               </div>
             </>
           )}
