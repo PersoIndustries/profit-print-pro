@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Plus, X } from "lucide-react";
+import { Loader2, Plus, X, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface CatalogProductFormModalProps {
@@ -26,6 +26,7 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
   const [price, setPrice] = useState("");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -136,6 +137,29 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
     onOpenChange(false);
   };
 
+  const handleDelete = async () => {
+    if (!productId) return;
+    
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from("catalog_products")
+        .delete()
+        .eq("id", productId);
+
+      if (error) throw error;
+      toast.success(t('catalog.detail.messages.productDeleted'));
+      onSuccess();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      toast.error(t('catalog.detail.messages.errorDeletingProduct'));
+    } finally {
+      setLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={handleCloseAttempt}>
@@ -203,14 +227,22 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={handleCloseAttempt} disabled={loading}>
-                {t('catalog.productForm.cancel')}
-              </Button>
-              <Button type="submit" disabled={loading || !referenceCode || !name || !price}>
-                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {productId ? t('catalog.productForm.update') : t('catalog.productForm.create')}
-              </Button>
+            <div className="flex justify-between items-center gap-2 pt-4">
+              {productId && (
+                <Button type="button" variant="destructive" onClick={() => setShowDeleteDialog(true)} disabled={loading}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {t('common.delete')}
+                </Button>
+              )}
+              <div className="flex gap-2 ml-auto">
+                <Button type="button" variant="outline" onClick={handleCloseAttempt} disabled={loading}>
+                  {t('catalog.productForm.cancel')}
+                </Button>
+                <Button type="submit" disabled={loading || !referenceCode || !name || !price}>
+                  {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {productId ? t('catalog.productForm.update') : t('catalog.productForm.create')}
+                </Button>
+              </div>
             </div>
           </form>
         </DialogContent>
@@ -229,6 +261,21 @@ export function CatalogProductFormModal({ open, onOpenChange, catalogProjectId, 
             <AlertDialogAction onClick={handleConfirmClose}>
               {t('catalog.productForm.unsaved.discard')}
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('catalog.projectDetail.confirmDeleteProduct')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('catalog.projectDetail.confirmDeleteProductDesc')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

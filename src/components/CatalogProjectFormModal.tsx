@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, X, Plus } from "lucide-react";
+import { Loader2, X, Plus, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { HexColorPicker } from "react-colorful";
 
@@ -44,6 +44,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
   const [currentColor, setCurrentColor] = useState("#000000");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [canEditNameAndImage, setCanEditNameAndImage] = useState(true);
   const [creator, setCreator] = useState("");
 
@@ -297,6 +298,29 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
     setHasUnsavedChanges(true);
   };
 
+  const handleDelete = async () => {
+    if (!projectId) return;
+    
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from("catalog_projects")
+        .delete()
+        .eq("id", projectId);
+
+      if (error) throw error;
+      toast.success(t('catalog.detail.messages.projectDeleted'));
+      onSuccess();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      toast.error(t('catalog.detail.messages.errorDeletingProject'));
+    } finally {
+      setLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={handleCloseAttempt}>
@@ -468,14 +492,22 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
               )}
             </div>
 
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={handleCloseAttempt} disabled={loading}>
-                {t('catalog.projectForm.cancel')}
-              </Button>
-              <Button type="submit" disabled={loading || !name}>
-                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {projectId ? t('catalog.projectForm.update') : t('catalog.projectForm.create')}
-              </Button>
+            <div className="flex justify-between items-center gap-2 pt-4">
+              {projectId && (
+                <Button type="button" variant="destructive" onClick={() => setShowDeleteDialog(true)} disabled={loading}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {t('common.delete')}
+                </Button>
+              )}
+              <div className="flex gap-2 ml-auto">
+                <Button type="button" variant="outline" onClick={handleCloseAttempt} disabled={loading}>
+                  {t('catalog.projectForm.cancel')}
+                </Button>
+                <Button type="submit" disabled={loading || !name}>
+                  {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {projectId ? t('catalog.projectForm.update') : t('catalog.projectForm.create')}
+                </Button>
+              </div>
             </div>
           </form>
         </DialogContent>
@@ -494,6 +526,21 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
             <AlertDialogAction onClick={handleConfirmClose}>
               {t('catalog.projectForm.unsaved.discard')}
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('catalog.detail.messages.confirmDeleteProject')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('catalog.detail.messages.confirmDeleteProjectDesc')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

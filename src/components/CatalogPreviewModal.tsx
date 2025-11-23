@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -45,6 +46,7 @@ interface Section {
 }
 
 export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName, showPoweredBy = true, brandLogoUrl = null }: CatalogPreviewModalProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [sections, setSections] = useState<Section[]>([]);
   const [projectsWithoutSection, setProjectsWithoutSection] = useState<Project[]>([]);
@@ -133,7 +135,7 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
       setProjectsWithoutSection(orphanProjects);
     } catch (error) {
       console.error("Error fetching catalog data:", error);
-      toast.error("Error al cargar los datos del catálogo");
+      toast.error(t('catalog.detail.messages.errorLoading'));
     } finally {
       setLoading(false);
     }
@@ -155,7 +157,7 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
 
       pdf.setFontSize(14);
       pdf.setTextColor(100, 100, 100);
-      pdf.text("Catálogo de Productos", pageWidth / 2, 95, { align: "center" });
+      pdf.text(t('catalog.preview.productCatalog'), pageWidth / 2, 95, { align: "center" });
 
       // Start content on new page
       pdf.addPage();
@@ -199,7 +201,7 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
         if (project.creator) {
           pdf.setFontSize(10);
           pdf.setTextColor(100, 100, 100);
-          pdf.text(`Creador: ${project.creator}`, margin, yPosition);
+          pdf.text(`${t('catalog.preview.creator')}: ${project.creator}`, margin, yPosition);
           yPosition += 8;
         } else {
           yPosition += 2;
@@ -244,7 +246,7 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
         if (project.colors && project.colors.length > 0) {
           pdf.setFontSize(9);
           pdf.setTextColor(0, 0, 0);
-          pdf.text("Colores:", margin, leftColumnY);
+          pdf.text(t('catalog.preview.colors'), margin, leftColumnY);
           leftColumnY += 6;
 
           let xPos = margin;
@@ -268,10 +270,10 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
           pdf.setFillColor(240, 240, 240);
           pdf.rect(rightColumnStartX, rightColumnY - 5, rightColumnWidth, 7, 'F');
           pdf.setTextColor(0, 0, 0);
-          pdf.text("Ref.", rightColumnStartX + 2, rightColumnY);
-          pdf.text("Nombre", rightColumnStartX + 20, rightColumnY);
-          pdf.text("Dim.", rightColumnStartX + 70, rightColumnY);
-          pdf.text("Precio", rightColumnStartX + rightColumnWidth - 25, rightColumnY, { align: "right" });
+          pdf.text(t('catalog.preview.ref'), rightColumnStartX + 2, rightColumnY);
+          pdf.text(t('catalog.preview.name'), rightColumnStartX + 20, rightColumnY);
+          pdf.text(t('catalog.preview.dimensions'), rightColumnStartX + 70, rightColumnY);
+          pdf.text(t('catalog.preview.price'), rightColumnStartX + rightColumnWidth - 25, rightColumnY, { align: "right" });
           rightColumnY += 7;
 
           // Products rows
@@ -310,10 +312,10 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
               pdf.setFillColor(240, 240, 240);
               pdf.rect(rightColumnStartX, rightColumnY - 5, rightColumnWidth, 7, 'F');
               pdf.setTextColor(0, 0, 0);
-              pdf.text("Ref.", rightColumnStartX + 2, rightColumnY);
-              pdf.text("Nombre", rightColumnStartX + 20, rightColumnY);
-              pdf.text("Dim.", rightColumnStartX + 70, rightColumnY);
-              pdf.text("Precio", rightColumnStartX + rightColumnWidth - 25, rightColumnY, { align: "right" });
+              pdf.text(t('catalog.preview.ref'), rightColumnStartX + 2, rightColumnY);
+              pdf.text(t('catalog.preview.name'), rightColumnStartX + 20, rightColumnY);
+              pdf.text(t('catalog.preview.dimensions'), rightColumnStartX + 70, rightColumnY);
+              pdf.text(t('catalog.preview.price'), rightColumnStartX + rightColumnWidth - 25, rightColumnY, { align: "right" });
               rightColumnY += 7;
             }
 
@@ -350,7 +352,7 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
 
         pdf.setFontSize(20);
         pdf.setTextColor(100, 100, 100);
-        pdf.text("Otros Proyectos", margin, yPosition);
+        pdf.text(t('catalog.preview.otherProjects'), margin, yPosition);
         yPosition += 15;
 
         pdf.setDrawColor(100, 100, 100);
@@ -375,7 +377,7 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
           if (project.creator) {
             pdf.setFontSize(10);
             pdf.setTextColor(100, 100, 100);
-            pdf.text(`Creador: ${project.creator}`, margin, yPosition);
+            pdf.text(`${t('catalog.preview.creator')}: ${project.creator}`, margin, yPosition);
             yPosition += 8;
           } else {
             yPosition += 2;
@@ -416,7 +418,7 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
           if (project.colors && project.colors.length > 0) {
             pdf.setFontSize(9);
             pdf.setTextColor(0, 0, 0);
-            pdf.text("Colores:", margin, leftColumnY);
+            pdf.text(t('catalog.preview.colors'), margin, leftColumnY);
             leftColumnY += 6;
 
             let xPos = margin;
@@ -438,10 +440,10 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
             pdf.setFillColor(240, 240, 240);
             pdf.rect(rightColumnStartX, rightColumnY - 5, rightColumnWidth, 7, 'F');
             pdf.setTextColor(0, 0, 0);
-            pdf.text("Ref.", rightColumnStartX + 2, rightColumnY);
-            pdf.text("Nombre", rightColumnStartX + 20, rightColumnY);
-            pdf.text("Dim.", rightColumnStartX + 70, rightColumnY);
-            pdf.text("Precio", rightColumnStartX + rightColumnWidth - 25, rightColumnY, { align: "right" });
+            pdf.text(t('catalog.preview.ref'), rightColumnStartX + 2, rightColumnY);
+            pdf.text(t('catalog.preview.name'), rightColumnStartX + 20, rightColumnY);
+            pdf.text(t('catalog.preview.dimensions'), rightColumnStartX + 70, rightColumnY);
+            pdf.text(t('catalog.preview.price'), rightColumnStartX + rightColumnWidth - 25, rightColumnY, { align: "right" });
             rightColumnY += 7;
 
             for (const product of project.products) {
@@ -475,10 +477,10 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
                 pdf.setFillColor(240, 240, 240);
                 pdf.rect(rightColumnStartX, rightColumnY - 5, rightColumnWidth, 7, 'F');
                 pdf.setTextColor(0, 0, 0);
-                pdf.text("Ref.", rightColumnStartX + 2, rightColumnY);
-                pdf.text("Nombre", rightColumnStartX + 20, rightColumnY);
-                pdf.text("Dim.", rightColumnStartX + 70, rightColumnY);
-                pdf.text("Precio", rightColumnStartX + rightColumnWidth - 25, rightColumnY, { align: "right" });
+                pdf.text(t('catalog.preview.ref'), rightColumnStartX + 2, rightColumnY);
+                pdf.text(t('catalog.preview.name'), rightColumnStartX + 20, rightColumnY);
+                pdf.text(t('catalog.preview.dimensions'), rightColumnStartX + 70, rightColumnY);
+                pdf.text(t('catalog.preview.price'), rightColumnStartX + rightColumnWidth - 25, rightColumnY, { align: "right" });
                 rightColumnY += 7;
               }
 
@@ -560,10 +562,10 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
       }
 
       pdf.save(`${catalogName}.pdf`);
-      toast.success("PDF generado correctamente");
+      toast.success(t('catalog.preview.pdfGenerated'));
     } catch (error) {
       console.error("Error generating PDF:", error);
-      toast.error("Error al generar el PDF");
+      toast.error(t('catalog.preview.pdfError'));
     } finally {
       setGenerating(false);
     }
@@ -595,14 +597,14 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <div className="flex justify-between items-center">
-            <DialogTitle>Vista Previa: {catalogName}</DialogTitle>
+            <DialogTitle>{t('catalog.preview.title')}: {catalogName}</DialogTitle>
             <Button onClick={generatePDF} disabled={generating}>
               {generating ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : (
                 <Download className="w-4 h-4 mr-2" />
               )}
-              Descargar PDF
+              {t('catalog.preview.downloadPDF')}
             </Button>
           </div>
         </DialogHeader>
@@ -614,7 +616,7 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
             <div className="bg-white shadow-lg" style={{ minHeight: '1123px', padding: '60px' }}>
               <div className="text-center py-12 border-b">
                 <h1 className="text-4xl font-bold text-primary mb-4">{catalogName}</h1>
-                <p className="text-muted-foreground">Catálogo de Productos</p>
+                <p className="text-muted-foreground">{t('catalog.preview.productCatalog')}</p>
               </div>
             </div>
 
@@ -629,7 +631,7 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
                     <h3 className="text-2xl font-bold">{project.name}</h3>
                     
                     {project.creator && (
-                      <p className="text-sm text-muted-foreground">Creador: {project.creator}</p>
+                      <p className="text-sm text-muted-foreground">{t('catalog.preview.creator')}: {project.creator}</p>
                     )}
 
                     <div className="flex gap-6">
@@ -648,7 +650,7 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
 
                         {project.colors && project.colors.length > 0 && (
                           <div>
-                            <p className="text-sm font-medium mb-2">Colores disponibles:</p>
+                            <p className="text-sm font-medium mb-2">{t('catalog.preview.availableColors')}:</p>
                             <div className="flex gap-2">
                               {project.colors.map((color, idx) => (
                                 <div
@@ -664,15 +666,15 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
 
                         {project.products.length > 0 && (
                           <div className="space-y-2">
-                            <h4 className="text-lg font-semibold">Productos</h4>
+                            <h4 className="text-lg font-semibold">{t('catalog.preview.products')}</h4>
                             <div className="border rounded-md overflow-hidden">
                               <table className="w-full">
                                 <thead className="bg-muted">
                                   <tr>
-                                    <th className="text-left p-2 text-sm font-medium">Ref.</th>
-                                    <th className="text-left p-2 text-sm font-medium">Nombre</th>
-                                    <th className="text-left p-2 text-sm font-medium">Dimensiones</th>
-                                    <th className="text-right p-2 text-sm font-medium">Precio</th>
+                                    <th className="text-left p-2 text-sm font-medium">{t('catalog.preview.ref')}</th>
+                                    <th className="text-left p-2 text-sm font-medium">{t('catalog.preview.name')}</th>
+                                    <th className="text-left p-2 text-sm font-medium">{t('catalog.preview.dimensions')}</th>
+                                    <th className="text-right p-2 text-sm font-medium">{t('catalog.preview.price')}</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -700,14 +702,14 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
             {projectsWithoutSection.length > 0 && (
               <div className="bg-white shadow-lg" style={{ minHeight: '1123px', padding: '60px' }}>
                 <div className="border-b-2 border-muted-foreground/30 pb-2 mb-6">
-                  <h2 className="text-3xl font-bold text-muted-foreground">Otros Proyectos</h2>
+                  <h2 className="text-3xl font-bold text-muted-foreground">{t('catalog.preview.otherProjects')}</h2>
                 </div>
                 {projectsWithoutSection.map((project) => (
                   <div key={project.id} className="space-y-4 border-b pb-8 mb-8 last:border-0">
                     <h3 className="text-2xl font-bold">{project.name}</h3>
                     
                     {project.creator && (
-                      <p className="text-sm text-muted-foreground">Creador: {project.creator}</p>
+                      <p className="text-sm text-muted-foreground">{t('catalog.preview.creator')}: {project.creator}</p>
                     )}
 
                     <div className="flex gap-6">
@@ -726,7 +728,7 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
 
                         {project.colors && project.colors.length > 0 && (
                           <div>
-                            <p className="text-sm font-medium mb-2">Colores disponibles:</p>
+                            <p className="text-sm font-medium mb-2">{t('catalog.preview.availableColors')}:</p>
                             <div className="flex gap-2">
                               {project.colors.map((color, idx) => (
                                 <div
@@ -742,15 +744,15 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
 
                         {project.products.length > 0 && (
                           <div className="space-y-2">
-                            <h4 className="text-lg font-semibold">Productos</h4>
+                            <h4 className="text-lg font-semibold">{t('catalog.preview.products')}</h4>
                             <div className="border rounded-md overflow-hidden">
                               <table className="w-full">
                                 <thead className="bg-muted">
                                   <tr>
-                                    <th className="text-left p-2 text-sm font-medium">Ref.</th>
-                                    <th className="text-left p-2 text-sm font-medium">Nombre</th>
-                                    <th className="text-left p-2 text-sm font-medium">Dimensiones</th>
-                                    <th className="text-right p-2 text-sm font-medium">Precio</th>
+                                    <th className="text-left p-2 text-sm font-medium">{t('catalog.preview.ref')}</th>
+                                    <th className="text-left p-2 text-sm font-medium">{t('catalog.preview.name')}</th>
+                                    <th className="text-left p-2 text-sm font-medium">{t('catalog.preview.dimensions')}</th>
+                                    <th className="text-right p-2 text-sm font-medium">{t('catalog.preview.price')}</th>
                                   </tr>
                                 </thead>
                                 <tbody>
