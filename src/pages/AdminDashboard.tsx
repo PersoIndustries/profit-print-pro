@@ -1213,8 +1213,24 @@ const AdminDashboard = () => {
   
   const handleInfoModalConfirm = () => {
     setInfoModalOpen(false);
-    // Open the actual action dialog
-    setDialogOpen(true);
+    // Execute the action after confirming info modal
+    switch (actionType) {
+      case 'changeTier':
+        handleChangeTier();
+        break;
+      case 'cancel':
+        handleCancelSubscription();
+        break;
+      case 'refund':
+        handleRefund();
+        break;
+      case 'addTrial':
+        handleAddTrial();
+        break;
+      case 'changeBillingPeriod':
+        handleChangeBillingPeriod();
+        break;
+    }
   };
 
   const handleChangeTier = async () => {
@@ -1385,7 +1401,40 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    // Show info modal first for certain actions
+    if (actionType === 'changeTier' || actionType === 'cancel' || actionType === 'refund' || actionType === 'addTrial' || actionType === 'changeBillingPeriod') {
+      // Fetch subscription info if not already fetched
+      if (!subscriptionInfo && selectedUser) {
+        try {
+          const { data: subData } = await supabase
+            .from('user_subscriptions' as any)
+            .select('is_paid_subscription, stripe_subscription_id, billing_period')
+            .eq('user_id', selectedUser.id)
+            .maybeSingle();
+          
+          const subscriptionData = subData as any;
+          setSubscriptionInfo({
+            isPaidSubscription: subscriptionData?.is_paid_subscription || false,
+            hasStripeSubscription: !!subscriptionData?.stripe_subscription_id,
+            stripeSubscriptionId: subscriptionData?.stripe_subscription_id || undefined,
+          });
+          
+          // If changing billing period, set opposite of current
+          if (actionType === 'changeBillingPeriod' && subscriptionData?.billing_period) {
+            setNewBillingPeriod(subscriptionData.billing_period === 'monthly' ? 'annual' : 'monthly');
+          }
+        } catch (error) {
+          console.error('Error fetching subscription info:', error);
+        }
+      }
+      
+      // Show info modal
+      setInfoModalOpen(true);
+      return;
+    }
+    
+    // For other actions, execute directly
     switch (actionType) {
       case 'changeTier':
         handleChangeTier();
@@ -2221,160 +2270,39 @@ const AdminDashboard = () => {
                     <TableCell className="text-center">{userStat.orders_count}</TableCell>
                     <TableCell>{new Date(userStat.created_at).toLocaleDateString()}</TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
-                        <Dialog open={dialogOpen && selectedUser?.id === userStat.id} onOpenChange={setDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => openUserDialog(userStat, 'changeTier')}
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Manage User: {selectedUser?.email}</DialogTitle>
-                              <DialogDescription>
-                                {actionType === 'changeTier' && 'Change the subscription tier for this user'}
-                                {actionType === 'cancel' && 'Cancel the subscription for this user'}
-                                {actionType === 'refund' && 'Process a refund for this user'}
-                                {actionType === 'addTrial' && 'Add a trial period for this user'}
-                                {actionType === 'changeBillingPeriod' && 'Change the billing period for this user'}
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
-                              {actionType === 'changeTier' && (
-                                <div>
-                                  <Label htmlFor="tier">New Subscription Tier</Label>
-                                  <Select value={newTier || ''} onValueChange={setNewTier}>
-                                    <SelectTrigger>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="free">Free</SelectItem>
-                                      <SelectItem value="tier_1">Professional</SelectItem>
-                                      <SelectItem value="tier_2">Business</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              )}
-                              {actionType === 'refund' && (
-                                <div>
-                                  <Label htmlFor="refundAmount">Refund Amount (€)</Label>
-                <Input
-                  id="refundAmount"
-                  type="number"
-                  step="0.01"
-                  value={refundAmount || ''}
-                  onChange={(e) => setRefundAmount(e.target.value)}
-                  placeholder="0.00"
-                />
-                                </div>
-                              )}
-                              {actionType === 'addTrial' && (
-                                <div>
-                                  <Label htmlFor="trialDays">Trial Days</Label>
-                <Input
-                  id="trialDays"
-                  type="number"
-                  min="1"
-                  value={trialDays || ''}
-                  onChange={(e) => setTrialDays(e.target.value)}
-                  placeholder="15"
-                />
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    The user will get {trialDays} days of trial access. 
-                                    {selectedUser?.tier === 'free' && ' They will be upgraded to Professional tier during the trial.'}
-                                  </p>
-                                </div>
-                              )}
-                              {actionType === 'changeBillingPeriod' && (
-                                <div>
-                                  <Label htmlFor="billingPeriod">New Billing Period</Label>
-                                  <Select value={newBillingPeriod || ''} onValueChange={(value) => setNewBillingPeriod(value as 'monthly' | 'annual')}>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select billing period" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="monthly">Monthly (€9.99/mes Pro, €19.99/mes Business)</SelectItem>
-                                      <SelectItem value="annual">Annual (€99.90/año Pro, €199.90/año Business)</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  <p className="text-sm text-muted-foreground mt-2">
-                                    {subscriptionInfo?.isPaidSubscription ? (
-                                      <>
-                                        <strong>⚠️ Suscripción PAGADA:</strong> Stripe calculará el prorrateo automáticamente.
-                                        El usuario recibirá un crédito o pagará la diferencia según corresponda.
-                                      </>
-                                    ) : (
-                                      <>
-                                        <strong>ℹ️ Suscripción GRATUITA:</strong> Solo se actualizará el período en la base de datos.
-                                        No se procesará ningún pago.
-                                      </>
-                                    )}
-                                  </p>
-                                </div>
-                              )}
-                              <div>
-                                <Label htmlFor="notes">Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={notes || ''}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add notes about this action..."
-                />
-                              </div>
-                              <div className="flex gap-2">
-                                <Button onClick={handleSubmit}>Confirm</Button>
-                                <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                        <Button 
-                          size="sm" 
-                          variant="destructive"
-                          onClick={() => openUserDialog(userStat, 'cancel')}
-                          disabled={userStat.tier === 'free'}
-                        >
-                          Cancel Plan
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => openUserDialog(userStat, 'refund')}
-                        >
-                          <DollarSign className="h-3 w-3" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => openUserDialog(userStat, 'addTrial')}
-                          title="Add Trial Period"
-                        >
-                          <Clock className="h-3 w-3" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => openUserDialog(userStat, 'changeBillingPeriod')}
-                          title="Change Billing Period"
-                          disabled={userStat.tier === 'free'}
-                        >
-                          <Settings className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => openDeleteUserDialog(userStat)}
-                          title="Delete User"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedUser(userStat);
+                          setActionType('changeTier');
+                          setNewTier(userStat.tier);
+                          setRefundAmount('');
+                          setTrialDays('15');
+                          setNotes('');
+                          setNewBillingPeriod('');
+                          
+                          // Fetch subscription info
+                          supabase
+                            .from('user_subscriptions' as any)
+                            .select('is_paid_subscription, stripe_subscription_id, billing_period')
+                            .eq('user_id', userStat.id)
+                            .maybeSingle()
+                            .then(({ data: subData }) => {
+                              const subscriptionData = subData as any;
+                              setSubscriptionInfo({
+                                isPaidSubscription: subscriptionData?.is_paid_subscription || false,
+                                hasStripeSubscription: !!subscriptionData?.stripe_subscription_id,
+                                stripeSubscriptionId: subscriptionData?.stripe_subscription_id || undefined,
+                              });
+                            });
+                          
+                          setDialogOpen(true);
+                        }}
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Editar
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -3764,6 +3692,222 @@ const AdminDashboard = () => {
               Cancel
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Management Dialog - All Actions */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Gestionar Usuario: {selectedUser?.email}</DialogTitle>
+            <DialogDescription>
+              Selecciona una acción para realizar sobre este usuario
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            {/* Action Selection Buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant={actionType === 'changeTier' ? 'default' : 'outline'}
+                onClick={() => setActionType('changeTier')}
+                className="h-auto py-3 flex flex-col items-center gap-2"
+              >
+                <Edit className="h-5 w-5" />
+                <span>Cambiar Tier</span>
+              </Button>
+              
+              <Button
+                variant={actionType === 'cancel' ? 'default' : 'outline'}
+                onClick={() => {
+                  if (selectedUser?.tier === 'free') {
+                    toast.error('No se puede cancelar un plan gratuito');
+                    return;
+                  }
+                  setActionType('cancel');
+                }}
+                disabled={selectedUser?.tier === 'free'}
+                className="h-auto py-3 flex flex-col items-center gap-2"
+              >
+                <X className="h-5 w-5" />
+                <span>Cancelar Plan</span>
+              </Button>
+              
+              <Button
+                variant={actionType === 'refund' ? 'default' : 'outline'}
+                onClick={() => setActionType('refund')}
+                className="h-auto py-3 flex flex-col items-center gap-2"
+              >
+                <DollarSign className="h-5 w-5" />
+                <span>Procesar Refund</span>
+              </Button>
+              
+              <Button
+                variant={actionType === 'addTrial' ? 'default' : 'outline'}
+                onClick={() => setActionType('addTrial')}
+                className="h-auto py-3 flex flex-col items-center gap-2"
+              >
+                <Clock className="h-5 w-5" />
+                <span>Agregar Trial</span>
+              </Button>
+              
+              <Button
+                variant={actionType === 'changeBillingPeriod' ? 'default' : 'outline'}
+                onClick={async () => {
+                  if (selectedUser?.tier === 'free') {
+                    toast.error('Los usuarios gratuitos no tienen período de facturación');
+                    return;
+                  }
+                  setActionType('changeBillingPeriod');
+                  
+                  // Fetch current billing period
+                  try {
+                    const { data: subData } = await supabase
+                      .from('user_subscriptions' as any)
+                      .select('billing_period')
+                      .eq('user_id', selectedUser!.id)
+                      .maybeSingle();
+                    
+                    const subscriptionData = subData as any;
+                    if (subscriptionData?.billing_period) {
+                      setNewBillingPeriod(subscriptionData.billing_period === 'monthly' ? 'annual' : 'monthly');
+                    } else {
+                      setNewBillingPeriod('monthly'); // Default to monthly if not set
+                    }
+                  } catch (error) {
+                    console.error('Error fetching billing period:', error);
+                    setNewBillingPeriod('monthly');
+                  }
+                }}
+                disabled={selectedUser?.tier === 'free'}
+                className="h-auto py-3 flex flex-col items-center gap-2"
+              >
+                <Settings className="h-5 w-5" />
+                <span>Cambiar Período</span>
+              </Button>
+              
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setDialogOpen(false);
+                  openDeleteUserDialog(selectedUser!);
+                }}
+                className="h-auto py-3 flex flex-col items-center gap-2"
+              >
+                <Trash2 className="h-5 w-5" />
+                <span>Eliminar Usuario</span>
+              </Button>
+            </div>
+
+            {/* Action Form */}
+            {actionType && (
+              <div className="border-t pt-4 space-y-4">
+                {actionType === 'changeTier' && (
+                  <div>
+                    <Label htmlFor="tier">Nuevo Tier de Suscripción</Label>
+                    <Select value={newTier || ''} onValueChange={setNewTier}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="free">Free</SelectItem>
+                        <SelectItem value="tier_1">Professional</SelectItem>
+                        <SelectItem value="tier_2">Business</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                
+                {actionType === 'refund' && (
+                  <div>
+                    <Label htmlFor="refundAmount">Monto del Refund (€)</Label>
+                    <Input
+                      id="refundAmount"
+                      type="number"
+                      step="0.01"
+                      value={refundAmount || ''}
+                      onChange={(e) => setRefundAmount(e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+                )}
+                
+                {actionType === 'addTrial' && (
+                  <div>
+                    <Label htmlFor="trialDays">Días de Trial</Label>
+                    <Input
+                      id="trialDays"
+                      type="number"
+                      min="1"
+                      value={trialDays || ''}
+                      onChange={(e) => setTrialDays(e.target.value)}
+                      placeholder="15"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      El usuario obtendrá {trialDays || '15'} días de acceso de trial.
+                      {selectedUser?.tier === 'free' && ' Será actualizado al tier Professional durante el trial.'}
+                    </p>
+                  </div>
+                )}
+                
+                {actionType === 'changeBillingPeriod' && (
+                  <div>
+                    <Label htmlFor="billingPeriod">Nuevo Período de Facturación</Label>
+                    <Select value={newBillingPeriod || ''} onValueChange={(value) => setNewBillingPeriod(value as 'monthly' | 'annual')}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona el período de facturación" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="monthly">Mensual (€9.99/mes Pro, €19.99/mes Business)</SelectItem>
+                        <SelectItem value="annual">Anual (€99.90/año Pro, €199.90/año Business)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {subscriptionInfo?.isPaidSubscription ? (
+                        <>
+                          <strong>⚠️ Suscripción PAGADA:</strong> Stripe calculará el prorrateo automáticamente.
+                          El usuario recibirá un crédito o pagará la diferencia según corresponda.
+                        </>
+                      ) : (
+                        <>
+                          <strong>ℹ️ Suscripción GRATUITA:</strong> Solo se actualizará el período en la base de datos.
+                          No se procesará ningún pago.
+                        </>
+                      )}
+                    </p>
+                  </div>
+                )}
+                
+                <div>
+                  <Label htmlFor="notes">Notas</Label>
+                  <Textarea
+                    id="notes"
+                    value={notes || ''}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Agrega notas sobre esta acción..."
+                    rows={3}
+                  />
+                </div>
+                
+                <div className="flex gap-2 pt-2">
+                  <Button onClick={handleSubmit} disabled={!actionType || (actionType === 'changeTier' && !newTier) || (actionType === 'refund' && !refundAmount) || (actionType === 'changeBillingPeriod' && !newBillingPeriod)}>
+                    Confirmar
+                  </Button>
+                  <Button variant="outline" onClick={() => {
+                    setDialogOpen(false);
+                    setActionType('changeTier');
+                    setNewTier('');
+                    setRefundAmount('');
+                    setTrialDays('15');
+                    setNotes('');
+                    setNewBillingPeriod('');
+                  }}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
