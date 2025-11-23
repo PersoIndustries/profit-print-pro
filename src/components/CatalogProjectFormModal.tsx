@@ -45,6 +45,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [canEditNameAndImage, setCanEditNameAndImage] = useState(true);
+  const [creator, setCreator] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -75,6 +76,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
       setUseExistingProject(!!data.project_id);
       const colorsArray = Array.isArray(data.colors) ? data.colors.filter((c): c is string => typeof c === 'string') : [];
       setColors(colorsArray);
+      setCreator(data.creator || "");
       setCanEditNameAndImage(true);
     } catch (error) {
       console.error("Error fetching project:", error);
@@ -103,6 +105,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
     setSelectedProjectId("");
     setUseExistingProject(false);
     setColors([]);
+    setCreator("");
     setCanEditNameAndImage(true);
     setHasUnsavedChanges(false);
   };
@@ -365,6 +368,19 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
                 }}
                 placeholder={t('catalog.projectForm.descriptionPlaceholder')}
                 rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="creator">{t('catalog.projectForm.creator')}</Label>
+              <Input
+                id="creator"
+                value={creator}
+                onChange={(e) => {
+                  setCreator(e.target.value);
+                  setHasUnsavedChanges(true);
+                }}
+                placeholder={t('catalog.projectForm.creatorPlaceholder')}
               />
             </div>
 
