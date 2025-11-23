@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface CatalogSectionFormModalProps {
   open: boolean;
@@ -22,6 +23,7 @@ export function CatalogSectionFormModal({ open, onOpenChange, catalogId, section
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [displayType, setDisplayType] = useState<'list' | 'grid' | 'full_page'>('list');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -103,8 +105,37 @@ export function CatalogSectionFormModal({ open, onOpenChange, catalogId, section
     }
   };
 
+  const handleDelete = async () => {
+    if (!sectionId) return;
+    
+    try {
+      setLoading(true);
+      await supabase
+        .from("catalog_projects")
+        .update({ catalog_section_id: null })
+        .eq("catalog_section_id", sectionId);
+
+      const { error } = await supabase
+        .from("catalog_sections")
+        .delete()
+        .eq("id", sectionId);
+
+      if (error) throw error;
+      toast.success(t('catalog.detail.messages.sectionDeleted'));
+      onSuccess();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error deleting section:", error);
+      toast.error(t('catalog.detail.messages.errorDeletingSection'));
+    } finally {
+      setLoading(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{sectionId ? t('catalog.sectionForm.edit') : t('catalog.sectionForm.new')}</DialogTitle>
@@ -139,18 +170,42 @@ export function CatalogSectionFormModal({ open, onOpenChange, catalogId, section
             </p>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-              {t('catalog.sectionForm.cancel')}
-            </Button>
-            <Button type="submit" disabled={loading || !title}>
-              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {sectionId ? t('catalog.sectionForm.update') : t('catalog.sectionForm.create')}
-            </Button>
+          <div className="flex justify-between items-center gap-2 pt-4">
+            {sectionId && (
+              <Button type="button" variant="destructive" onClick={() => setShowDeleteDialog(true)} disabled={loading}>
+                <Trash2 className="w-4 h-4 mr-2" />
+                {t('common.delete')}
+              </Button>
+            )}
+            <div className="flex gap-2 ml-auto">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+                {t('catalog.sectionForm.cancel')}
+              </Button>
+              <Button type="submit" disabled={loading || !title}>
+                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {sectionId ? t('catalog.sectionForm.update') : t('catalog.sectionForm.create')}
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{t('catalog.detail.messages.confirmDeleteSection')}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {t('catalog.detail.messages.confirmDeleteSectionDesc')}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDelete}>{t('common.delete')}</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </>
   );
 }
 
