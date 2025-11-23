@@ -85,12 +85,9 @@ const Settings = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [promoCode, setPromoCode] = useState("");
+  const [code, setCode] = useState("");
   const [applyingCode, setApplyingCode] = useState(false);
   const [appliedPromoCode, setAppliedPromoCode] = useState<AppliedPromoCode | null>(null);
-  
-  const [creatorCode, setCreatorCode] = useState("");
-  const [applyingCreatorCode, setApplyingCreatorCode] = useState(false);
   const [appliedCreatorCode, setAppliedCreatorCode] = useState<AppliedCreatorCode | null>(null);
   
   // Refund request states
@@ -437,79 +434,95 @@ const Settings = () => {
     }
   };
 
-  const handleApplyPromoCode = async (e: React.FormEvent) => {
+  const handleApplyCode = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!promoCode.trim()) {
-      toast.error(t('settings.promoCode.emptyCode'));
+    if (!code.trim()) {
+      toast.error('Por favor ingresa un código');
       return;
     }
 
     setApplyingCode(true);
+    const codeToApply = code.trim().toUpperCase();
+    
     try {
-      const { data, error } = await supabase.rpc('apply_promo_code', {
-        _code: promoCode.trim().toUpperCase(),
-        _user_id: user?.id
-      });
+      // Primero verificar si existe como código promocional
+      const { data: promoCodeCheck, error: promoCheckError } = await supabase
+        .from('promo_codes')
+        .select('id, code, is_active')
+        .eq('code', codeToApply)
+        .maybeSingle();
 
-      if (error) throw error;
+      // Si existe como código promocional, intentar aplicarlo
+      if (promoCodeCheck && !promoCheckError) {
+        const { data: promoData, error: promoError } = await supabase.rpc('apply_promo_code', {
+          _code: codeToApply,
+          _user_id: user?.id
+        });
 
-      const result = data as { success: boolean; message: string; tier?: string };
-      
-      if (result.success) {
-        toast.success(result.message);
-        setPromoCode("");
-        // Refresh subscription data
-        await fetchData();
-      } else {
-        toast.error(result.message);
+        if (!promoError && promoData) {
+          const result = promoData as { success: boolean; message: string; tier?: string };
+          
+          if (result.success) {
+            toast.success(result.message);
+            setCode("");
+            await fetchData();
+            return;
+          } else {
+            toast.error(result.message || 'Error al aplicar código promocional');
+            return;
+          }
+        } else if (promoError) {
+          toast.error(promoError.message || 'Error al aplicar código promocional');
+          return;
+        }
       }
+
+      // Si no es código promocional, verificar si existe como código de creador
+      const { data: creatorCodeCheck, error: creatorCheckError } = await supabase
+        .from('creator_codes')
+        .select('id, code, is_active')
+        .eq('code', codeToApply)
+        .maybeSingle();
+
+      if (creatorCodeCheck && !creatorCheckError) {
+        const { data: creatorData, error: creatorError } = await supabase.rpc('apply_creator_code', {
+          _code: codeToApply,
+          _user_id: user?.id
+        });
+
+        if (creatorError) {
+          toast.error(creatorError.message || 'Error al aplicar código de creador');
+          return;
+        }
+
+        const result = creatorData as { success: boolean; message: string; tier?: string; trial_days?: number; discount_percentage?: number };
+        
+        if (result.success) {
+          let message = result.message;
+          if (result.trial_days) {
+            message += ` Trial de ${result.trial_days} días activado.`;
+          }
+          if (result.discount_percentage) {
+            message += ` Descuento del ${result.discount_percentage}% aplicado.`;
+          }
+          toast.success(message);
+          setCode("");
+          await fetchData();
+          return;
+        } else {
+          toast.error(result.message || 'Error al aplicar código de creador');
+          return;
+        }
+      }
+
+      // Si no existe en ninguna tabla, mostrar error
+      toast.error('Código no válido. Verifica que el código sea correcto.');
     } catch (error: any) {
-      console.error("Error applying promo code:", error);
-      toast.error(error.message || t('settings.promoCode.error'));
+      console.error("Error applying code:", error);
+      toast.error(error.message || 'Error al aplicar el código. Intenta nuevamente.');
     } finally {
       setApplyingCode(false);
-    }
-  };
-
-  const handleApplyCreatorCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!creatorCode.trim()) {
-      toast.error('Por favor ingresa un código de creador');
-      return;
-    }
-
-    setApplyingCreatorCode(true);
-    try {
-      const { data, error } = await supabase.rpc('apply_creator_code', {
-        _code: creatorCode.trim().toUpperCase(),
-        _user_id: user?.id
-      });
-
-      if (error) throw error;
-
-      const result = data as { success: boolean; message: string; tier?: string; trial_days?: number; discount_percentage?: number };
-      
-      if (result.success) {
-        let message = result.message;
-        if (result.trial_days) {
-          message += ` Trial de ${result.trial_days} días activado.`;
-        }
-        if (result.discount_percentage) {
-          message += ` Descuento del ${result.discount_percentage}% aplicado.`;
-        }
-        toast.success(message);
-        setCreatorCode("");
-        await fetchData();
-      } else {
-        toast.error(result.message);
-      }
-    } catch (error: any) {
-      console.error("Error applying creator code:", error);
-      toast.error(error.message || 'Error al aplicar código de creador');
-    } finally {
-      setApplyingCreatorCode(false);
     }
   };
 
@@ -1138,65 +1151,39 @@ const Settings = () => {
                       </div>
                     )}
 
-                    {/* Creator Code Section */}
-                    {!appliedCreatorCode && (
+                    {/* Unified Code Section */}
+                    {!appliedPromoCode && !appliedCreatorCode && (
                       <div className="border-t pt-4 max-w-2xl">
-                        <Card className="border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-background">
+                        <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-background">
                           <CardHeader className="pb-3">
                             <CardTitle className="text-base flex items-center gap-2">
-                              <Badge variant="outline" className="text-xs bg-purple-500/10 text-purple-600 border-purple-500/20">CREATOR</Badge>
-                              Código de Creador
+                              <Badge variant="outline" className="text-xs">CÓDIGO</Badge>
+                              Código Promocional o de Creador
                             </CardTitle>
                             <CardDescription className="text-sm">
-                              Ingresa un código de creador para obtener beneficios especiales como días de trial, descuentos y más
+                              Ingresa un código promocional o de creador. El sistema detectará automáticamente el tipo de código y aplicará los beneficios correspondientes.
                             </CardDescription>
                           </CardHeader>
                           <CardContent>
-                            <form onSubmit={handleApplyCreatorCode} className="flex gap-2">
+                            <form onSubmit={handleApplyCode} className="flex gap-2">
                               <Input
-                                value={creatorCode}
-                                onChange={(e) => setCreatorCode(e.target.value.toUpperCase())}
-                                placeholder="CREATOR2024"
+                                value={code}
+                                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                                placeholder="Ingresa tu código aquí"
                                 className="uppercase font-mono"
-                                disabled={applyingCreatorCode}
+                                disabled={applyingCode}
                               />
-                              <Button type="submit" disabled={applyingCreatorCode || !creatorCode.trim()}>
-                                {applyingCreatorCode ? t('common.loading') : 'Aplicar Código'}
+                              <Button type="submit" disabled={applyingCode || !code.trim()}>
+                                {applyingCode ? t('common.loading') : 'Aplicar Código'}
                               </Button>
                             </form>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Acepta códigos promocionales (acceso permanente) o códigos de creador (trial + descuentos)
+                            </p>
                           </CardContent>
                         </Card>
                       </div>
                     )}
-
-                    {/* Promo Code Section */}
-                    <div className="border-t pt-4 max-w-2xl">
-                      <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-background">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-base flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">PROMO</Badge>
-                            {t('settings.promoCode.title')}
-                          </CardTitle>
-                          <CardDescription className="text-sm">
-                            {t('settings.promoCode.description')}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <form onSubmit={handleApplyPromoCode} className="flex gap-2">
-                            <Input
-                              value={promoCode}
-                              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                              placeholder={t('settings.promoCode.placeholder')}
-                              className="uppercase"
-                              disabled={applyingCode}
-                            />
-                            <Button type="submit" disabled={applyingCode || !promoCode.trim()}>
-                              {applyingCode ? t('common.loading') : t('settings.promoCode.apply')}
-                            </Button>
-                          </form>
-                        </CardContent>
-                      </Card>
-                    </div>
 
                     {/* Actions */}
                     <div className="flex gap-3 pt-3">
