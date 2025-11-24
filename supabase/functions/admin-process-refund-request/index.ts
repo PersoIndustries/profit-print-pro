@@ -39,24 +39,58 @@ serve(async (req) => {
     const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
 
     if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing environment variables:', { 
+        hasUrl: !!supabaseUrl, 
+        hasServiceKey: !!supabaseServiceKey 
+      });
       return new Response(
         JSON.stringify({ error: 'Faltan variables de entorno requeridas', details: 'SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY no configuradas' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get auth token from request
-    const authHeader = req.headers.get('Authorization');
+    // Log all headers for debugging (but not sensitive values)
+    const allHeaders: Record<string, string> = {};
+    req.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'authorization') {
+        allHeaders[key] = value ? `${value.substring(0, 20)}...` : 'missing';
+      } else {
+        allHeaders[key] = value;
+      }
+    });
+    console.log('Request headers:', JSON.stringify(allHeaders, null, 2));
+
+    // Get auth token from request - try multiple header formats
+    let authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      authHeader = req.headers.get('authorization');
+    }
+    if (!authHeader) {
+      // Try to get from apikey header as fallback
+      const apikeyHeader = req.headers.get('apikey');
+      console.warn('No Authorization header found. Available headers:', Object.keys(allHeaders));
       return new Response(
-        JSON.stringify({ error: 'No se proporcionó token de autenticación' }),
+        JSON.stringify({ 
+          error: 'No se proporcionó token de autenticación',
+          details: 'El header Authorization no está presente en la solicitud',
+          receivedHeaders: Object.keys(allHeaders)
+        }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // Clean auth header (remove 'Bearer ' prefix if present)
+    const cleanAuthToken = authHeader.replace(/^Bearer\s+/i, '');
+    console.log('Auth token length:', cleanAuthToken.length);
+
     // Create Supabase client with user token
-    const supabaseUser = createClient(supabaseUrl, authHeader.replace('Bearer ', ''), {
-      global: { headers: { Authorization: authHeader } },
+    const supabaseUser = createClient(supabaseUrl, cleanAuthToken, {
+      global: { 
+        headers: { 
+          Authorization: authHeader.startsWith('Bearer ') ? authHeader : `Bearer ${authHeader}`,
+          apikey: cleanAuthToken // Also include as apikey for compatibility
+        } 
+      },
     });
 
     // Create admin client
@@ -65,11 +99,19 @@ serve(async (req) => {
     // Verify user is admin
     const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
     if (userError || !user) {
+      console.error('Auth error:', userError);
+      console.error('User data:', user ? { id: user.id, email: user.email } : 'null');
       return new Response(
-        JSON.stringify({ error: 'Usuario no autenticado', details: userError?.message }),
+        JSON.stringify({ 
+          error: 'Usuario no autenticado', 
+          details: userError?.message || 'No se pudo obtener el usuario del token',
+          authError: userError?.name || 'unknown'
+        }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('User authenticated:', { id: user.id, email: user.email });
 
     const { data: roleData, error: roleError } = await supabaseAdmin
       .from('user_roles')

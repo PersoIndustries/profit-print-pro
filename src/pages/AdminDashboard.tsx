@@ -1210,6 +1210,19 @@ const AdminDashboard = () => {
     if (!selectedRefundRequest || !user) return;
 
     try {
+      // Verify user is authenticated and get session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.error('No active session:', sessionError);
+        toast.error('No hay sesión activa. Por favor, inicia sesión nuevamente.');
+        return;
+      }
+
+      console.log('Invoking function with session:', { 
+        hasSession: !!session, 
+        userId: session.user.id 
+      });
+
       const { data, error } = await supabase.functions.invoke('admin-process-refund-request', {
         body: {
           refundRequestId: selectedRefundRequest.id,
