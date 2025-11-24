@@ -12,6 +12,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useTierFeatures } from '@/hooks/useTierFeatures';
 import { useAdmin } from '@/hooks/useAdmin';
+import { NotificationBell } from '@/components/NotificationBell';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { LogOut, Settings, LayoutDashboard, ChevronDown, Package, FolderKanban, Calculator, FileText, Printer, BookOpen, ShoppingCart, History, TrendingUp, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/images/logo.svg';
@@ -240,6 +242,8 @@ export const Header = ({ variant = 'landing' }: HeaderProps) => {
               Admin
             </Button>
           )}
+          <LanguageSwitcher />
+          <NotificationBell />
           <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
             <Settings className="w-4 h-4" />
           </Button>
