@@ -15,6 +15,7 @@ interface SubscriptionInfo {
   next_billing_date: string;
   price_paid: number;
   expires_at: string | null;
+  is_paid_subscription?: boolean;
 }
 
 interface SubscriptionSectionProps {
@@ -72,9 +73,11 @@ export function SubscriptionSection({ subscriptionInfo, onCancelSubscription }: 
           <div>
             <Label className="text-sm text-muted-foreground">{t('settings.subscription.status')}</Label>
             <p className={`text-lg font-semibold mt-1 ${
-              subscriptionInfo.status === 'active' ? 'text-primary' : 'text-destructive'
+              (subscriptionInfo.status === 'active' || subscriptionInfo.is_paid_subscription) ? 'text-primary' : 'text-destructive'
             }`}>
-              {subscriptionInfo.status.toUpperCase()}
+              {(subscriptionInfo.is_paid_subscription && subscriptionInfo.status === 'trial') 
+                ? 'ACTIVE' 
+                : subscriptionInfo.status.toUpperCase()}
             </p>
           </div>
         </div>

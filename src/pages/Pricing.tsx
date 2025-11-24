@@ -641,7 +641,7 @@ const Pricing = () => {
                       )}
                       {isAnnual && savings && (
                         <div className="text-sm text-green-600 font-semibold">
-                          {t('pricing.save')} {savings}{getCurrencySymbol()}/{t('pricing.perYear')}
+                          {t('pricing.save')} {savings.toFixed(2)}{getCurrencySymbol()}/{t('pricing.perYear')}
                         </div>
                       )}
                       {!isAnnual && tier.tier !== 'free' && (
