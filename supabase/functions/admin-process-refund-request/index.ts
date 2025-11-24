@@ -39,7 +39,10 @@ serve(async (req) => {
     const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
 
     if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Faltan variables de entorno requeridas');
+      return new Response(
+        JSON.stringify({ error: 'Faltan variables de entorno requeridas', details: 'SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY no configuradas' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Get auth token from request
@@ -63,7 +66,7 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
     if (userError || !user) {
       return new Response(
-        JSON.stringify({ error: 'Usuario no autenticado' }),
+        JSON.stringify({ error: 'Usuario no autenticado', details: userError?.message }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -77,13 +80,22 @@ serve(async (req) => {
 
     if (roleError || !roleData) {
       return new Response(
-        JSON.stringify({ error: 'No tienes permisos de administrador' }),
+        JSON.stringify({ error: 'No tienes permisos de administrador', details: roleError?.message }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Parse request body
-    const body: RequestBody = await req.json();
+    let body: RequestBody;
+    try {
+      body = await req.json();
+    } catch (parseError: any) {
+      return new Response(
+        JSON.stringify({ error: 'Error al parsear el cuerpo de la solicitud', details: parseError.message }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     const { refundRequestId, action, adminNotes, userMessage, processInStripe = false } = body;
 
     if (!refundRequestId || !action || !['approve', 'reject'].includes(action)) {

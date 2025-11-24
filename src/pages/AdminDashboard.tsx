@@ -1222,12 +1222,28 @@ const AdminDashboard = () => {
 
       if (error) {
         console.error('Function invoke error:', error);
-        throw new Error(error.message || 'Error al invocar la función');
+        // Try to parse error message from response
+        let errorMessage = 'Error al invocar la función';
+        if (error.message) {
+          errorMessage = error.message;
+        } else if (error.context && error.context.body) {
+          try {
+            const errorBody = JSON.parse(error.context.body);
+            errorMessage = errorBody.error || errorBody.message || errorMessage;
+            if (errorBody.details) {
+              errorMessage += `: ${errorBody.details}`;
+            }
+          } catch (e) {
+            // If parsing fails, use default message
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       if (data?.error) {
         console.error('Function returned error:', data);
-        throw new Error(data.error + (data.details ? `: ${data.details}` : ''));
+        const errorMessage = data.error + (data.details ? `: ${data.details}` : '');
+        throw new Error(errorMessage);
       }
 
       toast.success(data?.message || `Refund request ${refundAction === 'approve' ? 'approved and processed' : 'rejected'} successfully`);
@@ -1238,7 +1254,26 @@ const AdminDashboard = () => {
       fetchRefundRequests();
     } catch (error: any) {
       console.error('Error processing refund request:', error);
-      const errorMessage = error.message || error.toString() || `Error ${refundAction === 'approve' ? 'approving' : 'rejecting'} refund request`;
+      console.error('Full error object:', JSON.stringify(error, null, 2));
+      
+      // Extract error message
+      let errorMessage = error.message || error.toString() || `Error ${refundAction === 'approve' ? 'approving' : 'rejecting'} refund request`;
+      
+      // If error has a response, try to extract message from it
+      if (error.response) {
+        try {
+          const errorData = await error.response.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+            if (errorData.details) {
+              errorMessage += `: ${errorData.details}`;
+            }
+          }
+        } catch (e) {
+          // If parsing fails, use the original message
+        }
+      }
+      
       toast.error(errorMessage);
     }
   };
