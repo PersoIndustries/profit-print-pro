@@ -1271,6 +1271,7 @@ const Settings = () => {
                         <TableHead>{t('settings.invoices.period')}</TableHead>
                         <TableHead>{t('settings.invoices.amount')}</TableHead>
                         <TableHead>{t('settings.invoices.status')}</TableHead>
+                        <TableHead>Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1289,6 +1290,25 @@ const Settings = () => {
                             }`}>
                               {invoice.status.toUpperCase()}
                             </span>
+                          </TableCell>
+                          <TableCell>
+                            {invoice.status === 'paid' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setRefundInvoiceId(invoice.id);
+                                  setRefundDialogOpen(true);
+                                }}
+                                className="text-xs"
+                              >
+                                <DollarSign className="h-3 w-3 mr-1" />
+                                Solicitar Refund
+                              </Button>
+                            )}
+                            {invoice.status === 'refunded' && (
+                              <span className="text-xs text-muted-foreground">Reembolsado</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -1414,7 +1434,7 @@ const Settings = () => {
                   <SelectValue placeholder="Selecciona una factura" />
                 </SelectTrigger>
                 <SelectContent>
-                  {recentInvoices.map((invoice) => (
+                  {(recentInvoices.length > 0 ? recentInvoices : invoices.filter((inv: any) => inv.status === 'paid' && inv.amount > 0)).map((invoice) => (
                     <SelectItem key={invoice.id} value={invoice.id}>
                       {invoice.invoice_number} - €{invoice.amount.toFixed(2)} - {new Date(invoice.paid_date || invoice.issued_date).toLocaleDateString()}
                     </SelectItem>
