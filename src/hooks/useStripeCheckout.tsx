@@ -13,7 +13,7 @@ export const useStripeCheckout = () => {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
 
-  const createCheckoutSession = async ({ tier, billingPeriod }: CreateCheckoutParams) => {
+  const createCheckoutSession = async ({ tier, billingPeriod, productId }: CreateCheckoutParams) => {
     if (!user) {
       toast.error('Debes iniciar sesión para suscribirte');
       return;
