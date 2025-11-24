@@ -1085,7 +1085,12 @@ const AdminDashboard = () => {
         .eq('related_entity_id', refundRequestId)
         .maybeSingle();
 
-      if (ticketError) throw ticketError;
+      if (ticketError) {
+        // If table doesn't exist yet or error, just set empty messages
+        console.warn('Error fetching ticket (may not exist yet):', ticketError);
+        setRefundMessages([]);
+        return;
+      }
 
       if (!ticketData || !(ticketData as any).id) {
         setRefundMessages([]);
@@ -1104,11 +1109,16 @@ const AdminDashboard = () => {
         .eq('ticket_id', ticketId)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.warn('Error fetching messages (may not exist yet):', error);
+        setRefundMessages([]);
+        return;
+      }
       setRefundMessages(data || []);
     } catch (error: any) {
       console.error('Error fetching refund messages:', error);
-      toast.error('Error loading messages');
+      // Don't show error toast, just set empty messages
+      setRefundMessages([]);
     } finally {
       setLoadingRefundMessages(false);
     }

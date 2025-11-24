@@ -1460,13 +1460,257 @@ const Settings = () => {
                           }
                         };
 
+                        const isExpanded = expandedRefundRequest === request.id;
+                        const messages = refundRequestMessages.get(request.id) || [];
+
                         return (
-                          <RefundRequestCard
-                            key={request.id}
-                            request={request}
-                            getStatusBadge={getStatusBadge}
-                            getRefundTypeLabel={getRefundTypeLabel}
-                          />
+                          <Card key={request.id} className="border-l-4 border-l-primary/50">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1 space-y-2">
+                                  <div className="flex items-center gap-3 flex-wrap">
+                                    {getStatusBadge(request.status)}
+                                    <span className="text-sm font-medium">
+                                      {request.invoices && (Array.isArray(request.invoices) ? request.invoices[0] : request.invoices) 
+                                        ? `Factura: ${(Array.isArray(request.invoices) ? request.invoices[0] : request.invoices).invoice_number}` 
+                                        : `€${Math.abs(request.amount).toFixed(2)}`}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {new Date(request.created_at).toLocaleDateString('es-ES', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="space-y-1">
+                                    <p className="text-sm">
+                                      <span className="font-medium">Tipo:</span> {getRefundTypeLabel(request.refund_type)}
+                                    </p>
+                                    <p className="text-sm">
+                                      <span className="font-medium">Motivo:</span> {request.reason}
+                                    </p>
+                                    {request.description && (
+                                      <p className="text-sm text-muted-foreground">
+                                        {request.description}
+                                      </p>
+                                    )}
+                                    {request.admin_notes && (
+                                      <div className="mt-2 p-2 bg-muted rounded text-sm">
+                                        <span className="font-medium">Nota del administrador:</span>
+                                        <p className="text-muted-foreground mt-1">{request.admin_notes}</p>
+                                      </div>
+                                    )}
+                                    {request.processed_at && (
+                                      <p className="text-xs text-muted-foreground mt-2">
+                                        Procesado el: {new Date(request.processed_at).toLocaleDateString('es-ES', {
+                                          year: 'numeric',
+                                          month: 'short',
+                                          day: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  {/* Messages Section - Only show for pending requests */}
+                                  {request.status === 'pending' && (
+                                    <div className="mt-4 border-t pt-4">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={async () => {
+                                          if (!isExpanded) {
+                                            setExpandedRefundRequest(request.id);
+                                            try {
+                                              // Get ticket ID for this refund request
+                                              const { data: ticketData, error: ticketError } = await supabase
+                                                .from('support_tickets' as any)
+                                                .select('id')
+                                                .eq('related_entity_type', 'refund_request')
+                                                .eq('related_entity_id', request.id)
+                                                .maybeSingle();
+
+                                              if (ticketError || !ticketData) {
+                                                console.warn('No ticket found for refund request');
+                                                setRefundRequestMessages(prev => {
+                                                  const newMap = new Map(prev);
+                                                  newMap.set(request.id, []);
+                                                  return newMap;
+                                                });
+                                                return;
+                                              }
+
+                                              // Fetch messages
+                                              const { data: messagesData, error: messagesError } = await supabase
+                                                .from('support_messages' as any)
+                                                .select(`
+                                                  *,
+                                                  profiles!support_messages_sender_id_fkey(id, email, full_name)
+                                                `)
+                                                .eq('ticket_id', (ticketData as any).id)
+                                                .order('created_at', { ascending: true });
+
+                                              if (messagesError) {
+                                                console.error('Error fetching messages:', messagesError);
+                                                setRefundRequestMessages(prev => {
+                                                  const newMap = new Map(prev);
+                                                  newMap.set(request.id, []);
+                                                  return newMap;
+                                                });
+                                                return;
+                                              }
+
+                                              setRefundRequestMessages(prev => {
+                                                const newMap = new Map(prev);
+                                                newMap.set(request.id, messagesData || []);
+                                                return newMap;
+                                              });
+                                            } catch (error: any) {
+                                              console.error('Error loading messages:', error);
+                                              setRefundRequestMessages(prev => {
+                                                const newMap = new Map(prev);
+                                                newMap.set(request.id, []);
+                                                return newMap;
+                                              });
+                                            }
+                                          } else {
+                                            setExpandedRefundRequest(null);
+                                          }
+                                        }}
+                                        className="w-full"
+                                      >
+                                        <MessageCircle className="h-4 w-4 mr-2" />
+                                        {isExpanded ? 'Ocultar' : 'Ver'} Conversación ({messages.length})
+                                      </Button>
+
+                                      {isExpanded && (
+                                        <div className="mt-3 space-y-3">
+                                          <div className="border rounded-lg p-3 bg-muted/30 max-h-64 overflow-y-auto space-y-2">
+                                            {messages.length === 0 ? (
+                                              <p className="text-sm text-muted-foreground text-center py-4">No hay mensajes aún</p>
+                                            ) : (
+                                              messages.map((msg: any) => (
+                                                <div
+                                                  key={msg.id}
+                                                  className={`p-2 rounded-lg ${
+                                                    msg.sender_type === 'admin'
+                                                      ? 'bg-primary/10 ml-8'
+                                                      : 'bg-background border mr-8'
+                                                  }`}
+                                                >
+                                                  <div className="flex items-start justify-between mb-1">
+                                                    <span className="text-xs font-medium">
+                                                      {msg.sender_type === 'admin' ? 'Admin' : 'Tú'}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                      {new Date(msg.created_at).toLocaleString('es-ES')}
+                                                    </span>
+                                                  </div>
+                                                  <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                                                </div>
+                                              ))
+                                            )}
+                                          </div>
+                                          <div className="flex gap-2">
+                                            <Textarea
+                                              value={refundRequestNewMessage.get(request.id) || ''}
+                                              onChange={(e) => {
+                                                const newMap = new Map(refundRequestNewMessage);
+                                                newMap.set(request.id, e.target.value);
+                                                setRefundRequestNewMessage(newMap);
+                                              }}
+                                              placeholder="Escribe tu respuesta..."
+                                              rows={2}
+                                            />
+                                            <Button
+                                              onClick={async () => {
+                                                const message = refundRequestNewMessage.get(request.id);
+                                                if (!message?.trim() || !user) return;
+
+                                                setSendingRefundMessage(true);
+                                                try {
+                                                  // Get ticket ID
+                                                  const { data: ticketData, error: ticketError } = await supabase
+                                                    .from('support_tickets' as any)
+                                                    .select('id')
+                                                    .eq('related_entity_type', 'refund_request')
+                                                    .eq('related_entity_id', request.id)
+                                                    .maybeSingle();
+
+                                                  if (ticketError || !ticketData) {
+                                                    toast.error('No se encontró el ticket de soporte');
+                                                    return;
+                                                  }
+
+                                                  const ticketId = (ticketData as any).id;
+
+                                                  // Send message
+                                                  const { error: sendError } = await supabase
+                                                    .from('support_messages' as any)
+                                                    .insert({
+                                                      ticket_id: ticketId,
+                                                      sender_id: user.id,
+                                                      sender_type: 'user',
+                                                      message: message.trim(),
+                                                    });
+
+                                                  if (sendError) throw sendError;
+
+                                                  // Refresh messages
+                                                  const { data: newMessages, error: messagesError } = await supabase
+                                                    .from('support_messages' as any)
+                                                    .select(`
+                                                      *,
+                                                      profiles!support_messages_sender_id_fkey(id, email, full_name)
+                                                    `)
+                                                    .eq('ticket_id', ticketId)
+                                                    .order('created_at', { ascending: true });
+
+                                                  if (!messagesError && newMessages) {
+                                                    setRefundRequestMessages(prev => {
+                                                      const newMap = new Map(prev);
+                                                      newMap.set(request.id, newMessages);
+                                                      return newMap;
+                                                    });
+                                                  }
+
+                                                  const newMap = new Map(refundRequestNewMessage);
+                                                  newMap.set(request.id, '');
+                                                  setRefundRequestNewMessage(newMap);
+                                                  toast.success('Mensaje enviado');
+                                                } catch (error: any) {
+                                                  console.error('Error sending message:', error);
+                                                  toast.error('Error al enviar mensaje');
+                                                } finally {
+                                                  setSendingRefundMessage(false);
+                                                }
+                                              }}
+                                              disabled={!refundRequestNewMessage.get(request.id)?.trim() || sendingRefundMessage}
+                                              size="sm"
+                                              className="self-end"
+                                            >
+                                              {sendingRefundMessage ? 'Enviando...' : 'Enviar'}
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-lg font-semibold text-primary">
+                                    €{Math.abs(request.amount).toFixed(2)}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">{request.currency || 'EUR'}</p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
                         );
                       })}
                     </div>
