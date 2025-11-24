@@ -33,6 +33,11 @@ interface UserStats {
   role: string;
   subscription_status: string;
   expires_at?: string | null;
+  is_paid_subscription?: boolean;
+  stripe_subscription_id?: string | null;
+  billing_period?: string | null;
+  promo_code?: string | null;
+  subscription_type?: 'paid' | 'promo' | 'trial' | 'free' | 'admin';
   materials_count: number;
   projects_count: number;
   orders_count: number;
@@ -1001,19 +1006,51 @@ const AdminDashboard = () => {
       }
 
       const userStatsPromises = profiles.map(async (profile) => {
-        const [subRes, roleRes, materialsRes, projectsRes, ordersRes] = await Promise.all([
-          supabase.from('user_subscriptions' as any).select('tier, status, is_paid_subscription, stripe_subscription_id, expires_at').eq('user_id', profile.id).maybeSingle(),
+        const [subRes, roleRes, materialsRes, projectsRes, ordersRes, promoCodeRes] = await Promise.all([
+          supabase.from('user_subscriptions' as any).select('tier, status, is_paid_subscription, stripe_subscription_id, expires_at, billing_period').eq('user_id', profile.id).maybeSingle(),
           supabase.from('user_roles').select('role').eq('user_id', profile.id).maybeSingle(),
           supabase.from('materials').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
           supabase.from('projects').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
-          supabase.from('orders').select('id', { count: 'exact', head: true }).eq('user_id', profile.id)
+          supabase.from('orders').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
+          supabase.from('user_promo_codes' as any)
+            .select('promo_codes(code)')
+            .eq('user_id', profile.id)
+            .order('applied_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
         ]);
+
+        const subData = subRes.data as any;
+        const isPaid = subData?.is_paid_subscription || false;
+        const hasStripe = !!subData?.stripe_subscription_id;
+        const promoCode = (promoCodeRes.data as any)?.promo_codes?.code || null;
+        const tier = subData?.tier || 'free';
+        const status = subData?.status || 'active';
+        
+        // Determine subscription type
+        let subscriptionType: 'paid' | 'promo' | 'trial' | 'free' | 'admin' = 'free';
+        if (tier === 'free') {
+          subscriptionType = 'free';
+        } else if (isPaid && hasStripe) {
+          subscriptionType = 'paid';
+        } else if (promoCode) {
+          subscriptionType = 'promo';
+        } else if (status === 'trial') {
+          subscriptionType = 'trial';
+        } else {
+          subscriptionType = 'admin'; // Admin granted
+        }
 
         return {
           ...profile,
-          tier: (subRes.data as any)?.tier || 'free',
-          subscription_status: (subRes.data as any)?.status || 'active',
-          expires_at: (subRes.data as any)?.expires_at || null,
+          tier,
+          subscription_status: status,
+          expires_at: subData?.expires_at || null,
+          is_paid_subscription: isPaid,
+          stripe_subscription_id: subData?.stripe_subscription_id || null,
+          billing_period: subData?.billing_period || null,
+          promo_code: promoCode,
+          subscription_type: subscriptionType,
           role: roleRes.data?.role || 'user',
           materials_count: materialsRes.count || 0,
           projects_count: projectsRes.count || 0,
@@ -2224,6 +2261,7 @@ const AdminDashboard = () => {
                   <TableHead>{t('admin.email')}</TableHead>
                   <TableHead>{t('admin.tier')}</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Tipo</TableHead>
                   <TableHead className="text-center">
                     <Package className="inline h-4 w-4" />
                   </TableHead>
@@ -2287,6 +2325,41 @@ const AdminDashboard = () => {
                           </div>
                         );
                       })()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                          userStat.subscription_type === 'paid' 
+                            ? 'bg-blue-100 text-blue-800' 
+                            : userStat.subscription_type === 'promo'
+                              ? 'bg-purple-100 text-purple-800'
+                              : userStat.subscription_type === 'trial'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : userStat.subscription_type === 'admin'
+                                  ? 'bg-gray-100 text-gray-800'
+                                  : 'bg-muted text-muted-foreground'
+                        }`}>
+                          {userStat.subscription_type === 'paid' 
+                            ? 'PAGO' 
+                            : userStat.subscription_type === 'promo'
+                              ? 'PROMO CODE'
+                              : userStat.subscription_type === 'trial'
+                                ? 'TRIAL'
+                                : userStat.subscription_type === 'admin'
+                                  ? 'ADMIN'
+                                  : 'FREE'}
+                        </span>
+                        {userStat.subscription_type === 'paid' && userStat.billing_period && (
+                          <span className="text-xs text-muted-foreground capitalize">
+                            {userStat.billing_period}
+                          </span>
+                        )}
+                        {userStat.subscription_type === 'promo' && userStat.promo_code && (
+                          <span className="text-xs text-muted-foreground">
+                            {userStat.promo_code}
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-center">{userStat.materials_count}</TableCell>
                     <TableCell className="text-center">{userStat.projects_count}</TableCell>
@@ -3727,6 +3800,72 @@ const AdminDashboard = () => {
               Selecciona una acción para realizar sobre este usuario
             </DialogDescription>
           </DialogHeader>
+          
+          {/* User Information Section */}
+          {selectedUser && (
+            <div className="bg-muted/50 rounded-lg p-4 mb-4 space-y-3">
+              <h3 className="font-semibold text-sm mb-2">Información del Usuario</h3>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Nombre:</span>
+                  <p className="font-medium">{selectedUser.full_name || 'N/A'}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Email:</span>
+                  <p className="font-medium">{selectedUser.email}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Tier:</span>
+                  <p className="font-medium">
+                    {selectedUser.tier === 'tier_2' ? 'Business' : 
+                     selectedUser.tier === 'tier_1' ? 'Professional' : 'Free'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Tipo de Suscripción:</span>
+                  <p className="font-medium">
+                    {selectedUser.subscription_type === 'paid' ? 'Pago (Stripe)' :
+                     selectedUser.subscription_type === 'promo' ? `Promo Code (${selectedUser.promo_code || 'N/A'})` :
+                     selectedUser.subscription_type === 'trial' ? 'Trial' :
+                     selectedUser.subscription_type === 'admin' ? 'Admin Grant' :
+                     'Free'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Estado:</span>
+                  <p className="font-medium capitalize">{selectedUser.subscription_status}</p>
+                </div>
+                {selectedUser.billing_period && (
+                  <div>
+                    <span className="text-muted-foreground">Período de Facturación:</span>
+                    <p className="font-medium capitalize">{selectedUser.billing_period}</p>
+                  </div>
+                )}
+                {selectedUser.expires_at && (
+                  <div>
+                    <span className="text-muted-foreground">Expira:</span>
+                    <p className="font-medium">{new Date(selectedUser.expires_at).toLocaleDateString()}</p>
+                  </div>
+                )}
+                <div>
+                  <span className="text-muted-foreground">Registrado:</span>
+                  <p className="font-medium">{new Date(selectedUser.created_at).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Uso:</span>
+                  <p className="font-medium">
+                    {selectedUser.materials_count} materiales, {selectedUser.projects_count} proyectos, {selectedUser.orders_count} pedidos
+                  </p>
+                </div>
+                {selectedUser.stripe_subscription_id && (
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground">Stripe Subscription ID:</span>
+                    <p className="font-mono text-xs break-all">{selectedUser.stripe_subscription_id}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           
           <div className="space-y-6 py-4">
             {/* Action Selection Buttons */}
