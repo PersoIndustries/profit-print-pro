@@ -35,11 +35,18 @@ export const useAuth = () => {
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {
+    // Force the correct redirect URL
+    const redirectUrl = import.meta.env.VITE_APP_URL 
+      ? `${import.meta.env.VITE_APP_URL}/dashboard`
+      : window.location.hostname === 'layersuite.com' || window.location.hostname === 'www.layersuite.com'
+        ? `https://layersuite.com/dashboard`
+        : `${window.location.origin}/dashboard`;
+    
     const { error, data } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: redirectUrl,
         data: {
           full_name: fullName,
         },
@@ -79,7 +86,13 @@ export const useAuth = () => {
   };
 
   const resetPassword = async (email: string) => {
-    const redirectUrl = `${window.location.origin}/reset-password`;
+    // Force the correct redirect URL
+    const redirectUrl = import.meta.env.VITE_APP_URL 
+      ? `${import.meta.env.VITE_APP_URL}/reset-password`
+      : window.location.hostname === 'layersuite.com' || window.location.hostname === 'www.layersuite.com'
+        ? `https://layersuite.com/reset-password`
+        : `${window.location.origin}/reset-password`;
+    
     console.log("Reset password redirect URL:", redirectUrl);
     
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -94,10 +107,19 @@ export const useAuth = () => {
   };
 
   const signInWithGoogle = async () => {
+    // Force the correct redirect URL to avoid redirecting to old domain
+    const redirectUrl = import.meta.env.VITE_APP_URL 
+      ? `${import.meta.env.VITE_APP_URL}/dashboard`
+      : window.location.hostname === 'layersuite.com' || window.location.hostname === 'www.layersuite.com'
+        ? `https://layersuite.com/dashboard`
+        : `${window.location.origin}/dashboard`;
+    
+    console.log('Google OAuth redirect URL:', redirectUrl);
+    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/dashboard`,
+        redirectTo: redirectUrl,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
