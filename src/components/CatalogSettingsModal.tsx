@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useTierFeatures } from "@/hooks/useTierFeatures";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -9,7 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Loader2, Image as ImageIcon, X } from "lucide-react";
+import { Loader2, Image as ImageIcon, X, Crown } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface CatalogSettingsModalProps {
   open: boolean;
@@ -21,6 +23,7 @@ interface CatalogSettingsModalProps {
 export function CatalogSettingsModal({ open, onOpenChange, catalogId, onSuccess }: CatalogSettingsModalProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { isEnterprise } = useTierFeatures();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showPoweredBy, setShowPoweredBy] = useState(true);
@@ -30,6 +33,7 @@ export function CatalogSettingsModal({ open, onOpenChange, catalogId, onSuccess 
   const [catalogName, setCatalogName] = useState("");
   const [catalogDescription, setCatalogDescription] = useState("");
   const [season, setSeason] = useState("");
+  const [brandLogoUrl, setBrandLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (open && catalogId) {
@@ -42,7 +46,7 @@ export function CatalogSettingsModal({ open, onOpenChange, catalogId, onSuccess 
       setLoading(true);
       const { data, error } = await supabase
         .from("catalogs")
-        .select("name, description, season, show_powered_by, cover_background_url, show_logo_on_cover, show_text_on_cover")
+        .select("name, description, season, show_powered_by, cover_background_url, show_logo_on_cover, show_text_on_cover, brand_logo_url")
         .eq("id", catalogId)
         .single();
 
@@ -55,6 +59,7 @@ export function CatalogSettingsModal({ open, onOpenChange, catalogId, onSuccess 
       setCoverBackgroundUrl(data.cover_background_url || null);
       setShowLogoOnCover(data.show_logo_on_cover ?? true);
       setShowTextOnCover(data.show_text_on_cover ?? true);
+      setBrandLogoUrl(data.brand_logo_url || null);
     } catch (error: any) {
       console.error("Error fetching catalog settings:", error);
       toast.error(t('catalog.settings.errorLoading'));
@@ -144,10 +149,11 @@ export function CatalogSettingsModal({ open, onOpenChange, catalogId, onSuccess 
           name: catalogName,
           description: catalogDescription || null,
           season: season || null,
-          show_powered_by: showPoweredBy,
+          show_powered_by: isEnterprise ? showPoweredBy : true, // Solo Business puede cambiar esto
           cover_background_url: coverBackgroundUrl,
           show_logo_on_cover: showLogoOnCover,
           show_text_on_cover: showTextOnCover,
+          brand_logo_url: isEnterprise ? brandLogoUrl : null, // Solo Business puede tener brand logo
         })
         .eq("id", catalogId);
 
@@ -210,22 +216,38 @@ export function CatalogSettingsModal({ open, onOpenChange, catalogId, onSuccess 
             </p>
           </div>
 
-          {/* Powered By */}
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="show-powered-by" className="text-sm font-normal">
-                {t('catalog.settings.showPoweredBy')}
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                {t('catalog.settings.showPoweredByDesc')}
-              </p>
+          {/* Powered By - Solo Business */}
+          {isEnterprise ? (
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="show-powered-by" className="text-sm font-normal">
+                  {t('catalog.settings.showPoweredBy')}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {t('catalog.settings.showPoweredByDesc')}
+                </p>
+              </div>
+              <Switch
+                id="show-powered-by"
+                checked={showPoweredBy}
+                onCheckedChange={setShowPoweredBy}
+              />
             </div>
-            <Switch
-              id="show-powered-by"
-              checked={showPoweredBy}
-              onCheckedChange={setShowPoweredBy}
-            />
-          </div>
+          ) : (
+            <div className="bg-muted/50 border border-muted rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Crown className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <Label className="text-sm font-semibold mb-1 block">
+                    {t('catalog.settings.showPoweredBy')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Ocultar "Powered by Layer Suite" está disponible solo para usuarios Business.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Cover Background */}
           <div className="space-y-2">

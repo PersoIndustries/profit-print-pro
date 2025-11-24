@@ -28,6 +28,7 @@ import NotFound from "./pages/NotFound";
 import ShoppingList from "./pages/ShoppingList";
 import Acquisitions from "./pages/Acquisitions";
 import Movements from "./pages/Movements";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -57,9 +58,9 @@ const App = () => (
           <Route path="/calculator" element={<AppLayout><CalculatorPage /></AppLayout>} />
           <Route path="/calculator/:projectId" element={<AppLayout><CalculatorPage /></AppLayout>} />
           <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
-          <Route path="/catalogs" element={<AppLayout><Catalogs /></AppLayout>} />
-          <Route path="/catalogs/:catalogId" element={<AppLayout><CatalogDetail /></AppLayout>} />
-          <Route path="/catalogs/:catalogId/project/:projectId/products" element={<AppLayout><CatalogProjectDetail /></AppLayout>} />
+          <Route path="/catalogs" element={<AppLayout><ProtectedRoute requiredFeature="catalogs"><Catalogs /></ProtectedRoute></AppLayout>} />
+          <Route path="/catalogs/:catalogId" element={<AppLayout><ProtectedRoute requiredFeature="catalogs"><CatalogDetail /></ProtectedRoute></AppLayout>} />
+          <Route path="/catalogs/:catalogId/project/:projectId/products" element={<AppLayout><ProtectedRoute requiredFeature="catalogs"><CatalogProjectDetail /></ProtectedRoute></AppLayout>} />
           <Route path="/admin" element={<AppLayout><AdminDashboard /></AppLayout>} />
           <Route path="/admin/grace-period" element={<AppLayout><AdminGracePeriodManagement /></AppLayout>} />
           <Route path="/admin/metrics" element={<AppLayout><AdminMetricsDashboard /></AppLayout>} />

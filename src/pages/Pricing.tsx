@@ -42,6 +42,16 @@ const Pricing = () => {
     tier_1: { materials: number; projects: number; monthlyOrders: number };
     tier_2: { materials: number; projects: number; monthlyOrders: number };
   } | null>(null);
+  const [products, setProducts] = useState<Array<{
+    id: string;
+    tier: 'tier_1' | 'tier_2';
+    billing_period: 'monthly' | 'annual';
+    product_type: 'regular' | 'early_bird' | 'vip';
+    price_amount_cents: number;
+    is_active: boolean;
+    start_date: string | null;
+    end_date: string | null;
+  }>>([]);
 
   // Tipo de cambio aproximado (puedes usar una API real)
   const exchangeRate = 1.1; // 1 EUR = 1.1 USD
@@ -120,12 +130,57 @@ const Pricing = () => {
     fetchLimits();
   }, []);
 
+  // Fetch active products from database
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const now = new Date().toISOString();
+        const { data: productsData, error: productsError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('is_active', true)
+          .or(`start_date.is.null,start_date.lte.${now}`)
+          .or(`end_date.is.null,end_date.gte.${now}`)
+          .in('product_type', ['regular', 'early_bird']); // Don't show VIP products in pricing
+
+        if (productsError) throw productsError;
+        setProducts(productsData || []);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        // Fallback to default products if database fails
+        setProducts([]);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
   const convertPrice = (priceEUR: number): number => {
     return currency === 'USD' ? Math.round(priceEUR * exchangeRate) : priceEUR;
   };
 
   const getCurrencySymbol = (): string => {
     return currency === 'USD' ? '$' : '€';
+  };
+
+  // Get prices from products or fallback to defaults
+  const getProductPrice = (tier: 'tier_1' | 'tier_2', billingPeriod: 'monthly' | 'annual', productType: 'regular' | 'early_bird' = 'early_bird') => {
+    const product = products.find(
+      p => p.tier === tier && 
+      p.billing_period === billingPeriod && 
+      p.product_type === productType
+    );
+    
+    if (product) {
+      return product.price_amount_cents / 100; // Convert cents to euros
+    }
+    
+    // Fallback to default prices
+    if (tier === 'tier_1') {
+      return billingPeriod === 'monthly' ? 3.99 : 38.30;
+    } else {
+      return billingPeriod === 'monthly' ? 12.99 : 124.70;
+    }
   };
 
   const tiers = [
@@ -139,20 +194,22 @@ const Pricing = () => {
     },
     {
       name: t('pricing.tier1.name'),
-      monthlyPrice: 10,
-      annualPrice: 96, // 10 * 12 * 0.8 = 96€ (20% discount)
+      monthlyPrice: getProductPrice('tier_1', 'monthly'),
+      annualPrice: getProductPrice('tier_1', 'annual'),
       features: t('pricing.tier1.features', { returnObjects: true }) as string[],
       cta: t('pricing.tier1.cta'),
       tier: 'tier_1',
-      popular: true
+      popular: true,
+      isEarlyBird: products.some(p => p.tier === 'tier_1' && p.product_type === 'early_bird' && p.is_active)
     },
     {
       name: t('pricing.tier2.name'),
-      monthlyPrice: 45,
-      annualPrice: 432, // 45 * 12 * 0.8 = 432€ (20% discount)
+      monthlyPrice: getProductPrice('tier_2', 'monthly'),
+      annualPrice: getProductPrice('tier_2', 'annual'),
       features: t('pricing.tier2.features', { returnObjects: true }) as string[],
       cta: t('pricing.tier2.cta'),
-      tier: 'tier_2'
+      tier: 'tier_2',
+      isEarlyBird: products.some(p => p.tier === 'tier_2' && p.product_type === 'early_bird' && p.is_active)
     }
   ];
 
@@ -395,10 +452,24 @@ const Pricing = () => {
       return;
     }
 
+    // Find the product (prefer early_bird if available)
+    const product = products.find(
+      p => p.tier === tier && 
+      p.billing_period === billingPeriod && 
+      p.product_type === 'early_bird' &&
+      p.is_active
+    ) || products.find(
+      p => p.tier === tier && 
+      p.billing_period === billingPeriod && 
+      p.product_type === 'regular' &&
+      p.is_active
+    );
+
     // Create Stripe Checkout Session
     await createCheckoutSession({
       tier: tier as 'tier_1' | 'tier_2',
       billingPeriod: billingPeriod,
+      productId: product?.id,
     });
   };
 
@@ -526,6 +597,13 @@ const Pricing = () => {
                     <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-semibold">
                       {t('pricing.popular')}
                     </span>
+                  </div>
+                )}
+                {(tier as any).isEarlyBird && !isCurrentPlan && (
+                  <div className="absolute -top-4 right-4">
+                    <Badge className="bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                      🎯 Early Bird
+                    </Badge>
                   </div>
                 )}
                 {isCurrentPlan && (
@@ -680,6 +758,7 @@ const Pricing = () => {
             </CardContent>
           </Card>
         </div>
+
       </div>
       <Footer variant="landing" />
     </div>

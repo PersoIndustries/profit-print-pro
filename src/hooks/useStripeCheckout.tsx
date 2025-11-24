@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 interface CreateCheckoutParams {
   tier: 'tier_1' | 'tier_2';
   billingPeriod: 'monthly' | 'annual';
+  productId?: string;
 }
 
 export const useStripeCheckout = () => {
@@ -31,6 +32,7 @@ export const useStripeCheckout = () => {
           userId: user.id,
           tier,
           billingPeriod,
+          productId,
           successUrl,
           cancelUrl,
         },

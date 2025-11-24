@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
+import { useTierFeatures } from "@/hooks/useTierFeatures";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { Crown } from "lucide-react";
 
 interface Profile {
   full_name: string;
@@ -25,6 +27,7 @@ interface ProfileSectionProps {
 
 export function ProfileSection({ profile, userId, onProfileUpdate }: ProfileSectionProps) {
   const { t } = useTranslation();
+  const { isEnterprise } = useTierFeatures();
   const [localProfile, setLocalProfile] = useState(profile);
   const [brandLogoUploading, setBrandLogoUploading] = useState(false);
 
@@ -201,43 +204,67 @@ export function ProfileSection({ profile, userId, onProfileUpdate }: ProfileSect
             </div>
           </div>
 
-          <div className="border-t pt-4 mt-4">
-            <h3 className="text-base font-semibold mb-3">{t('settings.profile.brandLogo')}</h3>
-            <div className="space-y-3">
-              {localProfile.brand_logo_url && (
-                <div className="flex items-center gap-4">
-                  <img 
-                    src={localProfile.brand_logo_url} 
-                    alt={t('settings.profile.altLogo')} 
-                    className="w-24 h-24 object-contain border rounded p-2 bg-background"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRemoveBrandLogo}
+          {isEnterprise ? (
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-base font-semibold mb-3">{t('settings.profile.brandLogo')}</h3>
+              <div className="space-y-3">
+                {localProfile.brand_logo_url && (
+                  <div className="flex items-center gap-4">
+                    <img 
+                      src={localProfile.brand_logo_url} 
+                      alt={t('settings.profile.altLogo')} 
+                      className="w-24 h-24 object-contain border rounded p-2 bg-background"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRemoveBrandLogo}
+                      disabled={brandLogoUploading}
+                    >
+                      {t('settings.profile.removeLogo')}
+                    </Button>
+                  </div>
+                )}
+                <div>
+                  <Label htmlFor="brand_logo" className="text-sm">{t('settings.profile.uploadBrandLogo')}</Label>
+                  <Input
+                    id="brand_logo"
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp,image/svg+xml"
+                    onChange={handleBrandLogoUpload}
                     disabled={brandLogoUploading}
-                  >
-                    {t('settings.profile.removeLogo')}
-                  </Button>
+                    className="h-9 text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('settings.profile.formats')}
+                  </p>
                 </div>
-              )}
-              <div>
-                <Label htmlFor="brand_logo" className="text-sm">{t('settings.profile.uploadBrandLogo')}</Label>
-                <Input
-                  id="brand_logo"
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/webp,image/svg+xml"
-                  onChange={handleBrandLogoUpload}
-                  disabled={brandLogoUploading}
-                  className="h-9 text-sm"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t('settings.profile.formats')}
-                </p>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="border-t pt-4 mt-4">
+              <div className="bg-muted/50 border border-muted rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Crown className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold mb-1">{t('settings.profile.brandLogo')}</h3>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      El branding personalizado está disponible solo para usuarios Business. Actualiza tu plan para acceder a esta funcionalidad.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.location.href = '/pricing'}
+                    >
+                      Ver Planes
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <Button type="submit" size="sm" className="mt-4">{t('common.save')}</Button>
         </form>
