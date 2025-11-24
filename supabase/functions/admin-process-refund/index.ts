@@ -188,7 +188,7 @@ serve(async (req) => {
 
         // Find the most recent successful charge matching the amount
         const chargeToRefund = charges.data.find(
-          (charge) => charge.paid && 
+          (charge: Stripe.Charge) => charge.paid && 
           Math.abs((charge.amount / 100) - amount) < 0.01 &&
           charge.currency === currency.toLowerCase()
         );

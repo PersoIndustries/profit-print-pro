@@ -200,7 +200,7 @@ serve(async (req) => {
 
           // Find matching charge
           const chargeToRefund = charges.data.find(
-            (charge) => charge.paid && 
+            (charge: Stripe.Charge) => charge.paid && 
             Math.abs((charge.amount / 100) - refundRequest.amount) < 0.01 &&
             charge.currency === (refundRequest.currency || 'eur').toLowerCase()
           );
