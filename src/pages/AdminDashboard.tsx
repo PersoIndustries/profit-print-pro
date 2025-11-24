@@ -38,6 +38,7 @@ interface UserStats {
   billing_period?: string | null;
   promo_code?: string | null;
   subscription_type?: 'paid' | 'promo' | 'trial' | 'free' | 'admin';
+  product_name?: string | null;
   materials_count: number;
   projects_count: number;
   orders_count: number;
@@ -1294,6 +1295,18 @@ const AdminDashboard = () => {
 
   const fetchAdminData = async () => {
     try {
+      // Fetch all products to get product names
+      const { data: productsData } = await supabase
+        .from('products' as any)
+        .select('name, tier, billing_period, product_type')
+        .eq('is_active', true);
+
+      const productsMap = new Map<string, string>();
+      (productsData || []).forEach((product: any) => {
+        const key = `${product.tier}_${product.billing_period}_${product.product_type}`;
+        productsMap.set(key, product.name);
+      });
+
       // Fetch all non-deleted profiles
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
@@ -1331,6 +1344,23 @@ const AdminDashboard = () => {
         const promoCode = (promoCodeRes.data as any)?.promo_codes?.code || null;
         const tier = subData?.tier || 'free';
         const status = subData?.status || 'active';
+        const billingPeriod = subData?.billing_period || null;
+        
+        // Get product name for paid subscriptions
+        let productName: string | null = null;
+        if (isPaid && hasStripe && tier !== 'free' && billingPeriod) {
+          // Try early_bird first (most common), then regular
+          const earlyBirdKey = `${tier}_${billingPeriod}_early_bird`;
+          const regularKey = `${tier}_${billingPeriod}_regular`;
+          productName = productsMap.get(earlyBirdKey) || productsMap.get(regularKey) || null;
+          
+          // If no product found, create a default name
+          if (!productName) {
+            const tierName = tier === 'tier_1' ? 'PROFESIONAL' : 'BUSINESS';
+            const periodName = billingPeriod === 'monthly' ? 'MONTHLY' : 'ANUAL';
+            productName = `Layer Suite - ${tierName} - ${periodName}`;
+          }
+        }
         
         // Determine subscription type
         let subscriptionType: 'paid' | 'promo' | 'trial' | 'free' | 'admin' = 'free';
@@ -1353,9 +1383,10 @@ const AdminDashboard = () => {
           expires_at: subData?.expires_at || null,
           is_paid_subscription: isPaid,
           stripe_subscription_id: subData?.stripe_subscription_id || null,
-          billing_period: subData?.billing_period || null,
+          billing_period: billingPeriod,
           promo_code: promoCode,
           subscription_type: subscriptionType,
+          product_name: productName,
           role: roleRes.data?.role || 'user',
           materials_count: materialsRes.count || 0,
           projects_count: projectsRes.count || 0,
@@ -2645,7 +2676,7 @@ const AdminDashboard = () => {
                                   : 'bg-muted text-muted-foreground'
                         }`}>
                           {userStat.subscription_type === 'paid' 
-                            ? 'PAGO' 
+                            ? (userStat.product_name || 'PAGO')
                             : userStat.subscription_type === 'promo'
                               ? 'PROMO CODE'
                               : userStat.subscription_type === 'trial'
@@ -2654,7 +2685,7 @@ const AdminDashboard = () => {
                                   ? 'ADMIN'
                                   : 'FREE'}
                         </span>
-                        {userStat.subscription_type === 'paid' && userStat.billing_period && (
+                        {userStat.subscription_type === 'paid' && userStat.billing_period && !userStat.product_name && (
                           <span className="text-xs text-muted-foreground capitalize">
                             {userStat.billing_period}
                           </span>
