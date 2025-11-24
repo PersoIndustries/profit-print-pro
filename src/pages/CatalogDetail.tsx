@@ -642,7 +642,8 @@ export default function CatalogDetail() {
                 onToggle={() => toggleSection(section.id)}
                 onEdit={handleEditSection}
                 onDelete={handleDeleteSection}
-                onNewProject={() => handleNewProject(section.id)}
+                onNewProject={() => handleNewProject(sec
+                  .tion.id)}
                 onEditProject={handleEditProject}
                 onDeleteProject={handleDeleteProject}
                 onNewProduct={handleNewProduct}
