@@ -102,6 +102,10 @@ const Settings = () => {
   const [refundSubmitting, setRefundSubmitting] = useState(false);
   const [recentInvoices, setRecentInvoices] = useState<any[]>([]);
   const [refundRequests, setRefundRequests] = useState<any[]>([]);
+  const [expandedRefundRequest, setExpandedRefundRequest] = useState<string | null>(null);
+  const [refundRequestMessages, setRefundRequestMessages] = useState<Map<string, any[]>>(new Map());
+  const [refundRequestNewMessage, setRefundRequestNewMessage] = useState<Map<string, string>>(new Map());
+  const [sendingRefundMessage, setSendingRefundMessage] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -1457,68 +1461,12 @@ const Settings = () => {
                         };
 
                         return (
-                          <Card key={request.id} className="border-l-4 border-l-primary/50">
-                            <CardContent className="p-4">
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="flex-1 space-y-2">
-                                  <div className="flex items-center gap-3 flex-wrap">
-                                    {getStatusBadge(request.status)}
-                                    <span className="text-sm font-medium">
-                                      {request.invoices && (Array.isArray(request.invoices) ? request.invoices[0] : request.invoices) 
-                                        ? `Factura: ${(Array.isArray(request.invoices) ? request.invoices[0] : request.invoices).invoice_number}` 
-                                        : `€${Math.abs(request.amount).toFixed(2)}`}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground">
-                                      {new Date(request.created_at).toLocaleDateString('es-ES', {
-                                        year: 'numeric',
-                                        month: 'short',
-                                        day: 'numeric',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                      })}
-                                    </span>
-                                  </div>
-                                  
-                                  <div className="space-y-1">
-                                    <p className="text-sm">
-                                      <span className="font-medium">Tipo:</span> {getRefundTypeLabel(request.refund_type)}
-                                    </p>
-                                    <p className="text-sm">
-                                      <span className="font-medium">Motivo:</span> {request.reason}
-                                    </p>
-                                    {request.description && (
-                                      <p className="text-sm text-muted-foreground">
-                                        {request.description}
-                                      </p>
-                                    )}
-                                    {request.admin_notes && (
-                                      <div className="mt-2 p-2 bg-muted rounded text-sm">
-                                        <span className="font-medium">Nota del administrador:</span>
-                                        <p className="text-muted-foreground mt-1">{request.admin_notes}</p>
-                                      </div>
-                                    )}
-                                    {request.processed_at && (
-                                      <p className="text-xs text-muted-foreground mt-2">
-                                        Procesado el: {new Date(request.processed_at).toLocaleDateString('es-ES', {
-                                          year: 'numeric',
-                                          month: 'short',
-                                          day: 'numeric',
-                                          hour: '2-digit',
-                                          minute: '2-digit'
-                                        })}
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-lg font-semibold text-primary">
-                                    €{Math.abs(request.amount).toFixed(2)}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">{request.currency || 'EUR'}</p>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
+                          <RefundRequestCard
+                            key={request.id}
+                            request={request}
+                            getStatusBadge={getStatusBadge}
+                            getRefundTypeLabel={getRefundTypeLabel}
+                          />
                         );
                       })}
                     </div>

@@ -130,7 +130,12 @@ const AdminDashboard = () => {
   const [refundRequestDialogOpen, setRefundRequestDialogOpen] = useState(false);
   const [selectedRefundRequest, setSelectedRefundRequest] = useState<any | null>(null);
   const [refundAdminNotes, setRefundAdminNotes] = useState<string>('');
+  const [refundUserMessage, setRefundUserMessage] = useState<string>('');
   const [refundAction, setRefundAction] = useState<'approve' | 'reject'>('approve');
+  const [refundMessages, setRefundMessages] = useState<any[]>([]);
+  const [refundNewMessage, setRefundNewMessage] = useState<string>('');
+  const [loadingRefundMessages, setLoadingRefundMessages] = useState(false);
+  const [sendingRefundMessage, setSendingRefundMessage] = useState(false);
   const [userAnalysisData, setUserAnalysisData] = useState<any>(null);
   const [loadingUserAnalysis, setLoadingUserAnalysis] = useState(false);
   
@@ -1058,11 +1063,132 @@ const AdminDashboard = () => {
     }
   };
 
-  const openRefundRequestDialog = (request: any, action: 'approve' | 'reject') => {
+  const openRefundRequestDialog = async (request: any, action: 'approve' | 'reject') => {
     setSelectedRefundRequest(request);
     setRefundAction(action);
     setRefundAdminNotes('');
+    setRefundUserMessage('');
+    setRefundNewMessage('');
     setRefundRequestDialogOpen(true);
+    // Load messages for this refund request
+    await fetchRefundMessages(request.id);
+  };
+
+  const fetchRefundMessages = async (refundRequestId: string) => {
+    try {
+      setLoadingRefundMessages(true);
+      // First, get the support ticket for this refund request
+      const { data: ticketData, error: ticketError } = await supabase
+        .from('support_tickets' as any)
+        .select('id')
+        .eq('related_entity_type', 'refund_request')
+        .eq('related_entity_id', refundRequestId)
+        .maybeSingle();
+
+      if (ticketError) throw ticketError;
+
+      if (!ticketData || !(ticketData as any).id) {
+        setRefundMessages([]);
+        return;
+      }
+
+      const ticketId = (ticketData as any).id;
+
+      // Then fetch messages for this ticket
+      const { data, error } = await supabase
+        .from('support_messages' as any)
+        .select(`
+          *,
+          profiles!support_messages_sender_id_fkey(id, email, full_name)
+        `)
+        .eq('ticket_id', ticketId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setRefundMessages(data || []);
+    } catch (error: any) {
+      console.error('Error fetching refund messages:', error);
+      toast.error('Error loading messages');
+    } finally {
+      setLoadingRefundMessages(false);
+    }
+  };
+
+  const sendRefundMessage = async () => {
+    if (!selectedRefundRequest || !user || !refundNewMessage.trim()) return;
+
+    try {
+      setSendingRefundMessage(true);
+      
+      // First, get or create the support ticket for this refund request
+      let { data: ticketData, error: ticketError } = await supabase
+        .from('support_tickets' as any)
+        .select('id')
+        .eq('related_entity_type', 'refund_request')
+        .eq('related_entity_id', selectedRefundRequest.id)
+        .maybeSingle();
+
+      if (ticketError) throw ticketError;
+
+      let ticketId: string;
+
+      // If ticket doesn't exist, create it
+      if (!ticketData || !(ticketData as any).id) {
+        const { data: newTicket, error: createError } = await supabase
+          .from('support_tickets' as any)
+          .insert({
+            user_id: selectedRefundRequest.user_id,
+            ticket_type: 'refund_request',
+            related_entity_type: 'refund_request',
+            related_entity_id: selectedRefundRequest.id,
+            title: `Solicitud de Refund - €${selectedRefundRequest.amount.toFixed(2)}`,
+            description: selectedRefundRequest.reason,
+            status: 'open',
+            priority: 'medium',
+            assigned_admin_id: user.id,
+          })
+          .select('id')
+          .single();
+
+        if (createError) throw createError;
+        ticketId = (newTicket as any).id;
+      } else {
+        ticketId = (ticketData as any).id;
+      }
+
+      // Send message
+      const { error } = await supabase
+        .from('support_messages' as any)
+        .insert({
+          ticket_id: ticketId,
+          sender_id: user.id,
+          sender_type: 'admin',
+          message: refundNewMessage.trim(),
+        });
+
+      if (error) throw error;
+
+      // Create notification for user
+      await supabase
+        .from('notifications' as any)
+        .insert({
+          user_id: selectedRefundRequest.user_id,
+          title: 'Nuevo mensaje sobre tu solicitud de refund',
+          message: `Tienes un nuevo mensaje del administrador sobre tu solicitud de refund.`,
+          type: 'info',
+          category: 'subscription',
+          action_url: '/settings?tab=support',
+        });
+
+      setRefundNewMessage('');
+      await fetchRefundMessages(selectedRefundRequest.id);
+      toast.success('Mensaje enviado');
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+      toast.error('Error al enviar mensaje');
+    } finally {
+      setSendingRefundMessage(false);
+    }
   };
 
   const handleProcessRefundRequest = async () => {
@@ -1074,6 +1200,7 @@ const AdminDashboard = () => {
           refundRequestId: selectedRefundRequest.id,
           action: refundAction,
           adminNotes: refundAdminNotes || null,
+          userMessage: refundUserMessage || null, // Message to send to user
           processInStripe: refundAction === 'approve', // Process in Stripe if approving
         },
       });
@@ -1092,6 +1219,7 @@ const AdminDashboard = () => {
       setRefundRequestDialogOpen(false);
       setSelectedRefundRequest(null);
       setRefundAdminNotes('');
+      setRefundUserMessage('');
       fetchRefundRequests();
     } catch (error: any) {
       console.error('Error processing refund request:', error);
@@ -3988,7 +4116,7 @@ const AdminDashboard = () => {
 
       {/* Refund Request Processing Dialog */}
       <Dialog open={refundRequestDialogOpen} onOpenChange={setRefundRequestDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {refundAction === 'approve' ? 'Approve' : 'Reject'} Refund Request
@@ -4016,15 +4144,86 @@ const AdminDashboard = () => {
                   <p>Demonstrable issue: {selectedRefundRequest.has_demonstrable_issue ? '✓' : '✗'}</p>
                 </div>
               </div>
+
+              {/* Conversation Section */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-3">Conversación</h3>
+                <div className="border rounded-lg p-4 bg-muted/30 max-h-64 overflow-y-auto space-y-3 mb-3">
+                  {loadingRefundMessages ? (
+                    <p className="text-sm text-muted-foreground">Cargando mensajes...</p>
+                  ) : refundMessages.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No hay mensajes aún</p>
+                  ) : (
+                    refundMessages.map((msg: any) => (
+                      <div
+                        key={msg.id}
+                        className={`p-3 rounded-lg ${
+                          msg.sender_type === 'admin'
+                            ? 'bg-primary/10 ml-8'
+                            : 'bg-background border mr-8'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-1">
+                          <span className="text-xs font-medium">
+                            {msg.sender_type === 'admin' ? 'Admin' : msg.profiles?.email || 'Usuario'}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(msg.created_at).toLocaleString('es-ES')}
+                          </span>
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Textarea
+                    value={refundNewMessage}
+                    onChange={(e) => setRefundNewMessage(e.target.value)}
+                    placeholder="Escribe un mensaje al usuario..."
+                    rows={2}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && e.ctrlKey) {
+                        sendRefundMessage();
+                      }
+                    }}
+                  />
+                  <Button
+                    onClick={sendRefundMessage}
+                    disabled={!refundNewMessage.trim() || sendingRefundMessage}
+                    size="sm"
+                    className="self-end"
+                  >
+                    {sendingRefundMessage ? 'Enviando...' : 'Enviar'}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Ctrl+Enter para enviar</p>
+              </div>
+
               <div>
-                <Label htmlFor="refund-admin-notes">Admin Notes</Label>
+                <Label htmlFor="refund-admin-notes">Admin Notes (Internal)</Label>
                 <Textarea
                   id="refund-admin-notes"
                   value={refundAdminNotes || ''}
                   onChange={(e) => setRefundAdminNotes(e.target.value)}
-                  placeholder="Add notes about this decision..."
+                  placeholder="Add internal notes about this decision..."
                   rows={3}
                 />
+                <p className="text-xs text-muted-foreground mt-1">These notes are only visible to admins</p>
+              </div>
+              <div>
+                <Label htmlFor="refund-user-message">Final Message to User *</Label>
+                <Textarea
+                  id="refund-user-message"
+                  value={refundUserMessage || ''}
+                  onChange={(e) => setRefundUserMessage(e.target.value)}
+                  placeholder={refundAction === 'approve' 
+                    ? "Escribe un mensaje final para informar al usuario sobre la aprobación del refund..."
+                    : "Escribe un mensaje final para explicar al usuario por qué se rechazó el refund..."}
+                  rows={4}
+                  required
+                />
+                <p className="text-xs text-muted-foreground mt-1">This message will be sent as a notification when processing</p>
               </div>
             </div>
           )}
@@ -4035,6 +4234,7 @@ const AdminDashboard = () => {
             <Button
               variant={refundAction === 'approve' ? 'default' : 'destructive'}
               onClick={handleProcessRefundRequest}
+              disabled={!refundUserMessage.trim()}
             >
               {refundAction === 'approve' ? 'Approve & Process Refund' : 'Reject Request'}
             </Button>

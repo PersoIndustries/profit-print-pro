@@ -23,6 +23,7 @@ interface RequestBody {
   refundRequestId: string;
   action: 'approve' | 'reject';
   adminNotes?: string;
+  userMessage?: string; // Message to send to user as notification
   processInStripe?: boolean; // If true, will also process refund in Stripe
 }
 
@@ -83,7 +84,7 @@ serve(async (req) => {
 
     // Parse request body
     const body: RequestBody = await req.json();
-    const { refundRequestId, action, adminNotes, processInStripe = false } = body;
+    const { refundRequestId, action, adminNotes, userMessage, processInStripe = false } = body;
 
     if (!refundRequestId || !action || !['approve', 'reject'].includes(action)) {
       return new Response(
@@ -299,6 +300,31 @@ serve(async (req) => {
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Create notification for the user
+    if (userMessage && userMessage.trim()) {
+      const notificationTitle = action === 'approve' 
+        ? 'Solicitud de Refund Aprobada' 
+        : 'Solicitud de Refund Rechazada';
+      
+      const notificationType = action === 'approve' ? 'success' : 'warning';
+      
+      const { error: notificationError } = await supabaseAdmin
+        .from('notifications')
+        .insert({
+          user_id: refundRequest.user_id,
+          title: notificationTitle,
+          message: userMessage,
+          type: notificationType,
+          category: 'subscription',
+          action_url: '/settings?tab=invoices', // Link to invoices tab
+        });
+
+      if (notificationError) {
+        console.error('Error creating notification:', notificationError);
+        // Don't fail the request if notification fails
+      }
     }
 
     return new Response(
