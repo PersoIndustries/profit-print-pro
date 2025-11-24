@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Settings as SettingsIcon, CreditCard, Receipt, User, TrendingUp, AlertCircle, Calendar, BarChart3, Shield, Clock, DollarSign, FileText, HelpCircle, Mail, MessageCircle } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -115,6 +116,19 @@ const Settings = () => {
     if (user) {
       fetchData();
     }
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      Object.keys(window).forEach(key => {
+        if (key.startsWith('support_channel_')) {
+          const channel = (window as any)[key];
+          if (channel) {
+            supabase.removeChannel(channel);
+            delete (window as any)[key];
+          }
+        }
+      });
+    };
   }, [user, authLoading, navigate]);
 
   const fetchData = async () => {
@@ -1413,19 +1427,28 @@ const Settings = () => {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h3 className="font-semibold text-lg flex items-center gap-2">
-                        <DollarSign className="h-5 w-5" />
-                        Historial de Solicitudes de Refund
+                        <MessageCircle className="h-5 w-5" />
+                        Historial de Soporte
                       </h3>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Consulta el estado de tus solicitudes de reembolso
+                        Consulta el estado de tus solicitudes de soporte
                       </p>
                     </div>
                   </div>
 
+                  {/* Development Disclaimer */}
+                  <Alert className="mb-4 border-orange-500/30 bg-orange-500/5">
+                    <AlertCircle className="h-4 w-4 text-orange-500" />
+                    <AlertTitle className="text-sm font-semibold">Sistema en Desarrollo</AlertTitle>
+                    <AlertDescription className="text-xs mt-1">
+                      Estamos trabajando en nuevas funcionalidades de soporte. Si experimentas algún problema, por favor contáctanos directamente.
+                    </AlertDescription>
+                  </Alert>
+
                   {refundRequests.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                      <DollarSign className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                      <p>No has realizado ninguna solicitud de refund</p>
+                      <MessageCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p>No tienes solicitudes de soporte</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -1545,6 +1568,8 @@ const Settings = () => {
                                                 return;
                                               }
 
+                                              const ticketId = (ticketData as any).id;
+
                                               // Fetch messages
                                               const { data: messagesData, error: messagesError } = await supabase
                                                 .from('support_messages' as any)
@@ -1552,7 +1577,7 @@ const Settings = () => {
                                                   *,
                                                   profiles!support_messages_sender_id_fkey(id, email, full_name)
                                                 `)
-                                                .eq('ticket_id', (ticketData as any).id)
+                                                .eq('ticket_id', ticketId)
                                                 .order('created_at', { ascending: true });
 
                                               if (messagesError) {
@@ -1570,6 +1595,42 @@ const Settings = () => {
                                                 newMap.set(request.id, messagesData || []);
                                                 return newMap;
                                               });
+
+                                              // Subscribe to new messages for this ticket
+                                              const channel = supabase
+                                                .channel(`support_messages_${ticketId}`)
+                                                .on(
+                                                  'postgres_changes',
+                                                  {
+                                                    event: 'INSERT',
+                                                    schema: 'public',
+                                                    table: 'support_messages',
+                                                    filter: `ticket_id=eq.${ticketId}`,
+                                                  },
+                                                  async (payload) => {
+                                                    // Fetch updated messages
+                                                    const { data: updatedMessages } = await supabase
+                                                      .from('support_messages' as any)
+                                                      .select(`
+                                                        *,
+                                                        profiles!support_messages_sender_id_fkey(id, email, full_name)
+                                                      `)
+                                                      .eq('ticket_id', ticketId)
+                                                      .order('created_at', { ascending: true });
+
+                                                    if (updatedMessages) {
+                                                      setRefundRequestMessages(prev => {
+                                                        const newMap = new Map(prev);
+                                                        newMap.set(request.id, updatedMessages);
+                                                        return newMap;
+                                                      });
+                                                    }
+                                                  }
+                                                )
+                                                .subscribe();
+
+                                              // Store channel reference for cleanup
+                                              (window as any)[`support_channel_${request.id}`] = channel;
                                             } catch (error: any) {
                                               console.error('Error loading messages:', error);
                                               setRefundRequestMessages(prev => {
@@ -1580,6 +1641,12 @@ const Settings = () => {
                                             }
                                           } else {
                                             setExpandedRefundRequest(null);
+                                            // Unsubscribe from channel
+                                            const channel = (window as any)[`support_channel_${request.id}`];
+                                            if (channel) {
+                                              await supabase.removeChannel(channel);
+                                              delete (window as any)[`support_channel_${request.id}`];
+                                            }
                                           }
                                         }}
                                         className="w-full"

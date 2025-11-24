@@ -1179,16 +1179,21 @@ const AdminDashboard = () => {
       if (error) throw error;
 
       // Create notification for user
-      await supabase
+      const { error: notificationError } = await supabase
         .from('notifications' as any)
         .insert({
           user_id: selectedRefundRequest.user_id,
-          title: 'Nuevo mensaje sobre tu solicitud de refund',
-          message: `Tienes un nuevo mensaje del administrador sobre tu solicitud de refund.`,
+          title: 'Nuevo mensaje de soporte',
+          message: `Tienes un nuevo mensaje del administrador en tu solicitud de soporte.`,
           type: 'info',
           category: 'subscription',
           action_url: '/settings?tab=support',
         });
+      
+      if (notificationError) {
+        console.error('Error creating notification:', notificationError);
+        // Don't fail the message send if notification fails
+      }
 
       setRefundNewMessage('');
       await fetchRefundMessages(selectedRefundRequest.id);
