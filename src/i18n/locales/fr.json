@@ -655,7 +655,8 @@
       "profile": "Profil",
       "security": "Sécurité",
       "subscription": "Abonnement",
-      "invoices": "Factures"
+      "invoices": "Factures",
+      "support": "Support"
     },
     "profile": {
       "title": "Informations du Profil",
@@ -751,7 +752,10 @@
       "errorChangingPassword": "Erreur lors du changement de mot de passe",
       "cannotCancelPermanent": "Vous ne pouvez pas annuler un abonnement obtenu via un code promotionnel permanent. Si vous avez besoin d'aide, contactez le support.",
       "promoCodeWarning": "Vous avez un code promotionnel appliqué ({{code}}). Si vous annulez, vous perdrez l'accès premium. Êtes-vous sûr?",
-      "cancelSubscriptionConfirm": "Êtes-vous sûr de vouloir annuler votre abonnement? Vous perdrez l'accès aux fonctionnalités premium."
+      "cancelSubscriptionConfirm": "Êtes-vous sûr de vouloir annuler votre abonnement? Vous perdrez l'accès aux fonctionnalités premium.",
+      "errorApplying": "Erreur lors de l'application du code. Réessayez.",
+      "errorApplyingCode": "Erreur lors de l'application du code promotionnel",
+      "errorApplyingCreatorCode": "Erreur lors de l'application du code de créateur"
     },
     "promoCode": {
       "title": "Code Promo",
@@ -765,6 +769,124 @@
       "tier_1": "Professional",
       "tier_2": "Business",
       "free": "Free"
+    },
+    "support": {
+      "title": "Support",
+      "description": "Besoin d'aide? Nous sommes là pour vous assister.",
+      "emailSupport": {
+        "title": "Support par Email",
+        "description": "Envoyez-nous un email avec votre demande et nous vous répondrons dans les plus brefs délais.",
+        "email": "support@layersuite.com"
+      },
+      "discord": {
+        "title": "Communauté Discord",
+        "description": "Rejoignez notre communauté Discord pour obtenir de l'aide, partager des idées et vous connecter avec d'autres utilisateurs.",
+        "join": "Rejoindre Discord"
+      },
+      "note": {
+        "title": "Note:",
+        "text": "Pour la meilleure assistance, incluez des détails sur votre problème ou votre demande. S'il s'agit d'un problème technique, mentionnez votre navigateur et votre système d'exploitation."
+      },
+      "history": {
+        "title": "Historique de Support",
+        "description": "Consultez le statut de vos demandes de support",
+        "empty": "Vous n'avez aucune demande de support",
+        "developmentDisclaimer": {
+          "title": "Système en Développement",
+          "description": "Nous travaillons sur de nouvelles fonctionnalités de support. Si vous rencontrez des problèmes, veuillez nous contacter directement."
+        }
+      },
+      "status": {
+        "pending": "En attente",
+        "approved": "Approuvé",
+        "processed": "Traité",
+        "rejected": "Rejeté"
+      },
+      "request": {
+        "invoice": "Facture",
+        "type": "Type:",
+        "reason": "Raison:",
+        "processedOn": "Traité le:",
+        "adminNote": "Note de l'administrateur:",
+        "conversation": "Conversation",
+        "viewConversation": "Voir",
+        "hideConversation": "Masquer",
+        "noMessages": "Aucun message pour le moment",
+        "you": "Vous",
+        "admin": "Admin",
+        "writeResponse": "Écrivez votre réponse...",
+        "sending": "Envoi...",
+        "send": "Envoyer",
+        "messageSent": "Message envoyé",
+        "errorSending": "Erreur lors de l'envoi du message",
+        "ticketNotFound": "Ticket de support introuvable"
+      },
+      "refundTypes": {
+        "monthly_payment": "Paiement Mensuel",
+        "annual_payment_error": "Erreur de Paiement (Annuel)",
+        "application_issue": "Problème de l'Application",
+        "other": "Autre"
+      },
+      "refundRequest": {
+        "title": "Demander un Remboursement",
+        "description": "Complétez le formulaire pour demander un remboursement. Votre demande sera examinée par un administrateur.",
+        "policy": {
+          "title": "Politique de Remboursement",
+          "company": "Jardiper S.C. - Carretera A131, km 1.8 S/N, Fraga, 22520, Espagne",
+          "rules": {
+            "rule1": "Maximum 1 semaine (7 jours) à partir du paiement pour demander un remboursement",
+            "rule2": "Maximum 15 jours pour les erreurs de paiement (annuel au lieu de mensuel)",
+            "rule3": "Ne pas avoir utilisé les limites maximales du plan",
+            "rule4": "Le remboursement ne peut être effectué que pour le mois en cours (pour les paiements mensuels)",
+            "rule5": "Il doit y avoir un problème grave démontrable avec l'application",
+            "rule6": "Le remboursement ne s'applique qu'à la période de facturation en cours. Pour plus d'informations, contactez support@layersuite.com"
+          }
+        },
+        "invoiceLabel": "Facture à Rembourser *",
+        "invoicePlaceholder": "Sélectionner une facture",
+        "typeLabel": "Type de Remboursement *",
+        "reasonLabel": "Raison *",
+        "reasonPlaceholder": "Brève description de la raison",
+        "descriptionLabel": "Description Détaillée",
+        "descriptionPlaceholder": "Décrivez le problème ou la situation en détail...",
+        "validate": "Valider la Demande",
+        "validating": "Validation...",
+        "cancel": "Annuler",
+        "submit": "Envoyer la Demande",
+        "submitting": "Envoi...",
+        "eligible": "✓ La demande répond à tous les critères",
+        "notEligible": "✗ La demande ne répond pas aux critères:",
+        "daysSincePayment": "Jours depuis le paiement:",
+        "usage": "Utilisation:",
+        "materials": "matériaux",
+        "projects": "projets",
+        "orders": "commandes",
+        "success": "Demande de remboursement envoyée avec succès",
+        "error": "Erreur lors de l'envoi de la demande",
+        "invoiceNotFound": "Facture introuvable",
+        "invalidCode": "Code invalide. Vérifiez que le code est correct.",
+        "errorApplying": "Erreur lors de l'application du code. Réessayez.",
+        "errorValidating": "Erreur lors de la validation de la demande"
+      }
+    },
+    "subscriptionStatus": {
+      "cancelledActive": "ANNULÉ - ACTIF",
+      "active": "ACTIF",
+      "accessUntil": "Accès jusqu'au",
+      "cancelledTitle": "Abonnement Annulé",
+      "cancelledDescription": "Votre abonnement a été annulé, mais vous avez toujours un accès complet jusqu'au",
+      "cancelledAfter": "Après cette date, votre compte sera rétrogradé au plan gratuit.",
+      "reactivate": "Réactiver l'Abonnement",
+      "trialEndsToday": "Votre essai gratuit se termine aujourd'hui",
+      "trialOneDayLeft": "Il vous reste 1 jour d'essai gratuit",
+      "trialDaysLeft": "Il vous reste {{days}} jours d'essai gratuit",
+      "trialExpires": "Votre abonnement d'essai expire le",
+      "trialUpgrade": "Mettez à niveau maintenant pour continuer à profiter de toutes les fonctionnalités premium.",
+      "viewPlans": "Voir les Plans"
+    },
+    "common": {
+      "save": "Enregistrer",
+      "actions": "Actions"
     }
   },
   "admin": {

@@ -666,7 +666,8 @@
       "profile": "Profile",
       "security": "Security",
       "subscription": "Subscription",
-      "invoices": "Invoices"
+      "invoices": "Invoices",
+      "support": "Support"
     },
     "profile": {
       "title": "Profile Information",
@@ -762,7 +763,10 @@
       "errorChangingPassword": "Error changing password",
       "cannotCancelPermanent": "You cannot cancel a subscription obtained through a permanent promotional code. If you need help, contact support.",
       "promoCodeWarning": "You have a promotional code applied ({{code}}). If you cancel, you will lose premium access. Are you sure?",
-      "cancelSubscriptionConfirm": "Are you sure you want to cancel your subscription? You will lose access to premium features."
+      "cancelSubscriptionConfirm": "Are you sure you want to cancel your subscription? You will lose access to premium features.",
+      "errorApplying": "Error applying code. Try again.",
+      "errorApplyingCode": "Error applying promotional code",
+      "errorApplyingCreatorCode": "Error applying creator code"
     },
     "promoCode": {
       "title": "Promo Code",
@@ -776,6 +780,124 @@
       "tier_1": "Professional",
       "tier_2": "Business",
       "free": "Free"
+    },
+    "support": {
+      "title": "Support",
+      "description": "Need help? We're here to assist you.",
+      "emailSupport": {
+        "title": "Email Support",
+        "description": "Send us an email with your inquiry and we'll respond as soon as possible.",
+        "email": "support@layersuite.com"
+      },
+      "discord": {
+        "title": "Discord Community",
+        "description": "Join our Discord community to get help, share ideas and connect with other users.",
+        "join": "Join Discord"
+      },
+      "note": {
+        "title": "Note:",
+        "text": "For the best assistance, include details about your problem or inquiry. If it's a technical issue, mention your browser and operating system."
+      },
+      "history": {
+        "title": "Support History",
+        "description": "Check the status of your support requests",
+        "empty": "You don't have any support requests",
+        "developmentDisclaimer": {
+          "title": "System in Development",
+          "description": "We're working on new support features. If you experience any issues, please contact us directly."
+        }
+      },
+      "status": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "processed": "Processed",
+        "rejected": "Rejected"
+      },
+      "request": {
+        "invoice": "Invoice",
+        "type": "Type:",
+        "reason": "Reason:",
+        "processedOn": "Processed on:",
+        "adminNote": "Admin note:",
+        "conversation": "Conversation",
+        "viewConversation": "View",
+        "hideConversation": "Hide",
+        "noMessages": "No messages yet",
+        "you": "You",
+        "admin": "Admin",
+        "writeResponse": "Write your response...",
+        "sending": "Sending...",
+        "send": "Send",
+        "messageSent": "Message sent",
+        "errorSending": "Error sending message",
+        "ticketNotFound": "Support ticket not found"
+      },
+      "refundTypes": {
+        "monthly_payment": "Monthly Payment",
+        "annual_payment_error": "Payment Error (Annual)",
+        "application_issue": "Application Issue",
+        "other": "Other"
+      },
+      "refundRequest": {
+        "title": "Request Refund",
+        "description": "Complete the form to request a refund. Your request will be reviewed by an administrator.",
+        "policy": {
+          "title": "Refund Policy",
+          "company": "Jardiper S.C. - Carretera A131, km 1.8 S/N, Fraga, 22520, Spain",
+          "rules": {
+            "rule1": "Maximum 1 week (7 days) from payment to request refund",
+            "rule2": "Maximum 15 days for payment errors (annual instead of monthly)",
+            "rule3": "Must not have used the maximum plan limits",
+            "rule4": "Refund can only be made for the current month (for monthly payments)",
+            "rule5": "There must be a serious demonstrable issue with the application",
+            "rule6": "Refund only applies to the current billing period. For more information, contact support@layersuite.com"
+          }
+        },
+        "invoiceLabel": "Invoice to Refund *",
+        "invoicePlaceholder": "Select an invoice",
+        "typeLabel": "Refund Type *",
+        "reasonLabel": "Reason *",
+        "reasonPlaceholder": "Brief description of the reason",
+        "descriptionLabel": "Detailed Description",
+        "descriptionPlaceholder": "Describe the problem or situation in detail...",
+        "validate": "Validate Request",
+        "validating": "Validating...",
+        "cancel": "Cancel",
+        "submit": "Submit Request",
+        "submitting": "Submitting...",
+        "eligible": "✓ Request meets all requirements",
+        "notEligible": "✗ Request does not meet requirements:",
+        "daysSincePayment": "Days since payment:",
+        "usage": "Usage:",
+        "materials": "materials",
+        "projects": "projects",
+        "orders": "orders",
+        "success": "Refund request submitted successfully",
+        "error": "Error submitting request",
+        "invoiceNotFound": "Invoice not found",
+        "invalidCode": "Invalid code. Verify that the code is correct.",
+        "errorApplying": "Error applying code. Try again.",
+        "errorValidating": "Error validating request"
+      }
+    },
+    "subscriptionStatus": {
+      "cancelledActive": "CANCELLED - ACTIVE",
+      "active": "ACTIVE",
+      "accessUntil": "Access until",
+      "cancelledTitle": "Subscription Cancelled",
+      "cancelledDescription": "Your subscription has been cancelled, but you still have full access until",
+      "cancelledAfter": "After that date, your account will be downgraded to the free plan.",
+      "reactivate": "Reactivate Subscription",
+      "trialEndsToday": "Your free trial ends today",
+      "trialOneDayLeft": "You have 1 day of free trial left",
+      "trialDaysLeft": "You have {{days}} days of free trial left",
+      "trialExpires": "Your trial subscription expires on",
+      "trialUpgrade": "Upgrade now to continue enjoying all premium features.",
+      "viewPlans": "View Plans"
+    },
+    "common": {
+      "save": "Save",
+      "actions": "Actions"
     }
   },
   "admin": {

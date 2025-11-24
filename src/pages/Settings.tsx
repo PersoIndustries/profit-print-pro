@@ -464,7 +464,7 @@ const Settings = () => {
     e.preventDefault();
     
     if (!code.trim()) {
-      toast.error('Por favor ingresa un código');
+      toast.error(t('settings.promoCode.emptyCode'));
       return;
     }
 
@@ -495,11 +495,11 @@ const Settings = () => {
             await fetchData();
             return;
           } else {
-            toast.error(result.message || 'Error al aplicar código promocional');
+            toast.error(result.message || t('settings.promoCode.error'));
             return;
           }
         } else if (promoError) {
-          toast.error(promoError.message || 'Error al aplicar código promocional');
+          toast.error(promoError.message || t('settings.promoCode.error'));
           return;
         }
       }
@@ -518,7 +518,7 @@ const Settings = () => {
         });
 
         if (creatorError) {
-          toast.error(creatorError.message || 'Error al aplicar código de creador');
+          toast.error(creatorError.message || t('settings.messages.errorApplying'));
           return;
         }
 
@@ -537,16 +537,16 @@ const Settings = () => {
           await fetchData();
           return;
         } else {
-          toast.error(result.message || 'Error al aplicar código de creador');
+          toast.error(result.message || t('settings.messages.errorApplying'));
           return;
         }
       }
 
       // Si no existe en ninguna tabla, mostrar error
-      toast.error('Código no válido. Verifica que el código sea correcto.');
+        toast.error(t('settings.messages.invalidCode'));
     } catch (error: any) {
       console.error("Error applying code:", error);
-      toast.error(error.message || 'Error al aplicar el código. Intenta nuevamente.');
+      toast.error(error.message || t('settings.messages.errorApplying'));
     } finally {
       setApplyingCode(false);
     }
@@ -568,13 +568,13 @@ const Settings = () => {
       setRefundValidation(data);
       const validation = data as any;
       if (validation?.eligible) {
-        toast.success('La solicitud cumple con todos los requisitos');
+        toast.success(t('settings.messages.requestEligible'));
       } else {
-        toast.error('La solicitud no cumple con los requisitos');
+        toast.error(t('settings.messages.requestNotEligible'));
       }
     } catch (error: any) {
       console.error('Error validating refund:', error);
-      toast.error(error.message || 'Error al validar la solicitud');
+      toast.error(error.message || t('settings.support.refundRequest.errorValidating'));
     } finally {
       setRefundValidating(false);
     }
@@ -588,7 +588,7 @@ const Settings = () => {
       // Get invoice amount
       const invoice = recentInvoices.find((inv) => inv.id === refundInvoiceId);
       if (!invoice) {
-        toast.error('Factura no encontrada');
+        toast.error(t('settings.support.refundRequest.invoiceNotFound'));
         return;
       }
 
@@ -603,7 +603,7 @@ const Settings = () => {
 
       if (error) throw error;
 
-      toast.success('Solicitud de refund enviada correctamente');
+      toast.success(t('settings.support.refundRequest.success'));
       setRefundDialogOpen(false);
       setRefundInvoiceId("");
       setRefundType("monthly_payment");
@@ -624,7 +624,7 @@ const Settings = () => {
       }
     } catch (error: any) {
       console.error('Error submitting refund request:', error);
-      toast.error(error.message || 'Error al enviar la solicitud');
+      toast.error(error.message || t('settings.support.refundRequest.error'));
     } finally {
       setRefundSubmitting(false);
     }
@@ -683,7 +683,7 @@ const Settings = () => {
             </TabsTrigger>
             <TabsTrigger value="support">
               <HelpCircle className="h-4 w-4 mr-2" />
-              Soporte
+              {t('settings.tabs.support')}
             </TabsTrigger>
           </TabsList>
 
@@ -875,14 +875,14 @@ const Settings = () => {
                                     : 'text-destructive'
                               }`}>
                                 {isCancelledButActive 
-                                  ? 'CANCELADO - ACTIVO'
+                                  ? t('settings.subscriptionStatus.cancelledActive')
                                   : (subscriptionInfo.is_paid_subscription && subscriptionInfo.status === 'trial') 
-                                    ? 'ACTIVE' 
+                                    ? t('settings.subscriptionStatus.active') 
                                     : subscriptionInfo.status.toUpperCase()}
                               </p>
                               {isCancelledButActive && subscriptionInfo.expires_at && (
                                 <p className="text-xs text-muted-foreground mt-1">
-                                  Acceso hasta {new Date(subscriptionInfo.expires_at).toLocaleDateString()}
+                                  {t('settings.subscriptionStatus.accessUntil')} {new Date(subscriptionInfo.expires_at).toLocaleDateString()}
                                 </p>
                               )}
                             </div>
@@ -901,15 +901,15 @@ const Settings = () => {
                             <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
                             <div className="flex-1">
                               <h4 className="font-semibold text-orange-600 mb-1">
-                                Suscripción Cancelada
+                                {t('settings.subscriptionStatus.cancelledTitle')}
                               </h4>
                               <p className="text-sm text-muted-foreground mb-3">
-                                Tu suscripción ha sido cancelada, pero aún tienes acceso completo hasta el{' '}
+                                {t('settings.subscriptionStatus.cancelledDescription')}{' '}
                                 <strong>{new Date(subscriptionInfo.expires_at).toLocaleDateString()}</strong>.
-                                Después de esa fecha, tu cuenta se degradará al plan gratuito.
+                                {t('settings.subscriptionStatus.cancelledAfter')}
                               </p>
                               <Button size="sm" onClick={() => navigate('/pricing')} variant="outline">
-                                Reactivar Suscripción
+                                {t('settings.subscriptionStatus.reactivate')}
                               </Button>
                             </div>
                           </div>
@@ -944,21 +944,21 @@ const Settings = () => {
                                   : 'text-primary'
                               }`}>
                                 {subscription.daysRemaining === 0 
-                                  ? 'Tu prueba gratuita termina hoy'
+                                  ? t('settings.subscriptionStatus.trialEndsToday')
                                   : subscription.daysRemaining === 1
-                                  ? 'Te queda 1 día de prueba gratuita'
-                                  : `Te quedan ${subscription.daysRemaining} días de prueba gratuita`}
+                                  ? t('settings.subscriptionStatus.trialOneDayLeft')
+                                  : t('settings.subscriptionStatus.trialDaysLeft', { days: subscription.daysRemaining })}
                               </h4>
                               <p className="text-sm text-muted-foreground mb-3">
-                                Tu suscripción de prueba expira el {subscriptionInfo.expires_at ? new Date(subscriptionInfo.expires_at).toLocaleDateString() : 'pronto'}. 
-                                Actualiza ahora para seguir disfrutando de todas las funcionalidades premium.
+                                {t('settings.subscriptionStatus.trialExpires')} {subscriptionInfo.expires_at ? new Date(subscriptionInfo.expires_at).toLocaleDateString() : 'pronto'}. 
+                                {t('settings.subscriptionStatus.trialUpgrade')}
                               </p>
                               <Button 
                                 size="sm" 
                                 onClick={() => navigate('/pricing')}
                                 variant="default"
                               >
-                                Ver Planes
+                                {t('settings.subscriptionStatus.viewPlans')}
                               </Button>
                             </div>
                           </div>
@@ -1308,7 +1308,7 @@ const Settings = () => {
                         <TableHead>{t('settings.invoices.period')}</TableHead>
                         <TableHead>{t('settings.invoices.amount')}</TableHead>
                         <TableHead>{t('settings.invoices.status')}</TableHead>
-                        <TableHead>Acciones</TableHead>
+                        <TableHead>{t('settings.invoices.actions')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1340,11 +1340,11 @@ const Settings = () => {
                                 className="text-xs"
                               >
                                 <DollarSign className="h-3 w-3 mr-1" />
-                                Solicitar Refund
+                                {t('settings.support.refundRequest.title')}
                               </Button>
                             )}
                             {invoice.status === 'refunded' && (
-                              <span className="text-xs text-muted-foreground">Reembolsado</span>
+                              <span className="text-xs text-muted-foreground">{t('settings.invoices.refunded')}</span>
                             )}
                           </TableCell>
                         </TableRow>
@@ -1361,10 +1361,10 @@ const Settings = () => {
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2">
                   <HelpCircle className="h-5 w-5" />
-                  Soporte
+                  {t('settings.support.title')}
                 </CardTitle>
                 <CardDescription>
-                  ¿Necesitas ayuda? Estamos aquí para asistirte.
+                  {t('settings.support.description')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -1373,16 +1373,16 @@ const Settings = () => {
                     <div className="flex items-start gap-4">
                       <Mail className="h-6 w-6 text-primary mt-1" />
                       <div className="flex-1">
-                        <h3 className="font-semibold text-lg mb-2">Soporte por Email</h3>
+                        <h3 className="font-semibold text-lg mb-2">{t('settings.support.emailSupport.title')}</h3>
                         <p className="text-muted-foreground mb-4">
-                          Envíanos un email con tu consulta y te responderemos lo antes posible.
+                          {t('settings.support.emailSupport.description')}
                         </p>
                         <a
-                          href="mailto:support@layersuite.com"
+                          href={`mailto:${t('settings.support.emailSupport.email')}`}
                           className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
                         >
                           <Mail className="h-4 w-4" />
-                          support@layersuite.com
+                          {t('settings.support.emailSupport.email')}
                         </a>
                       </div>
                     </div>
@@ -1392,9 +1392,9 @@ const Settings = () => {
                     <div className="flex items-start gap-4">
                       <MessageCircle className="h-6 w-6 text-primary mt-1" />
                       <div className="flex-1">
-                        <h3 className="font-semibold text-lg mb-2">Comunidad Discord</h3>
+                        <h3 className="font-semibold text-lg mb-2">{t('settings.support.discord.title')}</h3>
                         <p className="text-muted-foreground mb-4">
-                          Únete a nuestra comunidad en Discord para obtener ayuda, compartir ideas y conectar con otros usuarios.
+                          {t('settings.support.discord.description')}
                         </p>
                         <a
                           href="https://discord.gg/GHAq7BrZta"
@@ -1403,7 +1403,7 @@ const Settings = () => {
                           className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
                         >
                           <MessageCircle className="h-4 w-4" />
-                          Unirse a Discord
+                          {t('settings.support.discord.join')}
                         </a>
                       </div>
                     </div>
@@ -1414,8 +1414,7 @@ const Settings = () => {
                       <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
                       <div className="flex-1">
                         <p className="text-sm text-blue-900 dark:text-blue-100">
-                          <strong>Nota:</strong> Para obtener la mejor asistencia, incluye detalles sobre tu problema o consulta. 
-                          Si es un problema técnico, menciona tu navegador y sistema operativo.
+                          <strong>{t('settings.support.note.title')}</strong> {t('settings.support.note.text')}
                         </p>
                       </div>
                     </div>
@@ -1428,10 +1427,10 @@ const Settings = () => {
                     <div>
                       <h3 className="font-semibold text-lg flex items-center gap-2">
                         <MessageCircle className="h-5 w-5" />
-                        Historial de Soporte
+                        {t('settings.support.history.title')}
                       </h3>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Consulta el estado de tus solicitudes de soporte
+                        {t('settings.support.history.description')}
                       </p>
                     </div>
                   </div>
@@ -1439,16 +1438,16 @@ const Settings = () => {
                   {/* Development Disclaimer */}
                   <Alert className="mb-4 border-orange-500/30 bg-orange-500/5">
                     <AlertCircle className="h-4 w-4 text-orange-500" />
-                    <AlertTitle className="text-sm font-semibold">Sistema en Desarrollo</AlertTitle>
+                    <AlertTitle className="text-sm font-semibold">{t('settings.support.history.developmentDisclaimer.title')}</AlertTitle>
                     <AlertDescription className="text-xs mt-1">
-                      Estamos trabajando en nuevas funcionalidades de soporte. Si experimentas algún problema, por favor contáctanos directamente.
+                      {t('settings.support.history.developmentDisclaimer.description')}
                     </AlertDescription>
                   </Alert>
 
                   {refundRequests.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       <MessageCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                      <p>No tienes solicitudes de soporte</p>
+                      <p>{t('settings.support.history.empty')}</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -1456,13 +1455,13 @@ const Settings = () => {
                         const getStatusBadge = (status: string) => {
                           switch (status) {
                             case 'pending':
-                              return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 dark:bg-yellow-950/20 dark:text-yellow-400">Pendiente</Badge>;
+                              return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 dark:bg-yellow-950/20 dark:text-yellow-400">{t('settings.support.status.pending')}</Badge>;
                             case 'approved':
-                              return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/20 dark:text-blue-400">Aprobado</Badge>;
+                              return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/20 dark:text-blue-400">{t('settings.support.status.approved')}</Badge>;
                             case 'processed':
-                              return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 dark:bg-green-950/20 dark:text-green-400">Procesado</Badge>;
+                              return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 dark:bg-green-950/20 dark:text-green-400">{t('settings.support.status.processed')}</Badge>;
                             case 'rejected':
-                              return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300 dark:bg-red-950/20 dark:text-red-400">Rechazado</Badge>;
+                              return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300 dark:bg-red-950/20 dark:text-red-400">{t('settings.support.status.rejected')}</Badge>;
                             default:
                               return <Badge variant="outline">{status}</Badge>;
                           }
@@ -1471,13 +1470,13 @@ const Settings = () => {
                         const getRefundTypeLabel = (type: string) => {
                           switch (type) {
                             case 'monthly_payment':
-                              return 'Pago Mensual';
+                              return t('settings.support.refundTypes.monthly_payment');
                             case 'annual_payment_error':
-                              return 'Error de Pago (Anual)';
+                              return t('settings.support.refundTypes.annual_payment_error');
                             case 'application_issue':
-                              return 'Problema de la Aplicación';
+                              return t('settings.support.refundTypes.application_issue');
                             case 'other':
-                              return 'Otro';
+                              return t('settings.support.refundTypes.other');
                             default:
                               return type;
                           }
@@ -1495,7 +1494,7 @@ const Settings = () => {
                                     {getStatusBadge(request.status)}
                                     <span className="text-sm font-medium">
                                       {request.invoices && (Array.isArray(request.invoices) ? request.invoices[0] : request.invoices) 
-                                        ? `Factura: ${(Array.isArray(request.invoices) ? request.invoices[0] : request.invoices).invoice_number}` 
+                                        ? `${t('settings.support.request.invoice')}: ${(Array.isArray(request.invoices) ? request.invoices[0] : request.invoices).invoice_number}` 
                                         : `€${Math.abs(request.amount).toFixed(2)}`}
                                     </span>
                                     <span className="text-xs text-muted-foreground">
@@ -1511,10 +1510,10 @@ const Settings = () => {
                                   
                                   <div className="space-y-1">
                                     <p className="text-sm">
-                                      <span className="font-medium">Tipo:</span> {getRefundTypeLabel(request.refund_type)}
+                                      <span className="font-medium">{t('settings.support.request.type')}</span> {getRefundTypeLabel(request.refund_type)}
                                     </p>
                                     <p className="text-sm">
-                                      <span className="font-medium">Motivo:</span> {request.reason}
+                                      <span className="font-medium">{t('settings.support.request.reason')}</span> {request.reason}
                                     </p>
                                     {request.description && (
                                       <p className="text-sm text-muted-foreground">
@@ -1523,13 +1522,13 @@ const Settings = () => {
                                     )}
                                     {request.admin_notes && (
                                       <div className="mt-2 p-2 bg-muted rounded text-sm">
-                                        <span className="font-medium">Nota del administrador:</span>
+                                        <span className="font-medium">{t('settings.support.request.adminNote')}</span>
                                         <p className="text-muted-foreground mt-1">{request.admin_notes}</p>
                                       </div>
                                     )}
                                     {request.processed_at && (
                                       <p className="text-xs text-muted-foreground mt-2">
-                                        Procesado el: {new Date(request.processed_at).toLocaleDateString('es-ES', {
+                                        {t('settings.support.request.processedOn')} {new Date(request.processed_at).toLocaleDateString('es-ES', {
                                           year: 'numeric',
                                           month: 'short',
                                           day: 'numeric',
@@ -1652,14 +1651,14 @@ const Settings = () => {
                                         className="w-full"
                                       >
                                         <MessageCircle className="h-4 w-4 mr-2" />
-                                        {isExpanded ? 'Ocultar' : 'Ver'} Conversación ({messages.length})
+                                        {isExpanded ? t('settings.support.request.hideConversation') : t('settings.support.request.viewConversation')} {t('settings.support.request.conversation')} ({messages.length})
                                       </Button>
 
                                       {isExpanded && (
                                         <div className="mt-3 space-y-3">
                                           <div className="border rounded-lg p-3 bg-muted/30 max-h-64 overflow-y-auto space-y-2">
                                             {messages.length === 0 ? (
-                                              <p className="text-sm text-muted-foreground text-center py-4">No hay mensajes aún</p>
+                                              <p className="text-sm text-muted-foreground text-center py-4">{t('settings.support.request.noMessages')}</p>
                                             ) : (
                                               messages.map((msg: any) => (
                                                 <div
@@ -1672,7 +1671,7 @@ const Settings = () => {
                                                 >
                                                   <div className="flex items-start justify-between mb-1">
                                                     <span className="text-xs font-medium">
-                                                      {msg.sender_type === 'admin' ? 'Admin' : 'Tú'}
+                                                      {msg.sender_type === 'admin' ? t('settings.support.request.admin') : t('settings.support.request.you')}
                                                     </span>
                                                     <span className="text-xs text-muted-foreground">
                                                       {new Date(msg.created_at).toLocaleString('es-ES')}
@@ -1691,7 +1690,7 @@ const Settings = () => {
                                                 newMap.set(request.id, e.target.value);
                                                 setRefundRequestNewMessage(newMap);
                                               }}
-                                              placeholder="Escribe tu respuesta..."
+                                              placeholder={t('settings.support.request.writeResponse')}
                                               rows={2}
                                             />
                                             <Button
@@ -1710,7 +1709,7 @@ const Settings = () => {
                                                     .maybeSingle();
 
                                                   if (ticketError || !ticketData) {
-                                                    toast.error('No se encontró el ticket de soporte');
+                                                    toast.error(t('settings.support.request.ticketNotFound'));
                                                     return;
                                                   }
 
@@ -1749,10 +1748,10 @@ const Settings = () => {
                                                   const newMap = new Map(refundRequestNewMessage);
                                                   newMap.set(request.id, '');
                                                   setRefundRequestNewMessage(newMap);
-                                                  toast.success('Mensaje enviado');
+                                                  toast.success(t('settings.support.request.messageSent'));
                                                 } catch (error: any) {
                                                   console.error('Error sending message:', error);
-                                                  toast.error('Error al enviar mensaje');
+                                                  toast.error(t('settings.support.request.errorSending'));
                                                 } finally {
                                                   setSendingRefundMessage(false);
                                                 }
@@ -1761,7 +1760,7 @@ const Settings = () => {
                                               size="sm"
                                               className="self-end"
                                             >
-                                              {sendingRefundMessage ? 'Enviando...' : 'Enviar'}
+                                              {sendingRefundMessage ? t('settings.support.request.sending') : t('settings.support.request.send')}
                                             </Button>
                                           </div>
                                         </div>
@@ -1794,10 +1793,10 @@ const Settings = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5" />
-              Solicitar Refund
+              {t('settings.support.refundRequest.title')}
             </DialogTitle>
             <DialogDescription>
-              Completa el formulario para solicitar un refund. Tu solicitud será revisada por un administrador.
+              {t('settings.support.refundRequest.description')}
             </DialogDescription>
           </DialogHeader>
 
@@ -1805,32 +1804,32 @@ const Settings = () => {
             {/* Refund Policy */}
             <Card className="border-orange-500/30 bg-orange-500/5">
               <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
+                  <CardTitle className="text-base flex items-center gap-2">
                   <FileText className="h-4 w-4" />
-                  Política de Refunds
+                  {t('settings.support.refundRequest.policy.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <p className="text-muted-foreground mb-2">
-                  <strong>Jardiper S.C.</strong> - Carretera A131, km 1.8 S/N, Fraga, 22520, España
+                  <strong>{t('settings.support.refundRequest.policy.company')}</strong>
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li>Máximo 1 semana (7 días) desde el pago para solicitar refund</li>
-                  <li>Máximo 15 días para errores de pago (anual en vez de mensual)</li>
-                  <li>No haber utilizado los límites máximos del plan</li>
-                  <li>Solo se puede hacer refund del mes actual (para pagos mensuales)</li>
-                  <li>Debe haber un problema grave demostrable por la aplicación</li>
-                  <li>El refund solo aplica al período de facturación actual. Para más información, contacte a support@layersuite.com</li>
+                  <li>{t('settings.support.refundRequest.policy.rules.rule1')}</li>
+                  <li>{t('settings.support.refundRequest.policy.rules.rule2')}</li>
+                  <li>{t('settings.support.refundRequest.policy.rules.rule3')}</li>
+                  <li>{t('settings.support.refundRequest.policy.rules.rule4')}</li>
+                  <li>{t('settings.support.refundRequest.policy.rules.rule5')}</li>
+                  <li>{t('settings.support.refundRequest.policy.rules.rule6')}</li>
                 </ul>
               </CardContent>
             </Card>
 
             {/* Invoice Selection */}
             <div>
-              <Label htmlFor="refund-invoice">Factura a Reembolsar *</Label>
+              <Label htmlFor="refund-invoice">{t('settings.support.refundRequest.invoiceLabel')}</Label>
               <Select value={refundInvoiceId} onValueChange={setRefundInvoiceId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona una factura" />
+                  <SelectValue placeholder={t('settings.support.refundRequest.invoicePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   {(recentInvoices.length > 0 ? recentInvoices : invoices.filter((inv: any) => inv.status === 'paid' && inv.amount > 0)).map((invoice) => (
@@ -1844,39 +1843,39 @@ const Settings = () => {
 
             {/* Refund Type */}
             <div>
-              <Label htmlFor="refund-type">Tipo de Refund *</Label>
+              <Label htmlFor="refund-type">{t('settings.support.refundRequest.typeLabel')}</Label>
               <Select value={refundType} onValueChange={setRefundType}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="monthly_payment">Pago Mensual</SelectItem>
-                  <SelectItem value="annual_payment_error">Error de Pago (Anual en vez de Mensual)</SelectItem>
-                  <SelectItem value="application_issue">Problema Grave de la Aplicación</SelectItem>
-                  <SelectItem value="other">Otro</SelectItem>
+                  <SelectItem value="monthly_payment">{t('settings.support.refundTypes.monthly_payment')}</SelectItem>
+                  <SelectItem value="annual_payment_error">{t('settings.support.refundTypes.annual_payment_error')}</SelectItem>
+                  <SelectItem value="application_issue">{t('settings.support.refundTypes.application_issue')}</SelectItem>
+                  <SelectItem value="other">{t('settings.support.refundTypes.other')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Reason */}
             <div>
-              <Label htmlFor="refund-reason">Motivo *</Label>
+              <Label htmlFor="refund-reason">{t('settings.support.refundRequest.reasonLabel')}</Label>
               <Input
                 id="refund-reason"
                 value={refundReason}
                 onChange={(e) => setRefundReason(e.target.value)}
-                placeholder="Breve descripción del motivo"
+                placeholder={t('settings.support.refundRequest.reasonPlaceholder')}
               />
             </div>
 
             {/* Description */}
             <div>
-              <Label htmlFor="refund-description">Descripción Detallada</Label>
+              <Label htmlFor="refund-description">{t('settings.support.refundRequest.descriptionLabel')}</Label>
               <Textarea
                 id="refund-description"
                 value={refundDescription}
                 onChange={(e) => setRefundDescription(e.target.value)}
-                placeholder="Describe el problema o situación en detalle..."
+                placeholder={t('settings.support.refundRequest.descriptionPlaceholder')}
                 rows={4}
               />
             </div>
@@ -1889,7 +1888,7 @@ const Settings = () => {
               disabled={!refundInvoiceId || !refundType || refundValidating}
               className="w-full"
             >
-              {refundValidating ? 'Validando...' : 'Validar Solicitud'}
+              {refundValidating ? t('settings.support.refundRequest.validating') : t('settings.support.refundRequest.validate')}
             </Button>
 
             {/* Validation Results */}
@@ -1898,17 +1897,17 @@ const Settings = () => {
                 <CardContent className="pt-6">
                   {refundValidation.eligible ? (
                     <div className="space-y-2">
-                      <p className="text-sm font-semibold text-green-600">✓ La solicitud cumple con todos los requisitos</p>
+                      <p className="text-sm font-semibold text-green-600">{t('settings.support.refundRequest.eligible')}</p>
                       {refundValidation.validation && (
                         <div className="text-xs text-muted-foreground space-y-1">
-                          <p>Días desde el pago: {refundValidation.validation.days_since_payment}</p>
-                          <p>Uso: {refundValidation.validation.usage.materials} materiales, {refundValidation.validation.usage.projects} proyectos, {refundValidation.validation.usage.orders} pedidos</p>
+                          <p>{t('settings.support.refundRequest.daysSincePayment')} {refundValidation.validation.days_since_payment}</p>
+                          <p>{t('settings.support.refundRequest.usage')} {refundValidation.validation.usage.materials} {t('settings.support.refundRequest.materials')}, {refundValidation.validation.usage.projects} {t('settings.support.refundRequest.projects')}, {refundValidation.validation.usage.orders} {t('settings.support.refundRequest.orders')}</p>
                         </div>
                       )}
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <p className="text-sm font-semibold text-red-600">✗ La solicitud no cumple con los requisitos:</p>
+                      <p className="text-sm font-semibold text-red-600">{t('settings.support.refundRequest.notEligible')}</p>
                       <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
                         {refundValidation.errors?.map((error: string, idx: number) => (
                           <li key={idx}>{error}</li>
@@ -1934,14 +1933,14 @@ const Settings = () => {
                 }}
                 className="flex-1"
               >
-                Cancelar
+                {t('settings.support.refundRequest.cancel')}
               </Button>
               <Button
                 onClick={handleSubmitRefundRequest}
                 disabled={!refundValidation?.eligible || !refundReason.trim() || refundSubmitting}
                 className="flex-1"
               >
-                {refundSubmitting ? 'Enviando...' : 'Enviar Solicitud'}
+                {refundSubmitting ? t('settings.support.refundRequest.submitting') : t('settings.support.refundRequest.submit')}
               </Button>
             </div>
           </div>
