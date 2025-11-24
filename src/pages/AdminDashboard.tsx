@@ -1078,10 +1078,14 @@ const AdminDashboard = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Function invoke error:', error);
+        throw new Error(error.message || 'Error al invocar la función');
+      }
 
       if (data?.error) {
-        throw new Error(data.error);
+        console.error('Function returned error:', data);
+        throw new Error(data.error + (data.details ? `: ${data.details}` : ''));
       }
 
       toast.success(data?.message || `Refund request ${refundAction === 'approve' ? 'approved and processed' : 'rejected'} successfully`);
@@ -1091,7 +1095,8 @@ const AdminDashboard = () => {
       fetchRefundRequests();
     } catch (error: any) {
       console.error('Error processing refund request:', error);
-      toast.error(error.message || `Error ${refundAction === 'approve' ? 'approving' : 'rejecting'} refund request`);
+      const errorMessage = error.message || error.toString() || `Error ${refundAction === 'approve' ? 'approving' : 'rejecting'} refund request`;
+      toast.error(errorMessage);
     }
   };
 

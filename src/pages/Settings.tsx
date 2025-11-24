@@ -101,6 +101,7 @@ const Settings = () => {
   const [refundValidation, setRefundValidation] = useState<any>(null);
   const [refundSubmitting, setRefundSubmitting] = useState(false);
   const [recentInvoices, setRecentInvoices] = useState<any[]>([]);
+  const [refundRequests, setRefundRequests] = useState<any[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -116,7 +117,7 @@ const Settings = () => {
     try {
       if (!user) return;
       
-      const [profileRes, subRes, invoicesRes, promoCodeRes, creatorCodeRes] = await Promise.all([
+      const [profileRes, subRes, invoicesRes, promoCodeRes, creatorCodeRes, refundRequestsRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
         supabase.from("user_subscriptions").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("invoices").select("*").eq("user_id", user.id).order("issued_date", { ascending: false }),
@@ -152,10 +153,12 @@ const Settings = () => {
           .maybeSingle(),
         supabase
           .from("refund_requests")
-          .select("*")
+          .select(`
+            *,
+            invoices!refund_requests_invoice_id_fkey(invoice_number, amount)
+          `)
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
-          .limit(5)
       ]);
 
       if (profileRes.data) {
@@ -217,6 +220,10 @@ const Settings = () => {
           .filter((inv: any) => inv.status === 'paid' && inv.amount > 0)
           .slice(0, 5);
         setRecentInvoices(paidInvoices);
+      }
+
+      if (refundRequestsRes.data) {
+        setRefundRequests(refundRequestsRes.data);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -585,6 +592,18 @@ const Settings = () => {
       setRefundReason("");
       setRefundDescription("");
       setRefundValidation(null);
+      // Refresh refund requests list
+      if (user) {
+        const { data } = await supabase
+          .from("refund_requests")
+          .select(`
+            *,
+            invoices!refund_requests_invoice_id_fkey(invoice_number, amount)
+          `)
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+        if (data) setRefundRequests(data);
+      }
     } catch (error: any) {
       console.error('Error submitting refund request:', error);
       toast.error(error.message || 'Error al enviar la solicitud');
@@ -1383,6 +1402,127 @@ const Settings = () => {
                       </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Refund Requests History */}
+                <div className="border-t pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="font-semibold text-lg flex items-center gap-2">
+                        <DollarSign className="h-5 w-5" />
+                        Historial de Solicitudes de Refund
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Consulta el estado de tus solicitudes de reembolso
+                      </p>
+                    </div>
+                  </div>
+
+                  {refundRequests.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <DollarSign className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p>No has realizado ninguna solicitud de refund</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {refundRequests.map((request: any) => {
+                        const getStatusBadge = (status: string) => {
+                          switch (status) {
+                            case 'pending':
+                              return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300 dark:bg-yellow-950/20 dark:text-yellow-400">Pendiente</Badge>;
+                            case 'approved':
+                              return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/20 dark:text-blue-400">Aprobado</Badge>;
+                            case 'processed':
+                              return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 dark:bg-green-950/20 dark:text-green-400">Procesado</Badge>;
+                            case 'rejected':
+                              return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300 dark:bg-red-950/20 dark:text-red-400">Rechazado</Badge>;
+                            default:
+                              return <Badge variant="outline">{status}</Badge>;
+                          }
+                        };
+
+                        const getRefundTypeLabel = (type: string) => {
+                          switch (type) {
+                            case 'monthly_payment':
+                              return 'Pago Mensual';
+                            case 'annual_payment_error':
+                              return 'Error de Pago (Anual)';
+                            case 'application_issue':
+                              return 'Problema de la Aplicación';
+                            case 'other':
+                              return 'Otro';
+                            default:
+                              return type;
+                          }
+                        };
+
+                        return (
+                          <Card key={request.id} className="border-l-4 border-l-primary/50">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1 space-y-2">
+                                  <div className="flex items-center gap-3 flex-wrap">
+                                    {getStatusBadge(request.status)}
+                                    <span className="text-sm font-medium">
+                                      {request.invoices && (Array.isArray(request.invoices) ? request.invoices[0] : request.invoices) 
+                                        ? `Factura: ${(Array.isArray(request.invoices) ? request.invoices[0] : request.invoices).invoice_number}` 
+                                        : `€${Math.abs(request.amount).toFixed(2)}`}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {new Date(request.created_at).toLocaleDateString('es-ES', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="space-y-1">
+                                    <p className="text-sm">
+                                      <span className="font-medium">Tipo:</span> {getRefundTypeLabel(request.refund_type)}
+                                    </p>
+                                    <p className="text-sm">
+                                      <span className="font-medium">Motivo:</span> {request.reason}
+                                    </p>
+                                    {request.description && (
+                                      <p className="text-sm text-muted-foreground">
+                                        {request.description}
+                                      </p>
+                                    )}
+                                    {request.admin_notes && (
+                                      <div className="mt-2 p-2 bg-muted rounded text-sm">
+                                        <span className="font-medium">Nota del administrador:</span>
+                                        <p className="text-muted-foreground mt-1">{request.admin_notes}</p>
+                                      </div>
+                                    )}
+                                    {request.processed_at && (
+                                      <p className="text-xs text-muted-foreground mt-2">
+                                        Procesado el: {new Date(request.processed_at).toLocaleDateString('es-ES', {
+                                          year: 'numeric',
+                                          month: 'short',
+                                          day: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-lg font-semibold text-primary">
+                                    €{Math.abs(request.amount).toFixed(2)}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">{request.currency || 'EUR'}</p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
