@@ -139,6 +139,10 @@ const Inventory = () => {
   const [materialToDelete, setMaterialToDelete] = useState<Material | null>(null);
   const [materialInUse, setMaterialInUse] = useState<{ inUse: boolean; projectName?: string } | null>(null);
   const [checkingMaterialUsage, setCheckingMaterialUsage] = useState(false);
+  const [materialViewerOpen, setMaterialViewerOpen] = useState(false);
+  const [viewingMaterial, setViewingMaterial] = useState<Material | null>(null);
+  const [materialProjects, setMaterialProjects] = useState<Array<{ project_id: string; project_name: string; weight_grams: number }>>([]);
+  const [loadingMaterialProjects, setLoadingMaterialProjects] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [selectedColor, setSelectedColor] = useState("#000000");
   const [stockPrints, setStockPrints] = useState<any[]>([]);
@@ -405,6 +409,8 @@ const Inventory = () => {
 
       toast.success(t('inventory.messages.materialUpdated'));
       setIsMaterialDialogOpen(false);
+      const wasViewing = materialViewerOpen && viewingMaterial && editingMaterial?.id === viewingMaterial.id;
+      const materialIdToUpdate = editingMaterial.id;
       setEditingMaterial(null);
       setMaterialForm({
         name: "",
@@ -414,8 +420,64 @@ const Inventory = () => {
         display_mode: "color",
       });
       fetchData();
+      // Si el modal de visualización está abierto, actualizar el material que se está viendo
+      if (wasViewing && materialIdToUpdate) {
+        const { data: updatedMaterial } = await supabase
+          .from("materials")
+          .select("*")
+          .eq("id", materialIdToUpdate)
+          .single();
+        if (updatedMaterial) {
+          setViewingMaterial({
+            ...updatedMaterial,
+            display_mode: (updatedMaterial.display_mode || 'color') as 'color' | 'icon'
+          });
+          // También actualizar la lista de proyectos
+          const { data: projectMaterials } = await supabase
+            .from("project_materials")
+            .select("project_id, weight_grams, projects(name)")
+            .eq("material_id", materialIdToUpdate);
+          if (projectMaterials) {
+            const projects = projectMaterials.map((pm: any) => ({
+              project_id: pm.project_id,
+              project_name: pm.projects?.name || 'Proyecto sin nombre',
+              weight_grams: pm.weight_grams,
+            }));
+            setMaterialProjects(projects);
+          }
+        }
+      }
     } catch (error: any) {
       toast.error(t('inventory.messages.errorUpdatingMaterial'));
+    }
+  };
+
+  const openMaterialViewer = async (material: Material) => {
+    setViewingMaterial(material);
+    setMaterialViewerOpen(true);
+    setLoadingMaterialProjects(true);
+    
+    // Cargar proyectos que usan este material
+    try {
+      const { data: projectMaterials, error: projectMaterialsError } = await supabase
+        .from("project_materials")
+        .select("project_id, weight_grams, projects(name)")
+        .eq("material_id", material.id);
+
+      if (projectMaterialsError) throw projectMaterialsError;
+
+      const projects = (projectMaterials || []).map((pm: any) => ({
+        project_id: pm.project_id,
+        project_name: pm.projects?.name || 'Proyecto sin nombre',
+        weight_grams: pm.weight_grams,
+      }));
+
+      setMaterialProjects(projects);
+    } catch (error) {
+      console.error("Error loading material projects:", error);
+      setMaterialProjects([]);
+    } finally {
+      setLoadingMaterialProjects(false);
     }
   };
 
@@ -483,6 +545,11 @@ const Inventory = () => {
       setShowDeleteDialog(false);
       setMaterialToDelete(null);
       setMaterialInUse(null);
+      // Cerrar el modal de visualización si está abierto
+      if (materialViewerOpen) {
+        setMaterialViewerOpen(false);
+        setViewingMaterial(null);
+      }
       fetchData();
     } catch (error: any) {
       console.error("Error deleting material:", error);
@@ -1251,8 +1318,12 @@ const Inventory = () => {
                         const avgPricePerKg: number | null = null;
 
                         return (
-                          <TableRow key={material.id} className={(isPro || isEnterprise) && isLowStock ? 'bg-yellow-50 dark:bg-yellow-950/20' : ''}>
-                            <TableCell>
+                          <TableRow 
+                            key={material.id} 
+                            className={`cursor-pointer hover:bg-muted/50 ${(isPro || isEnterprise) && isLowStock ? 'bg-yellow-50 dark:bg-yellow-950/20' : ''}`}
+                            onClick={() => openMaterialViewer(material)}
+                          >
+                            <TableCell onClick={(e) => e.stopPropagation()}>
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -1324,7 +1395,7 @@ const Inventory = () => {
                                 </TableCell>
                               </>
                             )}
-                            <TableCell>
+                            <TableCell onClick={(e) => e.stopPropagation()}>
                               <div className="flex gap-2">
                                 <TooltipProvider>
                                   <Tooltip>
@@ -1332,7 +1403,10 @@ const Inventory = () => {
                                       <Button
                                         variant="outline"
                                         size="icon"
-                                        onClick={() => handleAddToShoppingList(material)}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleAddToShoppingList(material);
+                                        }}
                                       >
                                         <ListPlus className="w-4 h-4" />
                                       </Button>
@@ -1342,20 +1416,6 @@ const Inventory = () => {
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  onClick={() => handleEditMaterial(material)}
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="destructive"
-                                  size="icon"
-                                  onClick={() => openDeleteDialog(material)}
-                                >
-                                  <Trash className="w-4 h-4" />
-                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -2077,6 +2137,122 @@ const Inventory = () => {
               {t('shoppingList.addToShoppingList.addToList')}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de visualización de material */}
+      <Dialog open={materialViewerOpen} onOpenChange={setMaterialViewerOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              {viewingMaterial && (
+                <>
+                  {viewingMaterial.display_mode === 'color' ? (
+                    <div
+                      className="w-6 h-6 rounded-full border"
+                      style={{ backgroundColor: viewingMaterial.color || '#gray' }}
+                    />
+                  ) : (
+                    (() => {
+                      const Icon = getMaterialIcon(viewingMaterial.type, MATERIAL_TYPES);
+                      return <Icon className="w-6 h-6" />;
+                    })()
+                  )}
+                  <span>{viewingMaterial.name}</span>
+                </>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {viewingMaterial && (
+            <div className="space-y-6">
+              {/* Información del material */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Tipo</Label>
+                  <p className="font-medium">
+                    {viewingMaterial.type ? MATERIAL_TYPES.find(t => t.value === viewingMaterial.type)?.label || viewingMaterial.type : '-'}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Precio por kg</Label>
+                  <p className="font-medium">{viewingMaterial.price_per_kg.toFixed(2)} €</p>
+                </div>
+                {viewingMaterial.display_mode === 'color' && viewingMaterial.color && (
+                  <div>
+                    <Label className="text-muted-foreground">Color</Label>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-6 h-6 rounded-full border"
+                        style={{ backgroundColor: viewingMaterial.color }}
+                      />
+                      <span className="font-medium">{viewingMaterial.color}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Listado de proyectos que usan el material */}
+              <div>
+                <Label className="text-base font-semibold mb-3 block">
+                  Proyectos que usan este material
+                </Label>
+                {loadingMaterialProjects ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : materialProjects.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground border rounded-lg">
+                    <p>Este material no está siendo usado en ningún proyecto</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-4">
+                    {materialProjects.map((project, index) => (
+                      <div
+                        key={project.project_id}
+                        className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium">{project.project_name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {project.weight_grams}g ({(project.weight_grams / 1000).toFixed(2)}kg)
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex gap-2 justify-end pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (viewingMaterial) {
+                      handleEditMaterial(viewingMaterial);
+                      setMaterialViewerOpen(false);
+                    }
+                  }}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Editar
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (viewingMaterial) {
+                      openDeleteDialog(viewingMaterial);
+                      setMaterialViewerOpen(false);
+                    }
+                  }}
+                >
+                  <Trash className="w-4 h-4 mr-2" />
+                  Eliminar
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
