@@ -137,6 +137,8 @@ const Inventory = () => {
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [materialToDelete, setMaterialToDelete] = useState<Material | null>(null);
+  const [materialInUse, setMaterialInUse] = useState<{ inUse: boolean; projectName?: string } | null>(null);
+  const [checkingMaterialUsage, setCheckingMaterialUsage] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [selectedColor, setSelectedColor] = useState("#000000");
   const [stockPrints, setStockPrints] = useState<any[]>([]);
@@ -417,23 +419,81 @@ const Inventory = () => {
     }
   };
 
-  const openDeleteDialog = (material: Material) => {
+  const openDeleteDialog = async (material: Material) => {
     setMaterialToDelete(material);
+    setMaterialInUse(null);
+    setCheckingMaterialUsage(true);
     setShowDeleteDialog(true);
+
+    // Verificar si el material está siendo usado
+    try {
+      const { data: projectMaterials, error: projectMaterialsError } = await supabase
+        .from("project_materials")
+        .select("id, project_id, projects(name)")
+        .eq("material_id", material.id)
+        .limit(1);
+
+      if (!projectMaterialsError && projectMaterials && projectMaterials.length > 0) {
+        const projectName = (projectMaterials[0] as any).projects?.name || 'un proyecto';
+        setMaterialInUse({ inUse: true, projectName });
+      } else {
+        setMaterialInUse({ inUse: false });
+      }
+    } catch (error) {
+      console.error("Error checking material usage:", error);
+      setMaterialInUse({ inUse: false });
+    } finally {
+      setCheckingMaterialUsage(false);
+    }
   };
 
   const handleDeleteMaterial = async () => {
     if (!materialToDelete) return;
 
+    // Si ya sabemos que está en uso, no intentar eliminar
+    if (materialInUse?.inUse) {
+      return;
+    }
+
     try {
+      // Verificación adicional por seguridad
+      const { data: projectMaterials, error: projectMaterialsError } = await supabase
+        .from("project_materials")
+        .select("id, project_id, projects(name)")
+        .eq("material_id", materialToDelete.id)
+        .limit(1);
+
+      if (projectMaterialsError) throw projectMaterialsError;
+
+      if (projectMaterials && projectMaterials.length > 0) {
+        const projectName = (projectMaterials[0] as any).projects?.name || 'un proyecto';
+        toast.error(
+          `No se puede eliminar el material porque está siendo usado en ${projectName}. Primero debes eliminar el material del proyecto.`
+        );
+        setShowDeleteDialog(false);
+        setMaterialToDelete(null);
+        setMaterialInUse(null);
+        return;
+      }
+
+      // Si no está en uso, proceder con la eliminación
       const { error } = await supabase.from("materials").delete().eq("id", materialToDelete.id);
       if (error) throw error;
       toast.success(t('inventory.messages.materialDeleted'));
       setShowDeleteDialog(false);
       setMaterialToDelete(null);
+      setMaterialInUse(null);
       fetchData();
     } catch (error: any) {
-      toast.error(t('inventory.messages.errorDeletingMaterial'));
+      console.error("Error deleting material:", error);
+      // Verificar si es un error de restricción de clave foránea
+      if (error?.code === '23503' || error?.message?.includes('foreign key constraint')) {
+        toast.error(
+          'No se puede eliminar el material porque está siendo usado en uno o más proyectos. Primero debes eliminar el material de los proyectos.'
+        );
+      } else {
+        toast.error(t('inventory.messages.errorDeletingMaterial'));
+      }
     }
   };
 
@@ -2026,19 +2086,47 @@ const Inventory = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro de eliminar este material?</AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
-              <p>Esta acción no se puede deshacer. El material "{materialToDelete?.name}" será eliminado permanentemente.</p>
-              <div className="bg-muted p-3 rounded-md mt-3">
-                <p className="font-medium text-sm mb-2">ℹ️ Importante sobre reconexión de stock:</p>
-                <p className="text-sm text-muted-foreground">
-                  Si eliminas este material y luego quieres volver a conectarlo con el stock existente en el inventario, 
-                  deberás crear un nuevo material con <strong>exactamente el mismo nombre</strong>: "{materialToDelete?.name}"
-                </p>
-              </div>
+              {checkingMaterialUsage ? (
+                <div className="flex items-center gap-2 py-4">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <p>Verificando si el material está en uso...</p>
+                </div>
+              ) : (
+                <>
+                  {materialInUse?.inUse ? (
+                    <div className="bg-destructive/10 border border-destructive/20 p-3 rounded-md">
+                      <p className="font-medium text-sm text-destructive mb-2">⚠️ No se puede eliminar este material</p>
+                      <p className="text-sm text-muted-foreground">
+                        El material "{materialToDelete?.name}" está siendo usado en el proyecto <strong>"{materialInUse.projectName}"</strong>.
+                        Primero debes eliminar el material del proyecto antes de poder eliminarlo.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <p>Esta acción no se puede deshacer. El material "{materialToDelete?.name}" será eliminado permanentemente.</p>
+                      <div className="bg-muted p-3 rounded-md mt-3">
+                        <p className="font-medium text-sm mb-2">ℹ️ Importante sobre reconexión de stock:</p>
+                        <p className="text-sm text-muted-foreground">
+                          Si eliminas este material y luego quieres volver a conectarlo con el stock existente en el inventario, 
+                          deberás crear un nuevo material con <strong>exactamente el mismo nombre</strong>: "{materialToDelete?.name}"
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteMaterial} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogCancel onClick={() => {
+              setMaterialToDelete(null);
+              setMaterialInUse(null);
+            }}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteMaterial} 
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={checkingMaterialUsage || materialInUse?.inUse === true}
+            >
               Eliminar Material
             </AlertDialogAction>
           </AlertDialogFooter>
