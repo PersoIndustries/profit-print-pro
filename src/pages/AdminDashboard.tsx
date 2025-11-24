@@ -77,7 +77,7 @@ const AdminDashboard = () => {
   } | null>(null);
   
   // Navigation - using section state instead of multiple tabs
-  const [activeSection, setActiveSection] = useState<string>('users');
+  const [activeSection, setActiveSection] = useState<string>('user-analysis');
   const [limits, setLimits] = useState<{
     free: { materials: number; projects: number; monthlyOrders: number; metricsHistory: number; shoppingLists: number };
     tier_1: { materials: number; projects: number; monthlyOrders: number; metricsHistory: number; shoppingLists: number };
@@ -654,13 +654,14 @@ const AdminDashboard = () => {
       monthStart.setDate(monthStart.getDate() - 30);
       monthStart.setHours(0, 0, 0, 0);
 
-      const [profilesRes, subscriptionsRes, materialsRes, projectsRes, ordersRes, printsRes] = await Promise.all([
+      const [profilesRes, subscriptionsRes, materialsRes, projectsRes, ordersRes, printsRes, promoCodesRes] = await Promise.all([
         supabase.from('profiles').select('id, created_at'),
-        supabase.from('user_subscriptions').select('user_id, tier, status, created_at, previous_tier, downgrade_date, expires_at, grace_period_end'),
+        supabase.from('user_subscriptions').select('user_id, tier, status, created_at, previous_tier, downgrade_date, expires_at, grace_period_end, is_paid_subscription, stripe_subscription_id, billing_period'),
         supabase.from('materials').select('id, user_id, created_at'),
         supabase.from('projects').select('id, user_id, created_at'),
         supabase.from('orders').select('id, user_id, created_at, total_amount'),
-        supabase.from('prints').select('id, user_id, created_at')
+        supabase.from('prints').select('id, user_id, created_at'),
+        supabase.from('user_promo_codes' as any).select('user_id, promo_codes(code)')
       ]);
 
       const allProfiles = profilesRes.data || [];
@@ -669,6 +670,7 @@ const AdminDashboard = () => {
       const allProjects = projectsRes.data || [];
       const allOrders = ordersRes.data || [];
       const allPrints = printsRes.data || [];
+      const allPromoCodes = promoCodesRes.data || [];
 
       const totalUsers = allProfiles.length;
       const newUsersToday = allProfiles.filter(p => new Date(p.created_at) >= todayStart).length;
@@ -711,6 +713,45 @@ const AdminDashboard = () => {
         s.previous_tier === 'tier_2' && s.tier === 'tier_1' && s.downgrade_date
       );
 
+      // Calculate subscription types
+      const paidUsers = allSubscriptions.filter(s => s.is_paid_subscription && s.stripe_subscription_id).length;
+      const promoUsers = allPromoCodes.length;
+      const trialUsers = allSubscriptions.filter(s => s.status === 'trial' && s.expires_at && new Date(s.expires_at) > new Date()).length;
+      const promoUserIds = new Set((allPromoCodes as any[]).map(pc => pc.user_id));
+      const adminGrantedUsers = allSubscriptions.filter(s => 
+        s.tier !== 'free' && 
+        !s.is_paid_subscription && 
+        !promoUserIds.has(s.user_id) &&
+        s.status !== 'trial'
+      ).length;
+      const cancelledButActive = allSubscriptions.filter(s => 
+        s.status === 'cancelled' && 
+        s.expires_at && 
+        new Date(s.expires_at) > new Date()
+      ).length;
+
+      // Billing period distribution
+      const monthlySubscriptions = allSubscriptions.filter(s => s.billing_period === 'monthly' && s.is_paid_subscription).length;
+      const annualSubscriptions = allSubscriptions.filter(s => s.billing_period === 'annual' && s.is_paid_subscription).length;
+
+      // Subscription type by tier
+      const paidByTier = {
+        free: 0,
+        tier_1: allSubscriptions.filter(s => s.tier === 'tier_1' && s.is_paid_subscription && s.stripe_subscription_id).length,
+        tier_2: allSubscriptions.filter(s => s.tier === 'tier_2' && s.is_paid_subscription && s.stripe_subscription_id).length,
+      };
+      const promoByTier = {
+        free: 0,
+        tier_1: (allPromoCodes as any[]).filter(pc => {
+          const sub = allSubscriptions.find(s => s.user_id === pc.user_id);
+          return sub?.tier === 'tier_1';
+        }).length,
+        tier_2: (allPromoCodes as any[]).filter(pc => {
+          const sub = allSubscriptions.find(s => s.user_id === pc.user_id);
+          return sub?.tier === 'tier_2';
+        }).length,
+      };
+
       const metricsData = {
         totalUsers,
         newUsersToday,
@@ -735,12 +776,21 @@ const AdminDashboard = () => {
         totalRevenue: allOrders.reduce((sum, o) => sum + (parseFloat(o.total_amount?.toString() || '0') || 0), 0),
         revenueThisMonth: allOrders.filter(o => new Date(o.created_at) >= monthStart).reduce((sum, o) => sum + (parseFloat(o.total_amount?.toString() || '0') || 0), 0),
         usersInGracePeriod: allSubscriptions.filter(s => s.grace_period_end && new Date(s.grace_period_end) > new Date()).length,
-        usersInTrial: allSubscriptions.filter(s => s.status === 'trial' && s.expires_at && new Date(s.expires_at) > new Date()).length,
+        usersInTrial: trialUsers,
         usersInTrialByTier: {
           free: allSubscriptions.filter(s => s.status === 'trial' && s.tier === 'free' && s.expires_at && new Date(s.expires_at) > new Date()).length,
           tier_1: allSubscriptions.filter(s => s.status === 'trial' && s.tier === 'tier_1' && s.expires_at && new Date(s.expires_at) > new Date()).length,
           tier_2: allSubscriptions.filter(s => s.status === 'trial' && s.tier === 'tier_2' && s.expires_at && new Date(s.expires_at) > new Date()).length,
         },
+        // New metrics
+        paidUsers,
+        promoUsers,
+        adminGrantedUsers,
+        cancelledButActive,
+        monthlySubscriptions,
+        annualSubscriptions,
+        paidByTier,
+        promoByTier,
       };
 
       setMetrics(metricsData);
@@ -2588,6 +2638,61 @@ const AdminDashboard = () => {
                 </Card>
               </div>
 
+              {/* Tipos de Suscripción */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Usuarios de Pago</CardTitle>
+                    <DollarSign className="h-4 w-4 text-blue-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-600">{metrics.paidUsers || 0}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {metrics.paidByTier?.tier_1 || 0} Pro, {metrics.paidByTier?.tier_2 || 0} Business
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Promo Codes</CardTitle>
+                    <Tag className="h-4 w-4 text-purple-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-purple-600">{metrics.promoUsers || 0}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {metrics.promoByTier?.tier_1 || 0} Pro, {metrics.promoByTier?.tier_2 || 0} Business
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Otorgados por Admin</CardTitle>
+                    <Settings className="h-4 w-4 text-gray-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-gray-600">{metrics.adminGrantedUsers || 0}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Suscripciones gratuitas
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Cancelados pero Activos</CardTitle>
+                    <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-orange-600">{metrics.cancelledButActive || 0}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Con acceso hasta expiración
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
               {/* Suscripciones y Cancelaciones */}
               <div className="grid md:grid-cols-2 gap-6">
                 <Card>
@@ -2633,6 +2738,69 @@ const AdminDashboard = () => {
                       <div className="flex items-center justify-between">
                         <span>Downgrades Hoy</span>
                         <span className="font-semibold">{metrics.downgradesToday}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Período de Facturación */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Período de Facturación (Pagos)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span>Mensual</span>
+                        <span className="font-semibold text-blue-600">{metrics.monthlySubscriptions || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Anual</span>
+                        <span className="font-semibold text-green-600">{metrics.annualSubscriptions || 0}</span>
+                      </div>
+                      <div className="pt-2 border-t">
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <span>Total Pagos</span>
+                          <span className="font-semibold">{(metrics.monthlySubscriptions || 0) + (metrics.annualSubscriptions || 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Distribución de Tipos por Tier</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm font-semibold mb-2">Professional</p>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="text-blue-600">Pago:</span>
+                            <span>{metrics.paidByTier?.tier_1 || 0}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-purple-600">Promo:</span>
+                            <span>{metrics.promoByTier?.tier_1 || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="pt-2 border-t">
+                        <p className="text-sm font-semibold mb-2">Business</p>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="text-blue-600">Pago:</span>
+                            <span>{metrics.paidByTier?.tier_2 || 0}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-purple-600">Promo:</span>
+                            <span>{metrics.promoByTier?.tier_2 || 0}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
