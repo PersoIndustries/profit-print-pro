@@ -66,6 +66,9 @@
       "cancel": "Cancelar",
       "update": "Actualizar",
       "create": "Crear",
+      "delete": "Eliminar Sección",
+      "deleteConfirm": "¿Eliminar esta sección de productos?",
+      "deleteConfirmDesc": "Los productos se moverán fuera de la sección.",
       "messages": {
         "errorLoading": "Error al cargar la sección",
         "sectionUpdated": "Sección actualizada",
@@ -94,6 +97,37 @@
     "delete": "Eliminar",
     "cancel": "Cancelar",
     "comingSoon": "Próximamente"
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "empty": "No hay notificaciones",
+    "markAllRead": "Marcar todas como leídas",
+    "settings": "Configuración de notificaciones"
+  },
+  "settings": {
+    "title": "Configuración",
+    "notifications": {
+      "title": "Notificaciones",
+      "description": "Gestiona cómo y cuándo recibir notificaciones",
+      "deliveryMethods": "Métodos de entrega",
+      "inApp": "Notificaciones en la aplicación",
+      "inAppDescription": "Recibe notificaciones mientras usas la aplicación",
+      "email": "Correo electrónico",
+      "emailDescription": "Recibe notificaciones por email",
+      "push": "Notificaciones push",
+      "pushDescription": "Recibe notificaciones en tu dispositivo (próximamente)",
+      "categories": "Categorías de notificaciones",
+      "subscription": "Suscripción",
+      "subscriptionDescription": "Cambios en tu plan y pagos",
+      "orders": "Pedidos",
+      "ordersDescription": "Actualizaciones sobre tus pedidos",
+      "projects": "Proyectos",
+      "projectsDescription": "Actividad en tus proyectos",
+      "materials": "Materiales",
+      "materialsDescription": "Alertas de stock y materiales",
+      "system": "Sistema",
+      "systemDescription": "Notificaciones importantes del sistema"
+    }
   },
   "admin": {
     "title": "Panel de Administración",
