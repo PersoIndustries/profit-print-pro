@@ -32,6 +32,7 @@ interface UserStats {
   tier: string;
   role: string;
   subscription_status: string;
+  expires_at?: string | null;
   materials_count: number;
   projects_count: number;
   orders_count: number;
@@ -1001,7 +1002,7 @@ const AdminDashboard = () => {
 
       const userStatsPromises = profiles.map(async (profile) => {
         const [subRes, roleRes, materialsRes, projectsRes, ordersRes] = await Promise.all([
-          supabase.from('user_subscriptions' as any).select('tier, status, is_paid_subscription, stripe_subscription_id').eq('user_id', profile.id).maybeSingle(),
+          supabase.from('user_subscriptions' as any).select('tier, status, is_paid_subscription, stripe_subscription_id, expires_at').eq('user_id', profile.id).maybeSingle(),
           supabase.from('user_roles').select('role').eq('user_id', profile.id).maybeSingle(),
           supabase.from('materials').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
           supabase.from('projects').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
@@ -1012,6 +1013,7 @@ const AdminDashboard = () => {
           ...profile,
           tier: (subRes.data as any)?.tier || 'free',
           subscription_status: (subRes.data as any)?.status || 'active',
+          expires_at: (subRes.data as any)?.expires_at || null,
           role: roleRes.data?.role || 'user',
           materials_count: materialsRes.count || 0,
           projects_count: projectsRes.count || 0,
@@ -2257,13 +2259,34 @@ const AdminDashboard = () => {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        userStat.subscription_status === 'active' ? 'bg-green-100 text-green-800' :
-                        userStat.subscription_status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {userStat.subscription_status}
-                      </span>
+                      {(() => {
+                        const isCancelledButActive = userStat.subscription_status === 'cancelled' && 
+                          userStat.expires_at && 
+                          new Date(userStat.expires_at) > new Date();
+                        
+                        return (
+                          <div className="flex flex-col gap-1">
+                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                              isCancelledButActive 
+                                ? 'bg-orange-100 text-orange-800' 
+                                : userStat.subscription_status === 'active' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : userStat.subscription_status === 'cancelled' 
+                                    ? 'bg-red-100 text-red-800' 
+                                    : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {isCancelledButActive 
+                                ? 'CANCELADO - ACTIVO' 
+                                : userStat.subscription_status.toUpperCase()}
+                            </span>
+                            {isCancelledButActive && userStat.expires_at && (
+                              <span className="text-xs text-muted-foreground">
+                                Hasta {new Date(userStat.expires_at).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="text-center">{userStat.materials_count}</TableCell>
                     <TableCell className="text-center">{userStat.projects_count}</TableCell>

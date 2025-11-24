@@ -57,10 +57,10 @@ serve(async (req) => {
     // Get the raw body
     const body = await req.text();
 
-    // Verify the webhook signature
+    // Verify the webhook signature (use constructEventAsync for Deno)
     let event: Stripe.Event;
     try {
-      event = stripe.webhooks.constructEvent(body, signature, stripeWebhookSecret);
+      event = await stripe.webhooks.constructEventAsync(body, signature, stripeWebhookSecret);
     } catch (err: any) {
       console.error('Webhook signature verification failed:', err.message);
       return new Response(
@@ -303,17 +303,36 @@ async function handleSubscriptionUpdated(supabase: any, subscription: Stripe.Sub
   const metadata = subscription.metadata;
   const userId = metadata?.userId;
 
-  if (!userId) return;
+  if (!userId) {
+    console.warn('No userId in subscription metadata for subscription.updated event');
+    return;
+  }
+
+  // Prepare update data
+  const updateData: any = {
+    status: subscription.status === 'active' ? 'active' : 'cancelled',
+  };
+
+  // Only update dates if current_period_end is valid
+  if (subscription.current_period_end && typeof subscription.current_period_end === 'number') {
+    const periodEndDate = new Date(subscription.current_period_end * 1000);
+    if (!isNaN(periodEndDate.getTime())) {
+      updateData.expires_at = periodEndDate.toISOString();
+      updateData.next_billing_date = periodEndDate.toISOString();
+    }
+  }
 
   // Update subscription status and dates
-  await supabase
+  const { error } = await supabase
     .from('user_subscriptions')
-    .update({
-      status: subscription.status === 'active' ? 'active' : 'cancelled',
-      expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
-      next_billing_date: new Date(subscription.current_period_end * 1000).toISOString(),
-    })
+    .update(updateData)
     .eq('user_id', userId);
+
+  if (error) {
+    console.error('Error updating subscription:', error);
+  } else {
+    console.log(`Subscription updated for user ${userId}, status: ${updateData.status}`);
+  }
 }
 
 async function handleSubscriptionDeleted(supabase: any, subscription: Stripe.Subscription) {

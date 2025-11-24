@@ -50,6 +50,11 @@ export function SubscriptionSection({ subscriptionInfo, onCancelSubscription }: 
     return 'text-primary';
   };
 
+  // Check if subscription is cancelled but still has active access
+  const isCancelledButActive = subscriptionInfo.status === 'cancelled' && 
+    subscriptionInfo.expires_at && 
+    new Date(subscriptionInfo.expires_at) > new Date();
+
   if (!subscriptionInfo || !subscription) return null;
 
   return (
@@ -72,13 +77,26 @@ export function SubscriptionSection({ subscriptionInfo, onCancelSubscription }: 
           </div>
           <div>
             <Label className="text-sm text-muted-foreground">{t('settings.subscription.status')}</Label>
-            <p className={`text-lg font-semibold mt-1 ${
-              (subscriptionInfo.status === 'active' || subscriptionInfo.is_paid_subscription) ? 'text-primary' : 'text-destructive'
-            }`}>
-              {(subscriptionInfo.is_paid_subscription && subscriptionInfo.status === 'trial') 
-                ? 'ACTIVE' 
-                : subscriptionInfo.status.toUpperCase()}
-            </p>
+            <div className="mt-1">
+              <p className={`text-lg font-semibold ${
+                isCancelledButActive 
+                  ? 'text-orange-600' 
+                  : (subscriptionInfo.status === 'active' || subscriptionInfo.is_paid_subscription) 
+                    ? 'text-primary' 
+                    : 'text-destructive'
+              }`}>
+                {isCancelledButActive 
+                  ? 'CANCELADO - ACTIVO'
+                  : (subscriptionInfo.is_paid_subscription && subscriptionInfo.status === 'trial') 
+                    ? 'ACTIVE' 
+                    : subscriptionInfo.status.toUpperCase()}
+              </p>
+              {isCancelledButActive && subscriptionInfo.expires_at && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Acceso hasta {new Date(subscriptionInfo.expires_at).toLocaleDateString()}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
@@ -120,6 +138,30 @@ export function SubscriptionSection({ subscriptionInfo, onCancelSubscription }: 
                   </p>
                   <Button size="sm" onClick={() => navigate('/pricing')} variant="default">
                     Ver Planes
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Cancelled but Active Alert */}
+        {isCancelledButActive && (
+          <Card className="border-orange-500/50 bg-orange-500/5">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="font-semibold text-orange-600 mb-1">
+                    Suscripción Cancelada
+                  </h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Tu suscripción ha sido cancelada, pero aún tienes acceso completo hasta el{' '}
+                    <strong>{subscriptionInfo.expires_at ? new Date(subscriptionInfo.expires_at).toLocaleDateString() : 'final del período'}</strong>.
+                    Después de esa fecha, tu cuenta se degradará al plan gratuito.
+                  </p>
+                  <Button size="sm" onClick={() => navigate('/pricing')} variant="outline">
+                    Reactivar Suscripción
                   </Button>
                 </div>
               </div>
