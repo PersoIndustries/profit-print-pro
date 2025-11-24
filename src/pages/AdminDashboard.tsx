@@ -17,7 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Users, Package, FolderOpen, ShoppingCart, Edit, DollarSign, Settings, Save, History, Clock, BarChart3, Search, X, Tag, RefreshCw, Trash2, AlertTriangle, FileText, Loader2 } from "lucide-react";
+import { Users, Package, FolderOpen, ShoppingCart, Edit, DollarSign, Settings, Save, History, Clock, BarChart3, Search, X, Tag, RefreshCw, Trash2, AlertTriangle, FileText, Loader2, Download, Calendar } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
@@ -133,6 +133,12 @@ const AdminDashboard = () => {
   const [userAnalysisData, setUserAnalysisData] = useState<any>(null);
   const [loadingUserAnalysis, setLoadingUserAnalysis] = useState(false);
   
+  // Date filters for analytics
+  const [dateRange, setDateRange] = useState<'today' | 'week' | 'month' | 'all' | 'custom'>('all');
+  const [customDateFrom, setCustomDateFrom] = useState<string>('');
+  const [customDateTo, setCustomDateTo] = useState<string>('');
+  const [exportDays, setExportDays] = useState<string>('30');
+  
   // Delete user management
   const [deleteUserDialogOpen, setDeleteUserDialogOpen] = useState(false);
   const [deleteUserConfirmDialogOpen, setDeleteUserConfirmDialogOpen] = useState(false);
@@ -154,7 +160,6 @@ const AdminDashboard = () => {
   const [metrics, setMetrics] = useState<any>(null);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
   const [dailyMetrics, setDailyMetrics] = useState<any[]>([]);
-  const [dateRange, setDateRange] = useState<'today' | 'week' | 'month' | 'all'>('today');
   
   // Invoices management
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -643,6 +648,33 @@ const AdminDashboard = () => {
     try {
       setLoadingMetrics(true);
       const now = new Date();
+      
+      // Calculate date range based on filter
+      let startDate: Date;
+      let endDate: Date = new Date(now);
+      endDate.setHours(23, 59, 59, 999);
+      
+      if (dateRange === 'custom' && customDateFrom && customDateTo) {
+        startDate = new Date(customDateFrom);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(customDateTo);
+        endDate.setHours(23, 59, 59, 999);
+      } else if (dateRange === 'today') {
+        startDate = new Date(now);
+        startDate.setHours(0, 0, 0, 0);
+      } else if (dateRange === 'week') {
+        startDate = new Date(now);
+        startDate.setDate(startDate.getDate() - 7);
+        startDate.setHours(0, 0, 0, 0);
+      } else if (dateRange === 'month') {
+        startDate = new Date(now);
+        startDate.setDate(startDate.getDate() - 30);
+        startDate.setHours(0, 0, 0, 0);
+      } else {
+        // 'all' - no date filter
+        startDate = new Date(0);
+      }
+      
       const todayStart = new Date(now);
       todayStart.setHours(0, 0, 0, 0);
       
@@ -654,14 +686,17 @@ const AdminDashboard = () => {
       monthStart.setDate(monthStart.getDate() - 30);
       monthStart.setHours(0, 0, 0, 0);
 
-      const [profilesRes, subscriptionsRes, materialsRes, projectsRes, ordersRes, printsRes, promoCodesRes] = await Promise.all([
+      const [profilesRes, subscriptionsRes, materialsRes, projectsRes, ordersRes, printsRes, promoCodesRes, invoicesRes, refundRequestsRes, subscriptionChangesRes] = await Promise.all([
         supabase.from('profiles').select('id, created_at'),
         supabase.from('user_subscriptions').select('user_id, tier, status, created_at, previous_tier, downgrade_date, expires_at, grace_period_end, is_paid_subscription, stripe_subscription_id, billing_period'),
         supabase.from('materials').select('id, user_id, created_at'),
         supabase.from('projects').select('id, user_id, created_at'),
         supabase.from('orders').select('id, user_id, created_at, total_amount'),
         supabase.from('prints').select('id, user_id, created_at'),
-        supabase.from('user_promo_codes' as any).select('user_id, promo_codes(code)')
+        supabase.from('user_promo_codes' as any).select('user_id, promo_codes(code)'),
+        supabase.from('invoices').select('id, user_id, amount, status, tier, billing_period, issued_date, paid_date'),
+        supabase.from('refund_requests' as any).select('id, user_id, amount, status, created_at, processed_at'),
+        supabase.from('subscription_changes' as any).select('id, user_id, change_type, previous_tier, new_tier, created_at')
       ]);
 
       const allProfiles = profilesRes.data || [];
@@ -671,6 +706,9 @@ const AdminDashboard = () => {
       const allOrders = ordersRes.data || [];
       const allPrints = printsRes.data || [];
       const allPromoCodes = promoCodesRes.data || [];
+      const allInvoices = invoicesRes.data || [];
+      const allRefundRequests = refundRequestsRes.data || [];
+      const allSubscriptionChanges = subscriptionChangesRes.data || [];
 
       const totalUsers = allProfiles.length;
       const newUsersToday = allProfiles.filter(p => new Date(p.created_at) >= todayStart).length;
@@ -752,6 +790,53 @@ const AdminDashboard = () => {
         }).length,
       };
 
+      // Filter data by date range
+      const filterByDateRange = (date: string | null) => {
+        if (!date) return false;
+        const itemDate = new Date(date);
+        return itemDate >= startDate && itemDate <= endDate;
+      };
+
+      // Invoices metrics
+      const invoicesInRange = allInvoices.filter(inv => filterByDateRange(inv.issued_date || inv.paid_date));
+      const paidInvoices = invoicesInRange.filter(inv => inv.status === 'paid');
+      const refundedInvoices = invoicesInRange.filter(inv => inv.status === 'refunded');
+      const totalRevenue = paidInvoices.reduce((sum, inv) => sum + (parseFloat(inv.amount?.toString() || '0') || 0), 0);
+      const totalRefunded = refundedInvoices.reduce((sum, inv) => sum + Math.abs(parseFloat(inv.amount?.toString() || '0') || 0), 0);
+      
+      // Products by tier and billing period
+      const productsByTierAndPeriod = {
+        tier_1_monthly: paidInvoices.filter(inv => inv.tier === 'tier_1' && inv.billing_period === 'monthly').length,
+        tier_1_annual: paidInvoices.filter(inv => inv.tier === 'tier_1' && inv.billing_period === 'annual').length,
+        tier_2_monthly: paidInvoices.filter(inv => inv.tier === 'tier_2' && inv.billing_period === 'monthly').length,
+        tier_2_annual: paidInvoices.filter(inv => inv.tier === 'tier_2' && inv.billing_period === 'annual').length,
+      };
+
+      // Refunds metrics
+      const refundsInRange = (allRefundRequests as any[]).filter(ref => filterByDateRange(ref.created_at || ref.processed_at));
+      const approvedRefunds = refundsInRange.filter((ref: any) => ref.status === 'approved' || ref.status === 'processed');
+      const totalRefundAmount = approvedRefunds.reduce((sum: number, ref: any) => sum + (parseFloat(ref.amount?.toString() || '0') || 0), 0);
+      const pendingRefunds = refundsInRange.filter((ref: any) => ref.status === 'pending').length;
+
+      // Purchase attempts (subscription changes with upgrade)
+      const purchaseAttempts = (allSubscriptionChanges as any[]).filter((change: any) => 
+        change.change_type === 'upgrade' && filterByDateRange(change.created_at)
+      );
+      const successfulPurchases = purchaseAttempts.filter((attempt: any) => {
+        const sub = allSubscriptions.find(s => s.user_id === attempt.user_id);
+        return sub?.is_paid_subscription && sub?.stripe_subscription_id;
+      });
+      const cancelledAfterPurchase = purchaseAttempts.filter((attempt: any) => {
+        const sub = allSubscriptions.find(s => s.user_id === attempt.user_id);
+        return sub?.status === 'cancelled';
+      });
+
+      // Usage metrics filtered by date range
+      const materialsInRange = allMaterials.filter(m => filterByDateRange(m.created_at));
+      const projectsInRange = allProjects.filter(p => filterByDateRange(p.created_at));
+      const ordersInRange = allOrders.filter(o => filterByDateRange(o.created_at));
+      const printsInRange = allPrints.filter(p => filterByDateRange(p.created_at));
+
       const metricsData = {
         totalUsers,
         newUsersToday,
@@ -767,14 +852,19 @@ const AdminDashboard = () => {
         downgradesToday: downgrades.filter(d => d.downgrade_date && new Date(d.downgrade_date) >= todayStart).length,
         totalMaterials: allMaterials.length,
         materialsToday: allMaterials.filter(m => new Date(m.created_at) >= todayStart).length,
+        materialsInRange: materialsInRange.length,
         totalProjects: allProjects.length,
         projectsToday: allProjects.filter(p => new Date(p.created_at) >= todayStart).length,
+        projectsInRange: projectsInRange.length,
         totalOrders: allOrders.length,
         ordersToday: allOrders.filter(o => new Date(o.created_at) >= todayStart).length,
+        ordersInRange: ordersInRange.length,
         totalPrints: allPrints.length,
         printsToday: allPrints.filter(p => new Date(p.created_at) >= todayStart).length,
+        printsInRange: printsInRange.length,
         totalRevenue: allOrders.reduce((sum, o) => sum + (parseFloat(o.total_amount?.toString() || '0') || 0), 0),
         revenueThisMonth: allOrders.filter(o => new Date(o.created_at) >= monthStart).reduce((sum, o) => sum + (parseFloat(o.total_amount?.toString() || '0') || 0), 0),
+        revenueInRange: totalRevenue,
         usersInGracePeriod: allSubscriptions.filter(s => s.grace_period_end && new Date(s.grace_period_end) > new Date()).length,
         usersInTrial: trialUsers,
         usersInTrialByTier: {
@@ -791,6 +881,25 @@ const AdminDashboard = () => {
         annualSubscriptions,
         paidByTier,
         promoByTier,
+        // Financial metrics
+        totalInvoices: allInvoices.length,
+        paidInvoices: paidInvoices.length,
+        refundedInvoices: refundedInvoices.length,
+        totalRefunded,
+        totalRefundRequests: allRefundRequests.length,
+        approvedRefunds: approvedRefunds.length,
+        pendingRefunds,
+        totalRefundAmount,
+        // Product metrics
+        productsByTierAndPeriod,
+        // Purchase attempts
+        purchaseAttempts: purchaseAttempts.length,
+        successfulPurchases: successfulPurchases.length,
+        cancelledAfterPurchase: cancelledAfterPurchase.length,
+        conversionRate: purchaseAttempts.length > 0 ? ((successfulPurchases.length / purchaseAttempts.length) * 100).toFixed(2) : '0',
+        // Date range info
+        dateRangeStart: startDate.toISOString(),
+        dateRangeEnd: endDate.toISOString(),
       };
 
       setMetrics(metricsData);
@@ -799,6 +908,152 @@ const AdminDashboard = () => {
       toast.error('Error loading metrics');
     } finally {
       setLoadingMetrics(false);
+    }
+  };
+
+  const exportMetricsData = async () => {
+    if (!metrics) {
+      toast.error('No hay datos para exportar');
+      return;
+    }
+
+    try {
+      const days = parseInt(exportDays) || 30;
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+
+      // Fetch detailed data for export
+      const [profilesRes, subscriptionsRes, invoicesRes, refundRequestsRes, subscriptionChangesRes] = await Promise.all([
+        supabase.from('profiles').select('id, email, full_name, created_at').gte('created_at', startDate.toISOString()).lte('created_at', endDate.toISOString()),
+        supabase.from('user_subscriptions').select('user_id, tier, status, is_paid_subscription, stripe_subscription_id, billing_period, created_at, expires_at'),
+        supabase.from('invoices').select('id, user_id, amount, status, tier, billing_period, issued_date, paid_date').gte('issued_date', startDate.toISOString()).lte('issued_date', endDate.toISOString()),
+        supabase.from('refund_requests' as any).select('id, user_id, amount, status, created_at, processed_at').gte('created_at', startDate.toISOString()).lte('created_at', endDate.toISOString()),
+        supabase.from('subscription_changes' as any).select('id, user_id, change_type, previous_tier, new_tier, created_at').gte('created_at', startDate.toISOString()).lte('created_at', endDate.toISOString())
+      ]);
+
+      const profiles = profilesRes.data || [];
+      const subscriptions = subscriptionsRes.data || [];
+      const invoices = invoicesRes.data || [];
+      const refunds = refundRequestsRes.data || [];
+      const changes = subscriptionChangesRes.data || [];
+
+      // Create CSV content
+      const csvRows: string[] = [];
+      
+      // Header
+      csvRows.push('MÉTRICAS Y ANÁLISIS DE USUARIOS');
+      csvRows.push(`Período: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`);
+      csvRows.push('');
+      
+      // Summary section
+      csvRows.push('RESUMEN GENERAL');
+      csvRows.push(`Total Usuarios,${metrics.totalUsers}`);
+      csvRows.push(`Usuarios Activos,${metrics.activeUsers}`);
+      csvRows.push(`Usuarios de Pago,${metrics.paidUsers || 0}`);
+      csvRows.push(`Usuarios con Promo Code,${metrics.promoUsers || 0}`);
+      csvRows.push(`Usuarios en Trial,${metrics.usersInTrial || 0}`);
+      csvRows.push(`Cancelados pero Activos,${metrics.cancelledButActive || 0}`);
+      csvRows.push('');
+      
+      // Financial section
+      csvRows.push('FINANZAS');
+      csvRows.push(`Ingresos Totales (€),${metrics.revenueInRange?.toFixed(2) || '0.00'}`);
+      csvRows.push(`Total Reembolsado (€),${metrics.totalRefunded?.toFixed(2) || '0.00'}`);
+      csvRows.push(`Facturas Pagadas,${metrics.paidInvoices || 0}`);
+      csvRows.push(`Facturas Reembolsadas,${metrics.refundedInvoices || 0}`);
+      csvRows.push(`Solicitudes de Refund,${metrics.totalRefundRequests || 0}`);
+      csvRows.push(`Refunds Aprobados,${metrics.approvedRefunds || 0}`);
+      csvRows.push(`Refunds Pendientes,${metrics.pendingRefunds || 0}`);
+      csvRows.push('');
+      
+      // Products section
+      csvRows.push('PRODUCTOS STRIPE');
+      csvRows.push(`Professional Mensual,${metrics.productsByTierAndPeriod?.tier_1_monthly || 0}`);
+      csvRows.push(`Professional Anual,${metrics.productsByTierAndPeriod?.tier_1_annual || 0}`);
+      csvRows.push(`Business Mensual,${metrics.productsByTierAndPeriod?.tier_2_monthly || 0}`);
+      csvRows.push(`Business Anual,${metrics.productsByTierAndPeriod?.tier_2_annual || 0}`);
+      csvRows.push('');
+      
+      // Purchase attempts
+      csvRows.push('INTENTOS DE COMPRA');
+      csvRows.push(`Total Intentos,${metrics.purchaseAttempts || 0}`);
+      csvRows.push(`Compras Exitosas,${metrics.successfulPurchases || 0}`);
+      csvRows.push(`Cancelados Después,${metrics.cancelledAfterPurchase || 0}`);
+      csvRows.push(`Tasa de Conversión (%),${metrics.conversionRate || '0'}`);
+      csvRows.push('');
+      
+      // Usage section
+      csvRows.push('USO DE LA PLATAFORMA');
+      csvRows.push(`Materiales Creados,${metrics.materialsInRange || 0}`);
+      csvRows.push(`Proyectos Creados,${metrics.projectsInRange || 0}`);
+      csvRows.push(`Pedidos Creados,${metrics.ordersInRange || 0}`);
+      csvRows.push(`Impresiones,${metrics.printsInRange || 0}`);
+      csvRows.push('');
+      
+      // Subscriptions section
+      csvRows.push('SUSCRIPCIONES');
+      csvRows.push(`Free Activos,${metrics.activeSubscriptionsByTier?.free || 0}`);
+      csvRows.push(`Professional Activos,${metrics.activeSubscriptionsByTier?.tier_1 || 0}`);
+      csvRows.push(`Business Activos,${metrics.activeSubscriptionsByTier?.tier_2 || 0}`);
+      csvRows.push(`Mensuales,${metrics.monthlySubscriptions || 0}`);
+      csvRows.push(`Anuales,${metrics.annualSubscriptions || 0}`);
+      csvRows.push(`Total Cancelaciones,${metrics.totalCancellations || 0}`);
+      csvRows.push(`Total Downgrades,${metrics.totalDowngrades || 0}`);
+      csvRows.push('');
+      
+      // Detailed data sections
+      csvRows.push('DETALLE DE USUARIOS');
+      csvRows.push('Email,Nombre,Tier,Tipo Suscripción,Estado,Registrado');
+      profiles.forEach(profile => {
+        const sub = subscriptions.find(s => s.user_id === profile.id);
+        const tier = sub?.tier || 'free';
+        const isPaid = sub?.is_paid_subscription || false;
+        const hasStripe = !!sub?.stripe_subscription_id;
+        const type = isPaid && hasStripe ? 'Pago' : 'Gratis';
+        const status = sub?.status || 'active';
+        csvRows.push(`${profile.email || ''},${profile.full_name || ''},${tier},${type},${status},${new Date(profile.created_at).toLocaleDateString()}`);
+      });
+      csvRows.push('');
+      
+      csvRows.push('DETALLE DE FACTURAS');
+      csvRows.push('ID,Usuario,Amount (€),Status,Tier,Período,Fecha Emisión,Fecha Pago');
+      invoices.forEach(inv => {
+        csvRows.push(`${inv.id},${inv.user_id},${inv.amount || 0},${inv.status || ''},${inv.tier || ''},${inv.billing_period || ''},${inv.issued_date ? new Date(inv.issued_date).toLocaleDateString() : ''},${inv.paid_date ? new Date(inv.paid_date).toLocaleDateString() : ''}`);
+      });
+      csvRows.push('');
+      
+      csvRows.push('DETALLE DE REFUNDS');
+      csvRows.push('ID,Usuario,Amount (€),Status,Creado,Procesado');
+      (refunds as any[]).forEach((ref: any) => {
+        csvRows.push(`${ref.id},${ref.user_id},${ref.amount || 0},${ref.status || ''},${ref.created_at ? new Date(ref.created_at).toLocaleDateString() : ''},${ref.processed_at ? new Date(ref.processed_at).toLocaleDateString() : ''}`);
+      });
+      csvRows.push('');
+      
+      csvRows.push('DETALLE DE CAMBIOS DE SUSCRIPCIÓN');
+      csvRows.push('ID,Usuario,Tipo Cambio,Tier Anterior,Tier Nuevo,Fecha');
+      (changes as any[]).forEach((change: any) => {
+        csvRows.push(`${change.id},${change.user_id},${change.change_type || ''},${change.previous_tier || ''},${change.new_tier || ''},${change.created_at ? new Date(change.created_at).toLocaleDateString() : ''}`);
+      });
+
+      // Create and download file
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `metricas_usuarios_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success(`Datos exportados para los últimos ${days} días`);
+    } catch (error: any) {
+      console.error('Error exporting data:', error);
+      toast.error('Error al exportar datos');
     }
   };
 
@@ -1192,7 +1447,7 @@ const AdminDashboard = () => {
       if (activeSection === 'invoices') {
         fetchInvoices();
       }
-      if (activeSection === 'user-analysis') {
+      if (activeSection === 'user-analysis' || activeSection === 'metrics') {
         fetchMetrics();
       }
     }
@@ -2500,11 +2755,66 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
         </>
-      ) : activeSection === 'user-analysis' ? (
+      ) : (activeSection === 'user-analysis' || activeSection === 'metrics') ? (
         <>
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold mb-2">Análisis de Usuarios</h2>
-            <p className="text-muted-foreground">Estadísticas y métricas detalladas sobre los usuarios de la plataforma</p>
+          <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold mb-2">Análisis y Métricas de Usuarios</h2>
+              <p className="text-muted-foreground">Estadísticas completas y análisis detallado de usuarios, suscripciones y finanzas</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Select value={dateRange} onValueChange={(value: any) => setDateRange(value)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Hoy</SelectItem>
+                  <SelectItem value="week">Últimos 7 días</SelectItem>
+                  <SelectItem value="month">Últimos 30 días</SelectItem>
+                  <SelectItem value="all">Todo el tiempo</SelectItem>
+                  <SelectItem value="custom">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+              {dateRange === 'custom' && (
+                <>
+                  <Input
+                    type="date"
+                    value={customDateFrom}
+                    onChange={(e) => setCustomDateFrom(e.target.value)}
+                    className="w-[150px]"
+                    placeholder="Desde"
+                  />
+                  <Input
+                    type="date"
+                    value={customDateTo}
+                    onChange={(e) => setCustomDateTo(e.target.value)}
+                    className="w-[150px]"
+                    placeholder="Hasta"
+                  />
+                </>
+              )}
+              <Button variant="outline" onClick={fetchMetrics} disabled={loadingMetrics}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${loadingMetrics ? 'animate-spin' : ''}`} />
+                Actualizar
+              </Button>
+              <Button variant="outline" onClick={exportMetricsData} disabled={!metrics || loadingMetrics}>
+                <Download className="h-4 w-4 mr-2" />
+                Exportar
+              </Button>
+            </div>
+          </div>
+          
+          {/* Export Days Input */}
+          <div className="mb-4 flex items-center gap-2">
+            <Label className="text-sm">Exportar últimos:</Label>
+            <Input
+              type="number"
+              value={exportDays}
+              onChange={(e) => setExportDays(e.target.value)}
+              className="w-20"
+              min="1"
+            />
+            <span className="text-sm text-muted-foreground">días</span>
           </div>
 
           {loadingMetrics ? (
@@ -2817,22 +3127,153 @@ const AdminDashboard = () => {
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Materiales</p>
                       <p className="text-2xl font-bold">{metrics.totalMaterials}</p>
-                      <p className="text-xs text-muted-foreground">{metrics.materialsToday} creados hoy</p>
+                      <p className="text-xs text-muted-foreground">
+                        {metrics.materialsInRange || metrics.materialsToday} en período seleccionado
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Proyectos</p>
                       <p className="text-2xl font-bold">{metrics.totalProjects}</p>
-                      <p className="text-xs text-muted-foreground">{metrics.projectsToday} creados hoy</p>
+                      <p className="text-xs text-muted-foreground">
+                        {metrics.projectsInRange || metrics.projectsToday} en período seleccionado
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Pedidos</p>
                       <p className="text-2xl font-bold">{metrics.totalOrders}</p>
-                      <p className="text-xs text-muted-foreground">{metrics.ordersToday} hoy</p>
+                      <p className="text-xs text-muted-foreground">
+                        {metrics.ordersInRange || metrics.ordersToday} en período seleccionado
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Impresiones</p>
                       <p className="text-2xl font-bold">{metrics.totalPrints}</p>
-                      <p className="text-xs text-muted-foreground">{metrics.printsToday} hoy</p>
+                      <p className="text-xs text-muted-foreground">
+                        {metrics.printsInRange || metrics.printsToday} en período seleccionado
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Finanzas y Productos */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <DollarSign className="h-5 w-5" />
+                      Finanzas
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span>Ingresos Totales</span>
+                        <span className="font-semibold text-green-600">
+                          {metrics.revenueInRange?.toFixed(2) || '0.00'} €
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Total Reembolsado</span>
+                        <span className="font-semibold text-red-600">
+                          {metrics.totalRefunded?.toFixed(2) || '0.00'} €
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Facturas Pagadas</span>
+                        <span className="font-semibold">{metrics.paidInvoices || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Facturas Reembolsadas</span>
+                        <span className="font-semibold text-orange-600">{metrics.refundedInvoices || 0}</span>
+                      </div>
+                      <div className="pt-2 border-t space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span>Refunds Aprobados</span>
+                          <span>{metrics.approvedRefunds || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span>Refunds Pendientes</span>
+                          <Badge variant="outline">{metrics.pendingRefunds || 0}</Badge>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span>Total Refund Amount</span>
+                          <span className="font-semibold">{metrics.totalRefundAmount?.toFixed(2) || '0.00'} €</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Package className="h-5 w-5" />
+                      Productos Stripe
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm font-semibold mb-2">Professional</p>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span>Mensual</span>
+                            <span className="font-semibold">{metrics.productsByTierAndPeriod?.tier_1_monthly || 0}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Anual</span>
+                            <span className="font-semibold">{metrics.productsByTierAndPeriod?.tier_1_annual || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="pt-2 border-t">
+                        <p className="text-sm font-semibold mb-2">Business</p>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span>Mensual</span>
+                            <span className="font-semibold">{metrics.productsByTierAndPeriod?.tier_2_monthly || 0}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Anual</span>
+                            <span className="font-semibold">{metrics.productsByTierAndPeriod?.tier_2_annual || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Intentos de Compra */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShoppingCart className="h-5 w-5" />
+                    Intentos de Compra y Conversión
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Total Intentos</p>
+                      <p className="text-2xl font-bold">{metrics.purchaseAttempts || 0}</p>
+                      <p className="text-xs text-muted-foreground">Clics en "Adquirir"</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Compras Exitosas</p>
+                      <p className="text-2xl font-bold text-green-600">{metrics.successfulPurchases || 0}</p>
+                      <p className="text-xs text-muted-foreground">Completadas</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Cancelados Después</p>
+                      <p className="text-2xl font-bold text-orange-600">{metrics.cancelledAfterPurchase || 0}</p>
+                      <p className="text-xs text-muted-foreground">Post-compra</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Tasa de Conversión</p>
+                      <p className="text-2xl font-bold text-blue-600">{metrics.conversionRate || '0'}%</p>
+                      <p className="text-xs text-muted-foreground">Éxito / Intentos</p>
                     </div>
                   </div>
                 </CardContent>
@@ -3223,184 +3664,6 @@ const AdminDashboard = () => {
               )}
             </CardContent>
           </Card>
-        </>
-      ) : activeSection === 'metrics' ? (
-        <>
-          <div className="mb-4 space-y-2">
-            <div className="flex flex-wrap gap-2">
-              <Select value={dateRange} onValueChange={(value: any) => setDateRange(value)}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="week">Last 7 Days</SelectItem>
-                  <SelectItem value="month">Last 30 Days</SelectItem>
-                  <SelectItem value="all">All Time</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" onClick={fetchMetrics} disabled={loadingMetrics}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${loadingMetrics ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-            </div>
-          </div>
-
-          {loadingMetrics ? (
-            <div className="text-center py-8">Loading metrics...</div>
-          ) : metrics ? (
-            <div className="space-y-6">
-              {/* Users Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{metrics.totalUsers}</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm font-medium">New Today</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{metrics.newUsersToday}</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm font-medium">New This Week</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{metrics.newUsersThisWeek}</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm font-medium">New This Month</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{metrics.newUsersThisMonth}</div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Activity Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm font-medium">Total Materials</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{metrics.totalMaterials}</div>
-                    <p className="text-xs text-muted-foreground mt-1">+{metrics.materialsToday} today</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{metrics.totalProjects}</div>
-                    <p className="text-xs text-muted-foreground mt-1">+{metrics.projectsToday} today</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{metrics.totalOrders}</div>
-                    <p className="text-xs text-muted-foreground mt-1">+{metrics.ordersToday} today</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm font-medium">Total Prints</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{metrics.totalPrints}</div>
-                    <p className="text-xs text-muted-foreground mt-1">+{metrics.printsToday} today</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Grace Period & Trials */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Clock className="h-5 w-5" />
-                      Grace Period & Trials
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span>Usuarios en Grace Period</span>
-                      <Badge variant="outline">{metrics.usersInGracePeriod}</Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Usuarios en Trial</span>
-                      <Badge variant="default">{metrics.usersInTrial}</Badge>
-                    </div>
-                    <div className="space-y-2 pt-2 border-t">
-                      <p className="text-sm font-medium">Trials por Plan:</p>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Free</span>
-                        <Badge variant="outline">{metrics.usersInTrialByTier.free}</Badge>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Professional</span>
-                        <Badge variant="default">{metrics.usersInTrialByTier.tier_1}</Badge>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Business</span>
-                        <Badge className="bg-purple-500">{metrics.usersInTrialByTier.tier_2}</Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5" />
-                      Subscriptions
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span>Active Free</span>
-                      <Badge variant="outline">{metrics.activeSubscriptionsByTier.free}</Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Active Professional</span>
-                      <Badge variant="default">{metrics.activeSubscriptionsByTier.tier_1}</Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Active Business</span>
-                      <Badge className="bg-purple-500">{metrics.activeSubscriptionsByTier.tier_2}</Badge>
-                    </div>
-                    <div className="space-y-2 pt-2 border-t">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Total Cancellations</span>
-                        <Badge variant="destructive">{metrics.totalCancellations}</Badge>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Total Downgrades</span>
-                        <Badge variant="secondary">{metrics.totalDowngrades}</Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No metrics available
-            </div>
-          )}
         </>
       ) : null}
         </div>
