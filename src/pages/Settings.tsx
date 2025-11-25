@@ -1075,8 +1075,9 @@ const Settings = () => {
                       </div>
                     </div>
 
-                    {/* Cancelled but Active Alert */}
-                    {subscriptionInfo.status === 'cancelled' && 
+                    {/* Cancelled but Active Alert - Show if status is cancelled OR if grace_period_end exists */}
+                    {((subscriptionInfo.status === 'cancelled' || subscriptionInfo.status === 'canceled') || 
+                      (subscriptionInfo.grace_period_end && new Date(subscriptionInfo.grace_period_end) > new Date())) && 
                      subscriptionInfo.expires_at && 
                      new Date(subscriptionInfo.expires_at) > new Date() && (
                       <Card className="border-orange-500/50 bg-orange-500/5">
@@ -1508,12 +1509,18 @@ const Settings = () => {
                       <Button variant="outline" size="sm" onClick={() => navigate('/pricing')}>
                         {subscriptionInfo.tier === 'free' ? t('settings.subscription.upgradePlan') : t('settings.subscription.changePlan')}
                       </Button>
-                      {subscriptionInfo.status === 'active' && subscriptionInfo.tier !== 'free' && (
+                      {/* Show cancel button only if status is active AND not in grace period */}
+                      {subscriptionInfo.status === 'active' && 
+                       subscriptionInfo.tier !== 'free' && 
+                       !subscriptionInfo.grace_period_end && (
                         <Button variant="destructive" size="sm" onClick={handleCancelSubscription}>
                           {t('settings.subscription.cancelSubscription')}
                         </Button>
                       )}
-                      {(subscriptionInfo.status === 'cancelled' || subscriptionInfo.status === 'canceled') && subscriptionInfo.tier !== 'free' && (
+                      {/* Show reactivate button if cancelled OR in grace period */}
+                      {((subscriptionInfo.status === 'cancelled' || subscriptionInfo.status === 'canceled') || 
+                        (subscriptionInfo.grace_period_end && new Date(subscriptionInfo.grace_period_end) > new Date())) && 
+                       subscriptionInfo.tier !== 'free' && (
                         <Button variant="default" size="sm" onClick={() => navigate('/pricing')}>
                           {t('settings.subscription.reactivateSubscription')}
                         </Button>
