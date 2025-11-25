@@ -677,7 +677,7 @@ const Settings = () => {
       </div>
 
         <Tabs defaultValue="profile" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+          <TabsList className="grid w-full grid-cols-6 max-w-4xl">
             <TabsTrigger value="profile">
               <User className="h-4 w-4 mr-2" />
               {t('settings.tabs.profile')}
@@ -693,6 +693,14 @@ const Settings = () => {
             <TabsTrigger value="invoices">
               <Receipt className="h-4 w-4 mr-2" />
               {t('settings.tabs.invoices')}
+            </TabsTrigger>
+            <TabsTrigger value="notifications">
+              <Bell className="h-4 w-4 mr-2" />
+              {t('settings.tabs.notifications')}
+            </TabsTrigger>
+            <TabsTrigger value="support">
+              <HelpCircle className="h-4 w-4 mr-2" />
+              {t('settings.tabs.support')}
             </TabsTrigger>
           </TabsList>
 
