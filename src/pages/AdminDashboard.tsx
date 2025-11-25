@@ -701,7 +701,7 @@ const AdminDashboard = () => {
         supabase.from('orders').select('id, user_id, created_at, total_amount'),
         supabase.from('prints').select('id, user_id, created_at'),
         supabase.from('user_promo_codes' as any).select('user_id, promo_codes(code)'),
-        supabase.from('invoices').select('id, user_id, amount, status, tier, billing_period, issued_date, paid_date'),
+        supabase.from('invoices').select('id, user_id, amount, status, tier, billing_period, issued_date, paid_date, invoice_number'),
         supabase.from('refund_requests' as any).select('id, user_id, amount, status, created_at, processed_at'),
         supabase.from('subscription_changes' as any).select('id, user_id, change_type, previous_tier, new_tier, created_at')
       ]);
@@ -815,7 +815,17 @@ const AdminDashboard = () => {
       const paidInvoices = invoicesInRange.filter(inv => inv.status === 'paid');
       const refundedInvoices = invoicesInRange.filter(inv => inv.status === 'refunded');
       const totalRevenue = paidInvoices.reduce((sum, inv) => sum + (parseFloat(inv.amount?.toString() || '0') || 0), 0);
-      const totalRefunded = refundedInvoices.reduce((sum, inv) => sum + Math.abs(parseFloat(inv.amount?.toString() || '0') || 0), 0);
+      
+      // Calculate total refunded: only count actual refund invoices (negative amounts)
+      // This avoids double-counting when both the original invoice (status=refunded) and refund invoice exist
+      // Refund invoices always have negative amounts, while original invoices marked as refunded have positive amounts
+      const actualRefundInvoices = refundedInvoices.filter((inv: any) => {
+        const amount = parseFloat(inv.amount?.toString() || '0') || 0;
+        const invoiceNumber = (inv.invoice_number?.toString() || '').toUpperCase();
+        // Count only refund invoices: negative amounts OR invoice numbers starting with REF-
+        return amount < 0 || invoiceNumber.startsWith('REF-');
+      });
+      const totalRefunded = actualRefundInvoices.reduce((sum, inv) => sum + Math.abs(parseFloat(inv.amount?.toString() || '0') || 0), 0);
       
       // Products by tier and billing period
       const productsByTierAndPeriod = {
@@ -904,7 +914,7 @@ const AdminDashboard = () => {
         // Financial metrics
         totalInvoices: allInvoices.length,
         paidInvoices: paidInvoices.length,
-        refundedInvoices: refundedInvoices.length,
+        refundedInvoices: actualRefundInvoices.length, // Count only actual refund invoices, not original invoices marked as refunded
         totalRefunded,
         totalRefundRequests: allRefundRequests.length,
         approvedRefunds: approvedRefunds.length,
