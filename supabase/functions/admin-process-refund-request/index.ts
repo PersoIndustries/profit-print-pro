@@ -25,6 +25,7 @@ interface RequestBody {
   adminNotes?: string;
   userMessage?: string; // Message to send to user as notification
   processInStripe?: boolean; // If true, will also process refund in Stripe
+  cancelSubscription?: boolean; // If true, cancel subscription after refund
 }
 
 serve(async (req) => {
@@ -164,7 +165,7 @@ serve(async (req) => {
       );
     }
     
-    const { refundRequestId, action, adminNotes, userMessage, processInStripe = false } = body;
+    const { refundRequestId, action, adminNotes, userMessage, processInStripe = false, cancelSubscription = false } = body;
 
     if (!refundRequestId || !action || !['approve', 'reject'].includes(action)) {
       return new Response(
@@ -362,6 +363,85 @@ serve(async (req) => {
       }
     }
 
+    // Cancel subscription if requested
+    let subscriptionCancelled = false;
+    if (action === 'approve' && cancelSubscription) {
+      try {
+        // Get full subscription details
+        const { data: fullSubscription, error: subError } = await supabaseAdmin
+          .from('user_subscriptions')
+          .select('tier, status, stripe_subscription_id, expires_at')
+          .eq('user_id', refundRequest.user_id)
+          .maybeSingle();
+
+        if (!subError && fullSubscription && fullSubscription.status !== 'cancelled') {
+          const previousTier = (fullSubscription.tier || 'free') as 'free' | 'tier_1' | 'tier_2';
+
+          // Cancel in Stripe if subscription exists
+          if (stripeSecretKey && fullSubscription.stripe_subscription_id) {
+            try {
+              const stripe = new Stripe(stripeSecretKey, {
+                apiVersion: '2023-10-16',
+                httpClient: Stripe.createFetchHttpClient(),
+              });
+              await stripe.subscriptions.cancel(fullSubscription.stripe_subscription_id);
+              console.log('Stripe subscription cancelled:', fullSubscription.stripe_subscription_id);
+            } catch (stripeError: any) {
+              console.error('Error cancelling Stripe subscription:', stripeError);
+              // Continue with database cancellation even if Stripe fails
+            }
+          }
+
+          // Set grace period if downgrading from paid to free
+          const now = new Date();
+          let gracePeriodEnd = null;
+          let downgradeDate = null;
+
+          if (previousTier !== 'free') {
+            // Set 30-day grace period
+            gracePeriodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+            downgradeDate = now.toISOString();
+          }
+
+          // Update subscription in database
+          const { error: cancelError } = await supabaseAdmin
+            .from('user_subscriptions')
+            .update({
+              status: 'cancelled',
+              tier: 'free',
+              previous_tier: previousTier,
+              downgrade_date: downgradeDate,
+              grace_period_end: gracePeriodEnd,
+              is_read_only: previousTier !== 'free' ? true : false,
+            })
+            .eq('user_id', refundRequest.user_id);
+
+          if (cancelError) {
+            console.error('Error cancelling subscription:', cancelError);
+          } else {
+            subscriptionCancelled = true;
+            console.log('Subscription cancelled for user:', refundRequest.user_id);
+
+            // Log the change
+            await supabaseAdmin
+              .from('subscription_changes')
+              .insert({
+                user_id: refundRequest.user_id,
+                admin_id: user.id,
+                previous_tier: previousTier,
+                new_tier: 'free',
+                change_type: 'cancel',
+                reason: 'Subscription cancelled after refund approval',
+                notes: `Cancelled automatically after refund request ${refundRequestId} was approved`,
+              });
+          }
+        }
+      } catch (cancelError: any) {
+        console.error('Error in subscription cancellation process:', cancelError);
+        // Don't fail the refund request if cancellation fails
+      }
+    }
+
     // Update refund request
     const { error: updateError } = await supabaseAdmin
       .from('refund_requests')
@@ -421,6 +501,7 @@ serve(async (req) => {
           amount: refundInvoice.amount,
         } : null,
         stripeRefundId,
+        subscriptionCancelled,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

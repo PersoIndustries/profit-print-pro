@@ -740,7 +740,10 @@
       "status": "Status",
       "actions": "Actions",
       "download": "Download",
-      "noInvoices": "No invoices yet"
+      "downloading": "Downloading...",
+      "noStripeInvoice": "Stripe invoice not available yet",
+      "noInvoices": "No invoices yet",
+      "refunded": "Refunded"
     },
     "messages": {
       "errorLoading": "Error loading settings",
@@ -766,7 +769,9 @@
       "cancelSubscriptionConfirm": "Are you sure you want to cancel your subscription? You will lose access to premium features.",
       "errorApplying": "Error applying code. Try again.",
       "errorApplyingCode": "Error applying promotional code",
-      "errorApplyingCreatorCode": "Error applying creator code"
+      "errorApplyingCreatorCode": "Error applying creator code",
+      "invoiceDownloadUnavailable": "This invoice is not available in Stripe yet",
+      "invoiceDownloadError": "Unable to download invoice. Please try again."
     },
     "promoCode": {
       "title": "Promo Code",

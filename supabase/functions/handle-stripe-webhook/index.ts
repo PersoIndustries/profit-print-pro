@@ -200,6 +200,11 @@ async function handleCheckoutCompleted(
   let invoiceNumber = `INV-${Date.now()}`;
   let invoiceCreated = Date.now();
 
+  let stripeInvoiceId: string | null = invoiceId || null;
+  let invoicePdfUrl: string | null = null;
+  let receiptUrl: string | null = null;
+  const paymentIntentId = session.payment_intent ? String(session.payment_intent) : null;
+
   if (invoiceId) {
     try {
       const invoice = await stripe.invoices.retrieve(invoiceId);
@@ -207,6 +212,15 @@ async function handleCheckoutCompleted(
       invoiceCurrency = invoice.currency.toUpperCase();
       invoiceNumber = invoice.number || invoiceNumber;
       invoiceCreated = invoice.created * 1000;
+      stripeInvoiceId = invoice.id;
+      invoicePdfUrl = invoice.invoice_pdf || invoice.hosted_invoice_url || null;
+      receiptUrl = invoice.hosted_invoice_url || invoice.invoice_pdf || null;
+      if (!invoicePdfUrl && invoice.invoice_pdf) {
+        invoicePdfUrl = invoice.invoice_pdf;
+      }
+      if (!receiptUrl && invoice.hosted_invoice_url) {
+        receiptUrl = invoice.hosted_invoice_url;
+      }
     } catch (invoiceError) {
       console.warn('Could not retrieve invoice, using session data:', invoiceError);
       // Fallback to session data
@@ -232,6 +246,11 @@ async function handleCheckoutCompleted(
       issued_date: new Date(invoiceCreated).toISOString(),
       paid_date: new Date().toISOString(),
       notes: `Stripe Checkout Session: ${session.id}${invoiceId ? `. Invoice: ${invoiceId}` : ''}`,
+      stripe_invoice_id: stripeInvoiceId,
+      stripe_invoice_pdf_url: invoicePdfUrl,
+      stripe_receipt_url: receiptUrl,
+      stripe_checkout_session_id: session.id,
+      stripe_payment_intent_id: paymentIntentId,
     });
 
   if (invoiceError) {
@@ -256,20 +275,28 @@ async function handleInvoicePaymentSucceeded(supabase: any, invoice: Stripe.Invo
   }
 
   // Create invoice record
+  const invoiceData = {
+    user_id: userId,
+    invoice_number: invoice.number || `INV-${Date.now()}`,
+    amount: (invoice.amount_paid || 0) / 100,
+    currency: invoice.currency.toUpperCase(),
+    status: 'paid',
+    billing_period: invoice.billing_reason === 'subscription_cycle' ? 'monthly' : 'one_time',
+    tier: metadata?.tier || null,
+    issued_date: new Date(invoice.created * 1000).toISOString(),
+    paid_date: new Date().toISOString(),
+    notes: `Stripe Invoice: ${invoice.id}`,
+    stripe_invoice_id: invoice.id,
+    stripe_invoice_pdf_url: invoice.invoice_pdf || invoice.hosted_invoice_url || null,
+    stripe_receipt_url: invoice.hosted_invoice_url || invoice.invoice_pdf || null,
+    stripe_payment_intent_id: typeof invoice.payment_intent === 'string'
+      ? invoice.payment_intent
+      : (invoice.payment_intent as Stripe.PaymentIntent | null)?.id || null,
+  };
+
   const { error } = await supabase
     .from('invoices')
-    .insert({
-      user_id: userId,
-      invoice_number: invoice.number || `INV-${Date.now()}`,
-      amount: (invoice.amount_paid || 0) / 100,
-      currency: invoice.currency.toUpperCase(),
-      status: 'paid',
-      billing_period: invoice.billing_reason === 'subscription_cycle' ? 'monthly' : 'one_time',
-      tier: metadata?.tier || null,
-      issued_date: new Date(invoice.created * 1000).toISOString(),
-      paid_date: new Date().toISOString(),
-      notes: `Stripe Invoice: ${invoice.id}`,
-    });
+    .upsert(invoiceData, { onConflict: 'invoice_number' });
 
   if (error) {
     console.error('Error creating invoice:', error);
@@ -428,24 +455,40 @@ async function handleChargeRefunded(supabase: any, charge: Stripe.Charge) {
     })
     .eq('id', invoice.id);
 
-  // Create a refund invoice (negative amount) for accounting purposes
-  const { error: refundInvoiceError } = await supabase
+  // Check if refund invoice already exists (to avoid duplicates when admin already processed refund)
+  const { data: existingRefundInvoice } = await supabase
     .from('invoices')
-    .insert({
-      user_id: userId,
-      invoice_number: `REF-${Date.now()}`,
-      amount: -refundAmount, // Negative amount for refund
-      currency: charge.currency.toUpperCase(),
-      status: 'refunded',
-      billing_period: invoice.billing_period || null,
-      tier: invoice.tier || null,
-      issued_date: new Date().toISOString(),
-      paid_date: new Date().toISOString(),
-      notes: `Stripe Refund Invoice. Original Invoice: ${invoice.invoice_number || invoice.id}. Charge ID: ${charge.id}`,
-    });
+    .select('id')
+    .eq('user_id', userId)
+    .eq('amount', -refundAmount)
+    .eq('status', 'refunded')
+    .like('invoice_number', 'REF-%')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  if (refundInvoiceError) {
-    console.error('Error creating refund invoice:', refundInvoiceError);
+  // Create a refund invoice (negative amount) for accounting purposes only if it doesn't exist
+  if (!existingRefundInvoice) {
+    const { error: refundInvoiceError } = await supabase
+      .from('invoices')
+      .insert({
+        user_id: userId,
+        invoice_number: `REF-${Date.now()}`,
+        amount: -refundAmount, // Negative amount for refund
+        currency: charge.currency.toUpperCase(),
+        status: 'refunded',
+        billing_period: invoice.billing_period || null,
+        tier: invoice.tier || null,
+        issued_date: new Date().toISOString(),
+        paid_date: new Date().toISOString(),
+        notes: `Stripe Refund Invoice. Original Invoice: ${invoice.invoice_number || invoice.id}. Charge ID: ${charge.id}`,
+      });
+
+    if (refundInvoiceError) {
+      console.error('Error creating refund invoice:', refundInvoiceError);
+    }
+  } else {
+    console.log('Refund invoice already exists, skipping duplicate creation');
   }
 
   // Create refund request record if it doesn't exist
@@ -520,24 +563,40 @@ async function handleRefundCreated(supabase: any, refund: Stripe.Refund) {
       })
       .eq('id', invoice.id);
 
-    // Create a refund invoice (negative amount) for accounting purposes
-    const { error: refundInvoiceError } = await supabase
+    // Check if refund invoice already exists (to avoid duplicates when admin already processed refund)
+    const { data: existingRefundInvoice } = await supabase
       .from('invoices')
-      .insert({
-        user_id: userId,
-        invoice_number: `REF-${Date.now()}`,
-        amount: -refundAmount, // Negative amount for refund
-        currency: refund.currency.toUpperCase(),
-        status: 'refunded',
-        billing_period: invoice.billing_period || null,
-        tier: invoice.tier || null,
-        issued_date: new Date().toISOString(),
-        paid_date: new Date().toISOString(),
-        notes: `Stripe Refund Invoice. Original Invoice: ${invoice.invoice_number || invoice.id}. Refund ID: ${refund.id}`,
-      });
+      .select('id')
+      .eq('user_id', userId)
+      .eq('amount', -refundAmount)
+      .eq('status', 'refunded')
+      .like('invoice_number', 'REF-%')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (refundInvoiceError) {
-      console.error('Error creating refund invoice:', refundInvoiceError);
+    // Create a refund invoice (negative amount) for accounting purposes only if it doesn't exist
+    if (!existingRefundInvoice) {
+      const { error: refundInvoiceError } = await supabase
+        .from('invoices')
+        .insert({
+          user_id: userId,
+          invoice_number: `REF-${Date.now()}`,
+          amount: -refundAmount, // Negative amount for refund
+          currency: refund.currency.toUpperCase(),
+          status: 'refunded',
+          billing_period: invoice.billing_period || null,
+          tier: invoice.tier || null,
+          issued_date: new Date().toISOString(),
+          paid_date: new Date().toISOString(),
+          notes: `Stripe Refund Invoice. Original Invoice: ${invoice.invoice_number || invoice.id}. Refund ID: ${refund.id}`,
+        });
+
+      if (refundInvoiceError) {
+        console.error('Error creating refund invoice:', refundInvoiceError);
+      }
+    } else {
+      console.log('Refund invoice already exists, skipping duplicate creation');
     }
   }
 

@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, CreditCard, Receipt, User, TrendingUp, AlertCircle, Calendar, BarChart3, Shield, Clock, DollarSign, FileText, HelpCircle, Mail, MessageCircle } from "lucide-react";
+import { Settings as SettingsIcon, CreditCard, Receipt, User, TrendingUp, AlertCircle, Calendar, BarChart3, Shield, Clock, DollarSign, FileText, HelpCircle, Mail, MessageCircle, Download } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface Profile {
@@ -38,6 +38,9 @@ interface Invoice {
   issued_date: string;
   tier: string;
   billing_period: string;
+  stripe_invoice_id?: string | null;
+  stripe_invoice_pdf_url?: string | null;
+  stripe_receipt_url?: string | null;
 }
 
 interface SubscriptionInfo {
@@ -107,6 +110,7 @@ const Settings = () => {
   const [refundRequestMessages, setRefundRequestMessages] = useState<Map<string, any[]>>(new Map());
   const [refundRequestNewMessage, setRefundRequestNewMessage] = useState<Map<string, string>>(new Map());
   const [sendingRefundMessage, setSendingRefundMessage] = useState(false);
+  const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -248,6 +252,47 @@ const Settings = () => {
       toast.error(t('settings.messages.errorLoading'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadInvoice = async (invoice: Invoice) => {
+    if (!invoice.stripe_invoice_id && !invoice.stripe_invoice_pdf_url) {
+      toast.error(t('settings.messages.invoiceDownloadUnavailable'));
+      return;
+    }
+
+    // If we already have a stored URL, open it directly
+    if (invoice.stripe_invoice_pdf_url) {
+      window.open(invoice.stripe_invoice_pdf_url, '_blank');
+      return;
+    }
+
+    setDownloadingInvoiceId(invoice.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-stripe-invoice-pdf', {
+        body: { invoiceId: invoice.id }
+      });
+
+      if (error) {
+        throw new Error(error.message || t('settings.messages.invoiceDownloadError'));
+      }
+
+      if (!data?.url) {
+        throw new Error(t('settings.messages.invoiceDownloadError'));
+      }
+
+      setInvoices((prev) =>
+        prev.map((inv) =>
+          inv.id === invoice.id ? { ...inv, stripe_invoice_pdf_url: data.url } : inv
+        )
+      );
+
+      window.open(data.url, '_blank');
+    } catch (downloadError: any) {
+      console.error('Error downloading invoice:', downloadError);
+      toast.error(downloadError.message || t('settings.messages.invoiceDownloadError'));
+    } finally {
+      setDownloadingInvoiceId(null);
     }
   };
 
@@ -1329,23 +1374,43 @@ const Settings = () => {
                             </span>
                           </TableCell>
                           <TableCell>
-                            {invoice.status === 'paid' && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setRefundInvoiceId(invoice.id);
-                                  setRefundDialogOpen(true);
-                                }}
-                                className="text-xs"
-                              >
-                                <DollarSign className="h-3 w-3 mr-1" />
-                                {t('settings.support.refundRequest.title')}
-                              </Button>
-                            )}
-                            {invoice.status === 'refunded' && (
-                              <span className="text-xs text-muted-foreground">{t('settings.invoices.refunded')}</span>
-                            )}
+                            <div className="flex flex-wrap gap-2">
+                              {(invoice.stripe_invoice_id || invoice.stripe_invoice_pdf_url) ? (
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => handleDownloadInvoice(invoice)}
+                                  disabled={downloadingInvoiceId === invoice.id}
+                                  className="text-xs"
+                                >
+                                  <Download className="h-3 w-3 mr-1" />
+                                  {downloadingInvoiceId === invoice.id
+                                    ? t('settings.invoices.downloading')
+                                    : t('settings.invoices.download')}
+                                </Button>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">
+                                  {t('settings.invoices.noStripeInvoice')}
+                                </span>
+                              )}
+                              {invoice.status === 'paid' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setRefundInvoiceId(invoice.id);
+                                    setRefundDialogOpen(true);
+                                  }}
+                                  className="text-xs"
+                                >
+                                  <DollarSign className="h-3 w-3 mr-1" />
+                                  {t('settings.support.refundRequest.title')}
+                                </Button>
+                              )}
+                              {invoice.status === 'refunded' && (
+                                <span className="text-xs text-muted-foreground">{t('settings.invoices.refunded')}</span>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}

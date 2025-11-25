@@ -132,6 +132,7 @@ const AdminDashboard = () => {
   const [refundAdminNotes, setRefundAdminNotes] = useState<string>('');
   const [refundUserMessage, setRefundUserMessage] = useState<string>('');
   const [refundAction, setRefundAction] = useState<'approve' | 'reject'>('approve');
+  const [cancelSubscription, setCancelSubscription] = useState<boolean>(false);
   const [refundMessages, setRefundMessages] = useState<any[]>([]);
   const [refundNewMessage, setRefundNewMessage] = useState<string>('');
   const [loadingRefundMessages, setLoadingRefundMessages] = useState(false);
@@ -1069,6 +1070,7 @@ const AdminDashboard = () => {
     setRefundAdminNotes('');
     setRefundUserMessage('');
     setRefundNewMessage('');
+    setCancelSubscription(false); // Reset cancel subscription option
     setRefundRequestDialogOpen(true);
     // Load messages for this refund request
     await fetchRefundMessages(request.id);
@@ -1239,6 +1241,7 @@ const AdminDashboard = () => {
           adminNotes: refundAdminNotes || null,
           userMessage: refundUserMessage || null, // Message to send to user
           processInStripe: refundAction === 'approve', // Process in Stripe if approving
+          cancelSubscription: refundAction === 'approve' ? cancelSubscription : false, // Cancel subscription if approved and checkbox is checked
         },
       });
 
@@ -1273,6 +1276,7 @@ const AdminDashboard = () => {
       setSelectedRefundRequest(null);
       setRefundAdminNotes('');
       setRefundUserMessage('');
+      setCancelSubscription(false);
       fetchRefundRequests();
     } catch (error: any) {
       console.error('Error processing refund request:', error);
@@ -4297,6 +4301,23 @@ const AdminDashboard = () => {
                 />
                 <p className="text-xs text-muted-foreground mt-1">This message will be sent as a notification when processing</p>
               </div>
+              {refundAction === 'approve' && (
+                <div className="flex items-center space-x-2 p-3 border rounded-lg bg-muted/30">
+                  <input
+                    type="checkbox"
+                    id="cancel-subscription"
+                    checked={cancelSubscription}
+                    onChange={(e) => setCancelSubscription(e.target.checked)}
+                    className="rounded"
+                  />
+                  <Label htmlFor="cancel-subscription" className="cursor-pointer">
+                    <span className="font-semibold">Cancelar suscripción automáticamente</span>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Si está marcado, la suscripción del usuario se cancelará y se degradará a "Free" después del refund.
+                    </p>
+                  </Label>
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>

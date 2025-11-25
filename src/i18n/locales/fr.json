@@ -729,7 +729,10 @@
       "status": "Statut",
       "actions": "Actions",
       "download": "Télécharger",
-      "noInvoices": "Aucune facture pour le moment"
+      "downloading": "Téléchargement...",
+      "noStripeInvoice": "Facture Stripe pas encore disponible",
+      "noInvoices": "Aucune facture pour le moment",
+      "refunded": "Remboursée"
     },
     "messages": {
       "errorLoading": "Erreur lors du chargement des paramètres",
@@ -755,7 +758,9 @@
       "cancelSubscriptionConfirm": "Êtes-vous sûr de vouloir annuler votre abonnement? Vous perdrez l'accès aux fonctionnalités premium.",
       "errorApplying": "Erreur lors de l'application du code. Réessayez.",
       "errorApplyingCode": "Erreur lors de l'application du code promotionnel",
-      "errorApplyingCreatorCode": "Erreur lors de l'application du code de créateur"
+      "errorApplyingCreatorCode": "Erreur lors de l'application du code de créateur",
+      "invoiceDownloadUnavailable": "Cette facture n'est pas encore disponible sur Stripe",
+      "invoiceDownloadError": "Impossible de télécharger la facture. Veuillez réessayer."
     },
     "promoCode": {
       "title": "Code Promo",

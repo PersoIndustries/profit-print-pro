@@ -184,6 +184,8 @@
       "status": "Estado",
       "actions": "Acciones",
       "download": "Descargar",
+      "downloading": "Descargando...",
+      "noStripeInvoice": "Factura no disponible aún",
       "noInvoices": "Aún no hay facturas",
       "refunded": "Reembolsado"
     },
@@ -213,6 +215,8 @@
       "invalidCode": "Código no válido. Verifica que el código sea correcto.",
       "errorApplying": "Error al aplicar el código. Intenta nuevamente.",
       "errorApplyingCode": "Error al aplicar código promocional",
+      "invoiceDownloadUnavailable": "Esta factura todavía no está disponible en Stripe",
+      "invoiceDownloadError": "No se pudo descargar la factura. Inténtalo de nuevo.",
       "errorApplyingCreatorCode": "Error al aplicar código de creador",
       "errorValidating": "Error al validar la solicitud",
       "requestEligible": "La solicitud cumple con todos los requisitos",
