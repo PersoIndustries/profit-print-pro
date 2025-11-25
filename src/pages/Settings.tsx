@@ -52,6 +52,7 @@ interface SubscriptionInfo {
   price_paid: number;
   expires_at: string | null;
   is_paid_subscription?: boolean;
+  is_early_bird?: boolean; // Will be calculated based on price_paid
 }
 
 interface AppliedPromoCode {
@@ -204,9 +205,31 @@ const Settings = () => {
       }
 
       if (subRes.data) {
+        // Determine if subscription is early bird based on price paid
+        // Early bird prices: tier_1 monthly: 3.99, annual: 38.30
+        //                   tier_2 monthly: 12.99, annual: 124.70
+        const pricePaid = subRes.data.price_paid || 0;
+        const tier = subRes.data.tier;
+        const billingPeriod = subRes.data.billing_period;
+        let isEarlyBird = false;
+        
+        if (pricePaid > 0 && tier !== 'free') {
+          const earlyBirdPrices = {
+            tier_1: { monthly: 3.99, annual: 38.30 },
+            tier_2: { monthly: 12.99, annual: 124.70 }
+          };
+          
+          const expectedPrice = earlyBirdPrices[tier as 'tier_1' | 'tier_2']?.[billingPeriod as 'monthly' | 'annual'];
+          // Check if price matches early bird (with small tolerance for rounding)
+          if (expectedPrice && Math.abs(pricePaid - expectedPrice) < 0.01) {
+            isEarlyBird = true;
+          }
+        }
+        
         setSubscriptionInfo({
           ...subRes.data,
-          expires_at: subRes.data.expires_at
+          expires_at: subRes.data.expires_at,
+          is_early_bird: isEarlyBird
         });
         
         // Check if subscription is permanent (expires_at is NULL)
@@ -723,6 +746,20 @@ const Settings = () => {
     return t(`settings.tierNames.${tier}` as any) || 'Free';
   };
 
+  const getSubscriptionBadgeText = (tier: string, hasPromo: boolean, isEarlyBird: boolean) => {
+    let badgeText = tier === 'free' ? 'FREE' : tier === 'tier_1' ? 'PRO' : 'BUSINESS';
+    
+    if (hasPromo) {
+      badgeText += ' PROMO';
+    }
+    
+    if (isEarlyBird) {
+      badgeText += ' [EARLY BIRD]';
+    }
+    
+    return badgeText;
+  };
+
   const getTierBadgeColor = (tier: string) => {
     switch(tier) {
       case 'tier_2': return 'bg-purple-500';
@@ -947,7 +984,11 @@ const Settings = () => {
                         <div className="flex items-center gap-2 mt-1">
                           <p className="text-xl font-bold">{getTierName(subscriptionInfo.tier)}</p>
                           <Badge className={getTierBadgeColor(subscriptionInfo.tier)}>
-                            {subscriptionInfo.tier === 'free' ? 'FREE' : subscriptionInfo.tier === 'tier_1' ? 'PRO' : 'BUSINESS'}
+                            {getSubscriptionBadgeText(
+                              subscriptionInfo.tier,
+                              !!(appliedPromoCode || appliedCreatorCode),
+                              subscriptionInfo.is_early_bird || false
+                            )}
                           </Badge>
                         </div>
                       </div>
