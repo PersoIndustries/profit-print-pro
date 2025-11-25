@@ -762,6 +762,14 @@
       "invoiceDownloadUnavailable": "Cette facture n'est pas encore disponible sur Stripe",
       "invoiceDownloadError": "Impossible de télécharger la facture. Veuillez réessayer."
     },
+    "redeemCode": {
+      "title": "Utiliser un Code",
+      "description": "Vous avez un code? Utilisez-le ici pour débloquer des avantages spéciaux",
+      "placeholder": "ENTREZ-VOTRE-CODE",
+      "apply": "Utiliser",
+      "emptyCode": "Veuillez entrer un code",
+      "error": "Erreur lors de l'utilisation du code"
+    },
     "promoCode": {
       "title": "Code Promo",
       "description": "Vous avez un code? Utilisez-le ici pour débloquer des abonnements gratuits",

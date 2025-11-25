@@ -253,6 +253,14 @@
       "refundSubmitted": "Solicitud de refund enviada correctamente",
       "errorSubmittingRefund": "Error al enviar la solicitud"
     },
+    "redeemCode": {
+      "title": "Canjear Código",
+      "description": "¿Tienes un código? Canjéalo aquí para desbloquear beneficios especiales",
+      "placeholder": "INTRODUCE-TU-CODIGO",
+      "apply": "Canjear",
+      "emptyCode": "Por favor ingresa un código",
+      "error": "Error al canjear código"
+    },
     "promoCode": {
       "title": "Código Promocional",
       "description": "¿Tienes un código? Canjéalo aquí para desbloquear suscripciones gratuitas",

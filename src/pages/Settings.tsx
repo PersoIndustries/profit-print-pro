@@ -510,7 +510,7 @@ const Settings = () => {
     e.preventDefault();
     
     if (!code.trim()) {
-      toast.error(t('settings.promoCode.emptyCode'));
+      toast.error(t('settings.redeemCode.emptyCode'));
       return;
     }
 
@@ -518,78 +518,45 @@ const Settings = () => {
     const codeToApply = code.trim().toUpperCase();
     
     try {
-      // Primero verificar si existe como código promocional
-      const { data: promoCodeCheck, error: promoCheckError } = await supabase
-        .from('promo_codes')
-        .select('id, code, is_active')
-        .eq('code', codeToApply)
-        .maybeSingle();
+      // Use unified redeem-code Edge Function
+      const { data, error } = await supabase.functions.invoke('redeem-code', {
+        body: {
+          code: codeToApply,
+        },
+      });
 
-      // Si existe como código promocional, intentar aplicarlo
-      if (promoCodeCheck && !promoCheckError) {
-        const { data: promoData, error: promoError } = await supabase.rpc('apply_promo_code', {
-          _code: codeToApply,
-          _user_id: user?.id
-        });
-
-        if (!promoError && promoData) {
-          const result = promoData as { success: boolean; message: string; tier?: string };
-          
-          if (result.success) {
-            toast.success(result.message);
-            setCode("");
-            await fetchData();
-            return;
-          } else {
-            toast.error(result.message || t('settings.promoCode.error'));
-            return;
+      if (error) {
+        console.error('Error invoking redeem-code:', error);
+        let errorMessage = t('settings.messages.errorApplying');
+        if (error.message) {
+          errorMessage = error.message;
+        } else if (error.context && error.context.body) {
+          try {
+            const errorBody = JSON.parse(error.context.body);
+            errorMessage = errorBody.error || errorBody.message || errorMessage;
+          } catch (e) {
+            // If parsing fails, use default message
           }
-        } else if (promoError) {
-          toast.error(promoError.message || t('settings.promoCode.error'));
-          return;
         }
+        toast.error(errorMessage);
+        return;
       }
 
-      // Si no es código promocional, verificar si existe como código de creador
-      const { data: creatorCodeCheck, error: creatorCheckError } = await supabase
-        .from('creator_codes')
-        .select('id, code, is_active')
-        .eq('code', codeToApply)
-        .maybeSingle();
-
-      if (creatorCodeCheck && !creatorCheckError) {
-        const { data: creatorData, error: creatorError } = await supabase.rpc('apply_creator_code', {
-          _code: codeToApply,
-          _user_id: user?.id
-        });
-
-        if (creatorError) {
-          toast.error(creatorError.message || t('settings.messages.errorApplying'));
-          return;
-        }
-
-        const result = creatorData as { success: boolean; message: string; tier?: string; trial_days?: number; discount_percentage?: number };
+      if (data) {
+        const result = data as { success: boolean; message: string; codeType?: 'promo' | 'creator'; tier?: string; trial_days?: number; discount_percentage?: number };
         
         if (result.success) {
-          let message = result.message;
-          if (result.trial_days) {
-            message += ` Trial de ${result.trial_days} días activado.`;
-          }
-          if (result.discount_percentage) {
-            message += ` Descuento del ${result.discount_percentage}% aplicado.`;
-          }
-          toast.success(message);
+          toast.success(result.message);
           setCode("");
           await fetchData();
           return;
         } else {
-          toast.error(result.message || t('settings.messages.errorApplying'));
+          toast.error(result.message || t('settings.messages.invalidCode'));
           return;
         }
       }
 
-      // Si no existe en ninguna tabla, mostrar error
-        toast.error(t('settings.messages.invalidCode'));
+      toast.error(t('settings.messages.invalidCode'));
     } catch (error: any) {
       console.error("Error applying code:", error);
       toast.error(error.message || t('settings.messages.errorApplying'));

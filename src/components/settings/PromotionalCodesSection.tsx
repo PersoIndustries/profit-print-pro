@@ -54,46 +54,48 @@ export function PromotionalCodesSection({ userId, appliedCodes, onCodesUpdated }
 
     setApplying(true);
     try {
-      // Try promo code first
-      const { data: promoData, error: promoError } = await supabase.rpc('apply_promo_code', {
-        _code: code.trim().toUpperCase(),
-        _user_id: userId
+      // Use unified redeem-code Edge Function
+      const { data, error } = await supabase.functions.invoke('redeem-code', {
+        body: {
+          code: code.trim().toUpperCase(),
+        },
       });
 
-      const promoResult = promoData as any;
-      if (!promoError && promoResult?.success) {
-        toast.success(promoResult.message);
-        setCode("");
-        onCodesUpdated();
+      if (error) {
+        console.error('Error invoking redeem-code:', error);
+        let errorMessage = 'Error al canjear el código';
+        if (error.message) {
+          errorMessage = error.message;
+        } else if (error.context && error.context.body) {
+          try {
+            const errorBody = JSON.parse(error.context.body);
+            errorMessage = errorBody.error || errorBody.message || errorMessage;
+          } catch (e) {
+            // If parsing fails, use default message
+          }
+        }
+        toast.error(errorMessage);
         return;
       }
 
-      // Try creator code
-      const { data: creatorData, error: creatorError } = await supabase.rpc('apply_creator_code', {
-        _code: code.trim().toUpperCase(),
-        _user_id: userId
-      });
-
-      const creatorResult = creatorData as any;
-      if (!creatorError && creatorResult?.success) {
-        let message = creatorResult.message;
-        if (creatorResult.trial_days) {
-          message += ` Trial de ${creatorResult.trial_days} días activado.`;
+      if (data) {
+        const result = data as { success: boolean; message: string; codeType?: 'promo' | 'creator'; tier?: string; trial_days?: number; discount_percentage?: number };
+        
+        if (result.success) {
+          toast.success(result.message);
+          setCode("");
+          onCodesUpdated();
+          return;
+        } else {
+          toast.error(result.message || 'Código no válido. Verifica que el código sea correcto.');
+          return;
         }
-        if (creatorResult.discount_percentage) {
-          message += ` Descuento del ${creatorResult.discount_percentage}% aplicado.`;
-        }
-        toast.success(message);
-        setCode("");
-        onCodesUpdated();
-        return;
       }
 
-      // If both failed, show error
-      toast.error(promoResult?.message || creatorResult?.message || 'Código no válido');
+      toast.error('Código no válido. Verifica que el código sea correcto.');
     } catch (error: any) {
-      console.error("Error applying code:", error);
-      toast.error(error.message || 'Error al aplicar el código');
+      console.error("Error redeeming code:", error);
+      toast.error(error.message || 'Error al canjear el código');
     } finally {
       setApplying(false);
     }
@@ -181,10 +183,10 @@ export function PromotionalCodesSection({ userId, appliedCodes, onCodesUpdated }
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Gift className="h-5 w-5" />
-              Códigos Promocionales
+              Canjear Código
             </CardTitle>
             <CardDescription className="text-sm">
-              Ingresa un código promocional o de creador para desbloquear beneficios especiales como trial gratuito, descuentos o acceso a planes premium
+              Ingresa un código para desbloquear beneficios especiales como trial gratuito, descuentos o acceso a planes premium
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -201,7 +203,7 @@ export function PromotionalCodesSection({ userId, appliedCodes, onCodesUpdated }
               </Button>
             </form>
             <p className="text-xs text-muted-foreground mt-2">
-              Acepta códigos promocionales (acceso permanente) o códigos de creador (trial + descuentos)
+              El sistema detectará automáticamente el tipo de código y aplicará los beneficios correspondientes
             </p>
           </CardContent>
         </Card>

@@ -773,6 +773,14 @@
       "invoiceDownloadUnavailable": "This invoice is not available in Stripe yet",
       "invoiceDownloadError": "Unable to download invoice. Please try again."
     },
+    "redeemCode": {
+      "title": "Redeem Code",
+      "description": "Have a code? Redeem it here to unlock special benefits",
+      "placeholder": "ENTER-YOUR-CODE",
+      "apply": "Redeem",
+      "emptyCode": "Please enter a code",
+      "error": "Error redeeming code"
+    },
     "promoCode": {
       "title": "Promo Code",
       "description": "Have a code? Redeem it here to unlock free subscriptions",
