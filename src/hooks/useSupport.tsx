@@ -64,7 +64,7 @@ export const useSupport = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setTickets((data || []) as SupportTicket[]);
+      setTickets((data as any) || []);
     } catch (error: any) {
       console.error('Error fetching tickets:', error);
       toast.error('Error loading tickets');
@@ -89,13 +89,13 @@ export const useSupport = () => {
       
       setMessages(prev => {
         const newMap = new Map(prev);
-        newMap.set(ticketId, (data || []) as SupportMessage[]);
+        newMap.set(ticketId, (data as any) || []);
         return newMap;
       });
 
       // Mark messages as read
       if (user) {
-        await supabase.rpc('mark_support_messages_as_read', {
+        await supabase.rpc('mark_support_messages_as_read' as any, {
           p_ticket_id: ticketId,
           p_user_id: user.id
         });
@@ -178,7 +178,7 @@ export const useSupport = () => {
 
       await fetchTickets();
       toast.success('Ticket creado exitosamente');
-      return data as SupportTicket;
+      return data as any;
     } catch (error: any) {
       console.error('Error creating ticket:', error);
       toast.error('Error al crear ticket');
@@ -191,12 +191,12 @@ export const useSupport = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase.rpc('get_unread_support_messages_count', {
+      const { data, error } = await supabase.rpc('get_unread_support_messages_count' as any, {
         p_user_id: user.id
       });
 
       if (error) throw error;
-      setUnreadCount(data || 0);
+      setUnreadCount(typeof data === 'number' ? data : 0);
     } catch (error: any) {
       console.error('Error fetching unread count:', error);
     }

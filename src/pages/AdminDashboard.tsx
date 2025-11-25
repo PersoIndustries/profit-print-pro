@@ -2259,10 +2259,10 @@ const AdminDashboard = () => {
                         <TableHead>Período</TableHead>
                         <TableHead>Monto</TableHead>
                         <TableHead>Estado</TableHead>
-                        <TableHead>Notas</TableHead>
+                        <TableHead>Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
+                     <TableBody>
                       {invoices.map((invoice) => (
                         <TableRow key={invoice.id}>
                           <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
@@ -2282,12 +2282,12 @@ const AdminDashboard = () => {
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline">
-                              {invoice.tier === 'tier_1' ? 'Pro' : invoice.tier === 'tier_2' ? 'Enterprise' : 'Free'}
+                              {invoice.tier === 'tier_1' ? 'Pro' : invoice.tier === 'tier_2' ? 'Enterprise' : invoice.tier === 'free' ? 'Free' : '-'}
                             </Badge>
                           </TableCell>
                           <TableCell className="capitalize">{invoice.billing_period || 'N/A'}</TableCell>
-                          <TableCell className={`font-semibold ${invoice.amount < 0 ? 'text-destructive' : ''}`}>
-                            {invoice.amount.toFixed(2)} {invoice.currency || 'EUR'}
+                          <TableCell className={`font-semibold ${invoice.amount < 0 ? 'text-destructive' : 'text-green-600'}`}>
+                            {invoice.amount > 0 ? '+' : ''}{invoice.amount.toFixed(2)} {invoice.currency || 'EUR'}
                           </TableCell>
                           <TableCell>
                             <Badge
@@ -2302,8 +2302,39 @@ const AdminDashboard = () => {
                                invoice.status === 'failed' ? 'Fallido' : 'Pendiente'}
                             </Badge>
                           </TableCell>
-                          <TableCell className="max-w-xs truncate" title={invoice.notes || ''}>
-                            {invoice.notes || '-'}
+                          <TableCell>
+                            <div className="flex gap-2">
+                              {(invoice.stripe_invoice_id || invoice.stripe_invoice_pdf_url) && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={async () => {
+                                    try {
+                                      if (invoice.stripe_invoice_pdf_url) {
+                                        window.open(invoice.stripe_invoice_pdf_url, '_blank');
+                                      } else {
+                                        const { data, error } = await supabase.functions.invoke('get-stripe-invoice-pdf', {
+                                          body: { invoiceId: invoice.id }
+                                        });
+                                        if (error) throw error;
+                                        if (data?.url) {
+                                          window.open(data.url, '_blank');
+                                        }
+                                      }
+                                    } catch (error: any) {
+                                      toast.error('Error al descargar factura: ' + error.message);
+                                    }
+                                  }}
+                                >
+                                  <Download className="h-3 w-3 mr-1" />
+                                  Descargar
+                                </Button>
+                              )}
+                              <details className="text-xs text-muted-foreground">
+                                <summary className="cursor-pointer hover:text-foreground">Notas</summary>
+                                <p className="mt-1 p-2 bg-muted rounded max-w-xs">{invoice.notes || 'Sin notas'}</p>
+                              </details>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}

@@ -178,7 +178,7 @@ serve(async (req) => {
         tier,
         billingPeriod,
         productId: productId || '',
-        productType: product?.product_type || 'early_bird',
+        productType: 'early_bird',
       },
       success_url: successUrl || `${req.headers.get('origin')}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl || `${req.headers.get('origin')}/pricing?canceled=true`,
@@ -188,7 +188,7 @@ serve(async (req) => {
           tier,
           billingPeriod,
           productId: productId || '',
-          productType: product?.product_type || 'early_bird',
+          productType: 'early_bird',
         },
       },
     });

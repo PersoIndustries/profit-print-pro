@@ -578,8 +578,14 @@ export type Database = {
           notes: string | null
           paid_date: string | null
           status: string | null
+          stripe_checkout_session_id: string | null
+          stripe_invoice_id: string | null
+          stripe_invoice_pdf_url: string | null
+          stripe_payment_intent_id: string | null
+          stripe_receipt_url: string | null
           subscription_id: string | null
           tier: string | null
+          updated_at: string | null
           user_id: string
         }
         Insert: {
@@ -593,8 +599,14 @@ export type Database = {
           notes?: string | null
           paid_date?: string | null
           status?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_invoice_pdf_url?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_receipt_url?: string | null
           subscription_id?: string | null
           tier?: string | null
+          updated_at?: string | null
           user_id: string
         }
         Update: {
@@ -608,8 +620,14 @@ export type Database = {
           notes?: string | null
           paid_date?: string | null
           status?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_invoice_pdf_url?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_receipt_url?: string | null
           subscription_id?: string | null
           tier?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1036,6 +1054,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      products: {
+        Row: {
+          billing_period: string
+          created_at: string | null
+          currency: string | null
+          current_uses: number | null
+          description: string | null
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+          name: string
+          price_amount_cents: number
+          product_type: string
+          start_date: string | null
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          tier: string
+          updated_at: string | null
+        }
+        Insert: {
+          billing_period: string
+          created_at?: string | null
+          currency?: string | null
+          current_uses?: number | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          name: string
+          price_amount_cents?: number
+          product_type: string
+          start_date?: string | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          tier: string
+          updated_at?: string | null
+        }
+        Update: {
+          billing_period?: string
+          created_at?: string | null
+          currency?: string | null
+          current_uses?: number | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          name?: string
+          price_amount_cents?: number
+          product_type?: string
+          start_date?: string | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          tier?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -1525,6 +1603,98 @@ export type Database = {
         }
         Relationships: []
       }
+      support_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          read: boolean
+          read_at: string | null
+          sender_id: string
+          sender_type: string
+          ticket_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean
+          read_at?: string | null
+          sender_id: string
+          sender_type: string
+          ticket_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean
+          read_at?: string | null
+          sender_id?: string
+          sender_type?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          assigned_admin_id: string | null
+          closed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          priority: string
+          related_entity_id: string | null
+          related_entity_type: string | null
+          resolved_at: string | null
+          status: string
+          ticket_type: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_admin_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          resolved_at?: string | null
+          status?: string
+          ticket_type: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_admin_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          resolved_at?: string | null
+          status?: string
+          ticket_type?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tier_features: {
         Row: {
           created_at: string
@@ -1807,6 +1977,10 @@ export type Database = {
           shopping_lists: number
         }[]
       }
+      get_unread_support_messages_count: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
       get_user_tier: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["subscription_tier"]
@@ -1942,6 +2116,10 @@ export type Database = {
       http_set_curlopt: {
         Args: { curlopt: string; value: string }
         Returns: boolean
+      }
+      mark_support_messages_as_read: {
+        Args: { p_ticket_id: string; p_user_id: string }
+        Returns: undefined
       }
       permanently_delete_expired_users: { Args: never; Returns: Json }
       restore_deleted_user: { Args: { p_user_id: string }; Returns: Json }

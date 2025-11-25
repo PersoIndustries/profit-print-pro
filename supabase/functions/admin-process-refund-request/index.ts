@@ -236,10 +236,11 @@ serve(async (req) => {
         }
       }
 
-      // Create refund invoice with unique invoice number
-      const timestamp = Date.now();
-      const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const invoiceNumber = `REF-${timestamp}-${randomSuffix}`;
+      // Create refund invoice with unique invoice number using timestamp and random suffix
+      const now = new Date();
+      const yearMonth = now.toISOString().slice(0, 7).replace('-', ''); // YYYYMM format
+      const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const invoiceNumber = `REF-${yearMonth}-${randomSuffix}`;
       
       // Get billing_period from original invoice if available
       const billingPeriod = originalInvoice?.billing_period || null;

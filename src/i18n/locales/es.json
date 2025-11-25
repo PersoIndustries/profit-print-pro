@@ -111,7 +111,7 @@
       "security": "Seguridad",
       "subscription": "Suscripción",
       "invoices": "Facturas",
-      "support": "Soporte"
+      "notifications": "Notificaciones"
     },
     "profile": {
       "title": "Información del Perfil",
@@ -171,7 +171,9 @@
       "expires": "Expira:",
       "upgradePlan": "Actualizar Plan",
       "changePlan": "Cambiar Plan",
-      "cancelSubscription": "Cancelar Suscripción"
+      "cancelSubscription": "Cancelar Suscripción",
+      "monthly": "Mensual",
+      "annual": "Anual"
     },
     "invoices": {
       "title": "Historial de Facturas",
@@ -187,7 +189,34 @@
       "downloading": "Descargando...",
       "noStripeInvoice": "Factura no disponible aún",
       "noInvoices": "Aún no hay facturas",
-      "refunded": "Reembolsado"
+      "refunded": "Reembolsado",
+      "statusPaid": "PAGADO",
+      "statusRefunded": "REEMBOLSADO",
+      "refundedNote": "Reembolsado",
+      "refundInfo": "¿Necesitas solicitar un reembolso?",
+      "refundPolicyText": "Solo puedes solicitar reembolso dentro de los 7 días desde el pago y si no has excedido los límites del plan. Los reembolsos son revisados caso por caso por nuestro equipo de soporte."
+    },
+    "notifications": {
+      "title": "Notificaciones",
+      "description": "Configura cómo quieres recibir notificaciones",
+      "deliveryMethods": "Métodos de Entrega",
+      "inApp": "Notificaciones en la App",
+      "inAppDescription": "Recibe notificaciones dentro de la aplicación",
+      "email": "Notificaciones por Email",
+      "emailDescription": "Recibe notificaciones en tu correo electrónico",
+      "push": "Notificaciones Push (Próximamente)",
+      "pushDescription": "Recibe notificaciones en tu dispositivo móvil",
+      "categories": "Categorías de Notificaciones",
+      "subscription": "Suscripción",
+      "subscriptionDescription": "Cambios en tu plan, pagos y renovaciones",
+      "orders": "Pedidos",
+      "ordersDescription": "Actualizaciones sobre tus pedidos",
+      "projects": "Proyectos",
+      "projectsDescription": "Notificaciones relacionadas con proyectos",
+      "materials": "Materiales",
+      "materialsDescription": "Alertas de stock bajo y materiales",
+      "system": "Sistema",
+      "systemDescription": "Actualizaciones importantes del sistema"
     },
     "messages": {
       "errorLoading": "Error al cargar configuración",
