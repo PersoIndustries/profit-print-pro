@@ -53,6 +53,8 @@ interface SubscriptionInfo {
   expires_at: string | null;
   is_paid_subscription?: boolean;
   is_early_bird?: boolean; // Will be calculated based on price_paid
+  grace_period_end?: string | null;
+  is_read_only?: boolean;
 }
 
 interface AppliedPromoCode {
@@ -120,6 +122,10 @@ const Settings = () => {
   const [deleteAccountReason, setDeleteAccountReason] = useState("");
   const [deleteAccountConfirmText, setDeleteAccountConfirmText] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
+  
+  // Cancel subscription states
+  const [cancelSubscriptionDialogOpen, setCancelSubscriptionDialogOpen] = useState(false);
+  const [cancelSubscriptionConfirmDialogOpen, setCancelSubscriptionConfirmDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -229,7 +235,9 @@ const Settings = () => {
         setSubscriptionInfo({
           ...subRes.data,
           expires_at: subRes.data.expires_at,
-          is_early_bird: isEarlyBird
+          is_early_bird: isEarlyBird,
+          grace_period_end: subRes.data.grace_period_end || null,
+          is_read_only: subRes.data.is_read_only || false
         });
         
         // Check if subscription is permanent (expires_at is NULL)
@@ -449,24 +457,25 @@ const Settings = () => {
     }
   };
 
-  const handleCancelSubscription = async () => {
+  const handleCancelSubscription = () => {
     // Si tiene un código promocional aplicado con suscripción permanente, prevenir cancelación
     if (appliedPromoCode && appliedPromoCode.is_permanent) {
       toast.error(t('settings.messages.cannotCancelPermanent'));
       return;
     }
 
-    // Si tiene código promocional pero no es permanente, advertir
-    if (appliedPromoCode && !appliedPromoCode.is_permanent) {
-      const confirmMessage = t('settings.messages.promoCodeWarning', { code: appliedPromoCode.code });
-      if (!confirm(confirmMessage)) {
-        return;
-      }
-    } else {
-      if (!confirm(t('settings.messages.cancelSubscriptionConfirm'))) {
-        return;
-      }
-    }
+    // Abrir modal de confirmación
+    setCancelSubscriptionDialogOpen(true);
+  };
+
+  const handleCancelSubscriptionConfirm = async () => {
+    // Cerrar primer modal y abrir confirmación final
+    setCancelSubscriptionDialogOpen(false);
+    setCancelSubscriptionConfirmDialogOpen(true);
+  };
+
+  const handleCancelSubscriptionFinal = async () => {
+    setCancelSubscriptionConfirmDialogOpen(false);
 
     try {
       // Use Edge Function to cancel subscription (handles both database and Stripe)
@@ -1120,26 +1129,42 @@ const Settings = () => {
                     )}
 
                     {/* Grace Period Alert */}
-                    {subscription?.gracePeriod.isInGracePeriod && (
-                      <Card className="border-destructive/50 bg-destructive/5 mt-4">
+                    {(subscription?.gracePeriod.isInGracePeriod || (subscriptionInfo?.grace_period_end && new Date(subscriptionInfo.grace_period_end) > new Date())) && (
+                      <Card className="border-orange-500/50 bg-orange-500/5 mt-4">
                         <CardContent className="pt-6">
                           <div className="flex items-start gap-3">
-                            <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                            <Clock className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
                             <div className="flex-1">
-                              <h4 className="font-semibold text-destructive mb-1">
-                                {subscription.gracePeriod.daysUntilDeletion! <= 7 
-                                  ? t('gracePeriod.finalWeek', { days: subscription.gracePeriod.daysUntilDeletion })
-                                  : t('gracePeriod.warning', { days: subscription.gracePeriod.daysUntilDeletion })}
+                              <h4 className="font-semibold text-orange-600 mb-1">
+                                Período de Gracia Activo
                               </h4>
                               <p className="text-sm text-muted-foreground mb-3">
-                                Your account is in read-only mode. Images will be deleted on {new Date(subscription.gracePeriod.gracePeriodEnd!).toLocaleDateString()}.
+                                Tu cuenta está en modo de solo lectura. Tienes acceso hasta el{' '}
+                                <strong className="text-orange-600">
+                                  {subscriptionInfo?.grace_period_end 
+                                    ? new Date(subscriptionInfo.grace_period_end).toLocaleDateString('es-ES', { 
+                                        weekday: 'long', 
+                                        year: 'numeric', 
+                                        month: 'long', 
+                                        day: 'numeric' 
+                                      })
+                                    : subscription?.gracePeriod.gracePeriodEnd
+                                    ? new Date(subscription.gracePeriod.gracePeriodEnd).toLocaleDateString('es-ES', { 
+                                        weekday: 'long', 
+                                        year: 'numeric', 
+                                        month: 'long', 
+                                        day: 'numeric' 
+                                      })
+                                    : 'N/A'}
+                                </strong>.
+                                {' '}Después de esa fecha, tus datos serán eliminados permanentemente.
                               </p>
                               <Button 
                                 size="sm" 
-                                onClick={() => navigate('/grace-period-settings')}
-                                variant="outline"
+                                onClick={() => navigate('/pricing')}
+                                className="bg-primary hover:bg-primary/90"
                               >
-                                Manage Grace Period
+                                Reactivar Suscripción
                               </Button>
                             </div>
                           </div>
@@ -2250,6 +2275,180 @@ const Settings = () => {
                 disabled={!deleteAccountReason.trim()}
               >
                 {t('settings.advanced.deleteAccount.continue')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Subscription Dialog - First Attempt to Retain */}
+      <Dialog open={cancelSubscriptionDialogOpen} onOpenChange={setCancelSubscriptionDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">¿Estás seguro de que quieres cancelar?</DialogTitle>
+            <DialogDescription className="pt-2">
+              Antes de cancelar, queremos asegurarnos de que conoces todas las opciones disponibles.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>¿Has considerado estas opciones?</AlertTitle>
+              <AlertDescription className="mt-2 space-y-2">
+                <p>• <strong>Cambiar de plan:</strong> Puedes cambiar a un plan más económico que se ajuste mejor a tus necesidades.</p>
+                <p>• <strong>Pausar temporalmente:</strong> Contacta con soporte para pausar tu suscripción sin perder tus datos.</p>
+                <p>• <strong>Ofertas especiales:</strong> Podríamos tener descuentos o promociones disponibles para ti.</p>
+              </AlertDescription>
+            </Alert>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setCancelSubscriptionDialogOpen(false)}
+              >
+                Mantener Suscripción
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleCancelSubscriptionConfirm}
+              >
+                Continuar con la Cancelación
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Subscription Dialog - Final Confirmation with Grace Period Info */}
+      <Dialog open={cancelSubscriptionConfirmDialogOpen} onOpenChange={setCancelSubscriptionConfirmDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl text-destructive">Confirmar Cancelación</DialogTitle>
+            <DialogDescription className="pt-2">
+              Última confirmación antes de cancelar tu suscripción.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Información Importante</AlertTitle>
+              <AlertDescription className="mt-2 space-y-2">
+                <p>Tu suscripción se cancelará al final del período de facturación actual.</p>
+                {subscriptionInfo && subscriptionInfo.tier !== 'free' && (
+                  <>
+                    <p className="font-semibold mt-3">Período de Gracia:</p>
+                    <p>Después de la cancelación, tendrás un <strong>período de gracia de 30 días</strong> durante el cual:</p>
+                    <ul className="list-disc list-inside ml-2 space-y-1">
+                      <li>Podrás acceder a tu cuenta en modo de solo lectura</li>
+                      <li>Tus datos estarán protegidos</li>
+                      <li>Podrás reactivar tu suscripción en cualquier momento</li>
+                    </ul>
+                    <p className="mt-2">Después del período de gracia, tus datos serán eliminados permanentemente.</p>
+                  </>
+                )}
+              </AlertDescription>
+            </Alert>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setCancelSubscriptionConfirmDialogOpen(false);
+                  setCancelSubscriptionDialogOpen(true);
+                }}
+              >
+                Volver
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleCancelSubscriptionFinal}
+              >
+                Confirmar Cancelación
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Subscription Dialog - First Attempt to Retain */}
+      <Dialog open={cancelSubscriptionDialogOpen} onOpenChange={setCancelSubscriptionDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">¿Estás seguro de que quieres cancelar?</DialogTitle>
+            <DialogDescription className="pt-2">
+              Antes de cancelar, queremos asegurarnos de que conoces todas las opciones disponibles.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>¿Has considerado estas opciones?</AlertTitle>
+              <AlertDescription className="mt-2 space-y-2">
+                <p>• <strong>Cambiar de plan:</strong> Puedes cambiar a un plan más económico que se ajuste mejor a tus necesidades.</p>
+                <p>• <strong>Pausar temporalmente:</strong> Contacta con soporte para pausar tu suscripción sin perder tus datos.</p>
+                <p>• <strong>Ofertas especiales:</strong> Podríamos tener descuentos o promociones disponibles para ti.</p>
+              </AlertDescription>
+            </Alert>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setCancelSubscriptionDialogOpen(false)}
+              >
+                Mantener Suscripción
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleCancelSubscriptionConfirm}
+              >
+                Continuar con la Cancelación
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Subscription Dialog - Final Confirmation with Grace Period Info */}
+      <Dialog open={cancelSubscriptionConfirmDialogOpen} onOpenChange={setCancelSubscriptionConfirmDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl text-destructive">Confirmar Cancelación</DialogTitle>
+            <DialogDescription className="pt-2">
+              Última confirmación antes de cancelar tu suscripción.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Información Importante</AlertTitle>
+              <AlertDescription className="mt-2 space-y-2">
+                <p>Tu suscripción se cancelará al final del período de facturación actual.</p>
+                {subscriptionInfo && subscriptionInfo.tier !== 'free' && (
+                  <>
+                    <p className="font-semibold mt-3">Período de Gracia:</p>
+                    <p>Después de la cancelación, tendrás un <strong>período de gracia de 30 días</strong> durante el cual:</p>
+                    <ul className="list-disc list-inside ml-2 space-y-1">
+                      <li>Podrás acceder a tu cuenta en modo de solo lectura</li>
+                      <li>Tus datos estarán protegidos</li>
+                      <li>Podrás reactivar tu suscripción en cualquier momento</li>
+                    </ul>
+                    <p className="mt-2">Después del período de gracia, tus datos serán eliminados permanentemente.</p>
+                  </>
+                )}
+              </AlertDescription>
+            </Alert>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setCancelSubscriptionConfirmDialogOpen(false);
+                  setCancelSubscriptionDialogOpen(true);
+                }}
+              >
+                Volver
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleCancelSubscriptionFinal}
+              >
+                Confirmar Cancelación
               </Button>
             </div>
           </div>
