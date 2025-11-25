@@ -74,7 +74,7 @@ interface AppliedCreatorCode {
 const Settings = () => {
   const { user, loading: authLoading } = useAuth();
   const { subscription } = useSubscription();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile>({
@@ -125,7 +125,7 @@ const Settings = () => {
       navigate("/auth");
       return;
     }
-    if (user) {
+    if (user && i18n.isInitialized) {
       fetchData();
     }
 
@@ -141,7 +141,7 @@ const Settings = () => {
         }
       });
     };
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, navigate, i18n.isInitialized]);
 
   const fetchData = async () => {
     try {
@@ -740,6 +740,14 @@ const Settings = () => {
     if (percentage >= 75) return 'text-yellow-600';
     return 'text-primary';
   };
+
+  if (!i18n.isInitialized) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-muted-foreground">Cargando...</div>
+      </div>
+    );
+  }
 
   return (
     <>
