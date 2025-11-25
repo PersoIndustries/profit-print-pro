@@ -667,7 +667,9 @@
       "security": "Security",
       "subscription": "Subscription",
       "invoices": "Invoices",
-      "support": "Support"
+      "notifications": "Notifications",
+      "support": "Support",
+      "advanced": "Advanced"
     },
     "profile": {
       "title": "Profile Information",
@@ -1580,5 +1582,41 @@
   "meta": {
     "title": "Layer Suite | Manage Your 3D Printing Business",
     "description": "Complete SaaS platform to manage your 3D printing business. Calculate prices, manage materials, projects and maximize your profits."
+  },
+  "settings": {
+    "advanced": {
+      "title": "Advanced Settings",
+      "description": "Advanced account options",
+      "deleteAccount": {
+        "sectionTitle": "Delete Account",
+        "sectionDescription": "If you no longer need your account, you can delete it permanently. This action cannot be undone.",
+        "button": "Delete My Account",
+        "title": "Are you sure you want to delete your account?",
+        "description": "This action will schedule your account for deletion. You will have 15 days to cancel this action by contacting support.",
+        "warning": {
+          "title": "Warning",
+          "description": "This action is irreversible after the 15-day grace period.",
+          "item1": "Your account will be permanently deleted after 15 days",
+          "item2": "All your data will be deleted (projects, materials, orders, etc.)",
+          "item3": "Your subscription will be cancelled immediately",
+          "item4": "You will not be able to recover your account after permanent deletion"
+        },
+        "reasonLabel": "Reason (optional)",
+        "reasonPlaceholder": "Why do you want to delete your account?",
+        "reasonRequired": "Please provide a reason",
+        "continue": "Continue",
+        "confirm": "Delete Account Permanently",
+        "confirmTextLabel": "Type 'DELETE' to confirm",
+        "confirmText": "DELETE",
+        "confirmTextError": "You must type 'DELETE' to confirm",
+        "finalConfirm": {
+          "title": "Final Confirmation",
+          "description": "This is your last chance to cancel. Are you absolutely sure?",
+          "warning": "This action cannot be undone after the grace period."
+        },
+        "success": "Your account has been scheduled for deletion. It will be permanently deleted in 15 days.",
+        "error": "Error deleting account"
+      }
+    }
   }
 }

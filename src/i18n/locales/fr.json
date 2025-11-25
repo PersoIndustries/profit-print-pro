@@ -656,7 +656,9 @@
       "security": "Sécurité",
       "subscription": "Abonnement",
       "invoices": "Factures",
-      "support": "Support"
+      "notifications": "Notifications",
+      "support": "Support",
+      "advanced": "Avancé"
     },
     "profile": {
       "title": "Informations du Profil",
@@ -1569,5 +1571,41 @@
   "meta": {
     "title": "Layer Suite | Gérez Votre Entreprise d'Impression 3D",
     "description": "Plateforme SaaS complète pour gérer votre entreprise d'impression 3D. Calculez les prix, gérez les matériaux, les projets et maximisez vos profits."
+  },
+  "settings": {
+    "advanced": {
+      "title": "Paramètres Avancés",
+      "description": "Options avancées de votre compte",
+      "deleteAccount": {
+        "sectionTitle": "Supprimer le Compte",
+        "sectionDescription": "Si vous n'avez plus besoin de votre compte, vous pouvez le supprimer définitivement. Cette action ne peut pas être annulée.",
+        "button": "Supprimer Mon Compte",
+        "title": "Êtes-vous sûr de vouloir supprimer votre compte?",
+        "description": "Cette action programmera la suppression de votre compte. Vous aurez 15 jours pour annuler cette action en contactant le support.",
+        "warning": {
+          "title": "Avertissement",
+          "description": "Cette action est irréversible après la période de grâce de 15 jours.",
+          "item1": "Votre compte sera définitivement supprimé après 15 jours",
+          "item2": "Toutes vos données seront supprimées (projets, matériaux, commandes, etc.)",
+          "item3": "Votre abonnement sera annulé immédiatement",
+          "item4": "Vous ne pourrez pas récupérer votre compte après la suppression définitive"
+        },
+        "reasonLabel": "Raison (optionnelle)",
+        "reasonPlaceholder": "Pourquoi voulez-vous supprimer votre compte?",
+        "reasonRequired": "Veuillez fournir une raison",
+        "continue": "Continuer",
+        "confirm": "Supprimer le Compte Définitivement",
+        "confirmTextLabel": "Tapez 'SUPPRIMER' pour confirmer",
+        "confirmText": "SUPPRIMER",
+        "confirmTextError": "Vous devez taper 'SUPPRIMER' pour confirmer",
+        "finalConfirm": {
+          "title": "Confirmation Finale",
+          "description": "C'est votre dernière chance d'annuler. Êtes-vous absolument sûr?",
+          "warning": "Cette action ne peut pas être annulée après la période de grâce."
+        },
+        "success": "Votre compte a été programmé pour suppression. Il sera définitivement supprimé dans 15 jours.",
+        "error": "Erreur lors de la suppression du compte"
+      }
+    }
   }
 }

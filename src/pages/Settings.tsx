@@ -112,6 +112,13 @@ const Settings = () => {
   const [refundRequestNewMessage, setRefundRequestNewMessage] = useState<Map<string, string>>(new Map());
   const [sendingRefundMessage, setSendingRefundMessage] = useState(false);
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
+  
+  // Account deletion states
+  const [deleteAccountDialogOpen, setDeleteAccountDialogOpen] = useState(false);
+  const [deleteAccountConfirmDialogOpen, setDeleteAccountConfirmDialogOpen] = useState(false);
+  const [deleteAccountReason, setDeleteAccountReason] = useState("");
+  const [deleteAccountConfirmText, setDeleteAccountConfirmText] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -593,6 +600,71 @@ const Settings = () => {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+
+    const confirmText = t('settings.advanced.deleteAccount.confirmText');
+    if (deleteAccountConfirmText !== confirmText) {
+      toast.error(t('settings.advanced.deleteAccount.confirmTextError'));
+      return;
+    }
+
+    setDeletingAccount(true);
+    try {
+      // Refresh session if needed
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+      const activeSession = refreshedSession || session;
+
+      if (refreshError) {
+        console.warn('Error refreshing session (using existing):', refreshError);
+      }
+
+      const { data, error } = await supabase.functions.invoke('delete-account', {
+        body: {
+          reason: deleteAccountReason || 'User requested account deletion',
+        },
+      });
+
+      if (error) {
+        console.error('Error invoking delete-account:', error);
+        let errorMessage = t('settings.advanced.deleteAccount.error');
+        if (error.message) {
+          errorMessage = error.message;
+        } else if (error.context && error.context.body) {
+          try {
+            const errorBody = JSON.parse(error.context.body);
+            errorMessage = errorBody.error || errorBody.message || errorMessage;
+          } catch (e) {
+            // If parsing fails, use default message
+          }
+        }
+        throw new Error(errorMessage);
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast.success(data?.message || t('settings.advanced.deleteAccount.success'));
+      setDeleteAccountConfirmDialogOpen(false);
+      setDeleteAccountDialogOpen(false);
+      setDeleteAccountReason('');
+      setDeleteAccountConfirmText('');
+      
+      // Sign out user after account deletion is scheduled
+      setTimeout(() => {
+        supabase.auth.signOut();
+        navigate('/');
+      }, 3000);
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      toast.error(error.message || t('settings.advanced.deleteAccount.error'));
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
   const handleSubmitRefundRequest = async () => {
     if (!user || !refundInvoiceId || !refundType || !refundReason.trim() || !refundValidation?.eligible) return;
 
@@ -677,7 +749,7 @@ const Settings = () => {
       </div>
 
         <Tabs defaultValue="profile" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6 max-w-4xl">
+          <TabsList className="grid w-full grid-cols-7 max-w-5xl">
             <TabsTrigger value="profile">
               <User className="h-4 w-4 mr-2" />
               {t('settings.tabs.profile')}
@@ -701,6 +773,10 @@ const Settings = () => {
             <TabsTrigger value="support">
               <HelpCircle className="h-4 w-4 mr-2" />
               {t('settings.tabs.support')}
+            </TabsTrigger>
+            <TabsTrigger value="advanced">
+              <SettingsIcon className="h-4 w-4 mr-2" />
+              {t('settings.tabs.advanced')}
             </TabsTrigger>
           </TabsList>
 
@@ -1856,6 +1932,96 @@ const Settings = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="advanced">
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2">
+                  <SettingsIcon className="h-5 w-5" />
+                  {t('settings.advanced.title')}
+                </CardTitle>
+                <CardDescription>
+                  {t('settings.advanced.description')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="p-6 border border-destructive/50 rounded-lg bg-destructive/5">
+                    <div className="flex items-start gap-4">
+                      <AlertCircle className="h-6 w-6 text-destructive mt-1 flex-shrink-0" />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg mb-2 text-destructive">
+                          {t('settings.advanced.deleteAccount.sectionTitle')}
+                        </h3>
+                        <p className="text-muted-foreground mb-4">
+                          {t('settings.advanced.deleteAccount.sectionDescription')}
+                        </p>
+                        <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground mb-4">
+                          <li>{t('settings.advanced.deleteAccount.warning.item1')}</li>
+                          <li>{t('settings.advanced.deleteAccount.warning.item2')}</li>
+                          <li>{t('settings.advanced.deleteAccount.warning.item3')}</li>
+                          <li>{t('settings.advanced.deleteAccount.warning.item4')}</li>
+                        </ul>
+                        <Button
+                          variant="destructive"
+                          onClick={() => setDeleteAccountDialogOpen(true)}
+                          className="mt-4"
+                        >
+                          <AlertCircle className="h-4 w-4 mr-2" />
+                          {t('settings.advanced.deleteAccount.button')}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="advanced">
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2">
+                  <SettingsIcon className="h-5 w-5" />
+                  {t('settings.advanced.title')}
+                </CardTitle>
+                <CardDescription>
+                  {t('settings.advanced.description')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="p-6 border border-destructive/50 rounded-lg bg-destructive/5">
+                    <div className="flex items-start gap-4">
+                      <AlertCircle className="h-6 w-6 text-destructive mt-1 flex-shrink-0" />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg mb-2 text-destructive">
+                          {t('settings.advanced.deleteAccount.sectionTitle')}
+                        </h3>
+                        <p className="text-muted-foreground mb-4">
+                          {t('settings.advanced.deleteAccount.sectionDescription')}
+                        </p>
+                        <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground mb-4">
+                          <li>{t('settings.advanced.deleteAccount.warning.item1')}</li>
+                          <li>{t('settings.advanced.deleteAccount.warning.item2')}</li>
+                          <li>{t('settings.advanced.deleteAccount.warning.item3')}</li>
+                          <li>{t('settings.advanced.deleteAccount.warning.item4')}</li>
+                        </ul>
+                        <Button
+                          variant="destructive"
+                          onClick={() => setDeleteAccountDialogOpen(true)}
+                          className="mt-4"
+                        >
+                          <AlertCircle className="h-4 w-4 mr-2" />
+                          {t('settings.advanced.deleteAccount.button')}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
       {/* Refund Request Dialog */}
@@ -2012,6 +2178,122 @@ const Settings = () => {
                 className="flex-1"
               >
                 {refundSubmitting ? t('settings.support.refundRequest.submitting') : t('settings.support.refundRequest.submit')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Account Dialog - First Confirmation */}
+      <Dialog open={deleteAccountDialogOpen} onOpenChange={setDeleteAccountDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">{t('settings.advanced.deleteAccount.title')}</DialogTitle>
+            <DialogDescription>
+              {t('settings.advanced.deleteAccount.description')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>{t('settings.advanced.deleteAccount.warning.title')}</AlertTitle>
+              <AlertDescription>
+                {t('settings.advanced.deleteAccount.warning.description')}
+              </AlertDescription>
+            </Alert>
+
+            <div>
+              <Label htmlFor="delete-reason">{t('settings.advanced.deleteAccount.reasonLabel')}</Label>
+              <Textarea
+                id="delete-reason"
+                value={deleteAccountReason}
+                onChange={(e) => setDeleteAccountReason(e.target.value)}
+                placeholder={t('settings.advanced.deleteAccount.reasonPlaceholder')}
+                className="mt-2"
+                rows={3}
+              />
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDeleteAccountDialogOpen(false);
+                  setDeleteAccountReason('');
+                }}
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (deleteAccountReason.trim()) {
+                    setDeleteAccountDialogOpen(false);
+                    setDeleteAccountConfirmDialogOpen(true);
+                  } else {
+                    toast.error(t('settings.advanced.deleteAccount.reasonRequired'));
+                  }
+                }}
+                disabled={!deleteAccountReason.trim()}
+              >
+                {t('settings.advanced.deleteAccount.continue')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Account Dialog - Final Confirmation */}
+      <Dialog open={deleteAccountConfirmDialogOpen} onOpenChange={setDeleteAccountConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">{t('settings.advanced.deleteAccount.finalConfirm.title')}</DialogTitle>
+            <DialogDescription>
+              {t('settings.advanced.deleteAccount.finalConfirm.description')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>{t('settings.advanced.deleteAccount.finalConfirm.warning')}</AlertTitle>
+            </Alert>
+
+            {deleteAccountReason && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm font-medium mb-1">{t('settings.advanced.deleteAccount.reasonLabel')}</p>
+                <p className="text-sm">{deleteAccountReason}</p>
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor="delete-confirm-text">{t('settings.advanced.deleteAccount.confirmTextLabel')}</Label>
+              <Input
+                id="delete-confirm-text"
+                value={deleteAccountConfirmText}
+                onChange={(e) => setDeleteAccountConfirmText(e.target.value.toUpperCase())}
+                placeholder={t('settings.advanced.deleteAccount.confirmText')}
+                className="mt-2 font-mono"
+              />
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDeleteAccountConfirmDialogOpen(false);
+                  setDeleteAccountReason('');
+                  setDeleteAccountConfirmText('');
+                }}
+                disabled={deletingAccount}
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteAccount}
+                disabled={deleteAccountConfirmText !== t('settings.advanced.deleteAccount.confirmText') || deletingAccount}
+              >
+                {deletingAccount ? t('common.loading') : t('settings.advanced.deleteAccount.confirm')}
               </Button>
             </div>
           </div>

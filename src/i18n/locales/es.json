@@ -111,7 +111,9 @@
       "security": "Seguridad",
       "subscription": "Suscripción",
       "invoices": "Facturas",
-      "notifications": "Notificaciones"
+      "notifications": "Notificaciones",
+      "support": "Soporte",
+      "advanced": "Avanzado"
     },
     "profile": {
       "title": "Información del Perfil",
@@ -436,5 +438,41 @@
   "meta": {
     "title": "Layer Suite | Gestiona tu Negocio de Impresión 3D",
     "description": "Plataforma SaaS completa para gestionar tu emprendimiento de impresión 3D. Calcula precios, gestiona materiales, proyectos y maximiza tus ganancias."
+  },
+  "settings": {
+    "advanced": {
+      "title": "Configuración Avanzada",
+      "description": "Opciones avanzadas de tu cuenta",
+      "deleteAccount": {
+        "sectionTitle": "Eliminar Cuenta",
+        "sectionDescription": "Si ya no necesitas tu cuenta, puedes eliminarla permanentemente. Esta acción no se puede deshacer.",
+        "button": "Eliminar Mi Cuenta",
+        "title": "¿Estás seguro de que quieres eliminar tu cuenta?",
+        "description": "Esta acción programará la eliminación de tu cuenta. Tendrás 15 días para cancelar esta acción contactando a soporte.",
+        "warning": {
+          "title": "Advertencia",
+          "description": "Esta acción es irreversible después del período de gracia de 15 días.",
+          "item1": "Tu cuenta será eliminada permanentemente después de 15 días",
+          "item2": "Todos tus datos serán eliminados (proyectos, materiales, pedidos, etc.)",
+          "item3": "Tu suscripción será cancelada inmediatamente",
+          "item4": "No podrás recuperar tu cuenta después de la eliminación permanente"
+        },
+        "reasonLabel": "Motivo (opcional)",
+        "reasonPlaceholder": "¿Por qué quieres eliminar tu cuenta?",
+        "reasonRequired": "Por favor proporciona un motivo",
+        "continue": "Continuar",
+        "confirm": "Eliminar Cuenta Permanentemente",
+        "confirmTextLabel": "Escribe 'ELIMINAR' para confirmar",
+        "confirmText": "ELIMINAR",
+        "confirmTextError": "Debes escribir 'ELIMINAR' para confirmar",
+        "finalConfirm": {
+          "title": "Última Confirmación",
+          "description": "Esta es tu última oportunidad de cancelar. ¿Estás absolutamente seguro?",
+          "warning": "Esta acción no se puede deshacer después del período de gracia."
+        },
+        "success": "Tu cuenta ha sido programada para eliminación. Será eliminada permanentemente en 15 días.",
+        "error": "Error al eliminar cuenta"
+      }
+    }
   }
 }
