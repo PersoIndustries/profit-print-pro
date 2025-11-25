@@ -1405,9 +1405,7 @@ const Settings = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {invoices
-                        .filter(invoice => invoice.amount > 0) // Only show positive invoices (payments)
-                        .map((invoice) => (
+                      {invoices.map((invoice) => (
                         <TableRow key={invoice.id}>
                           <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                           <TableCell>{new Date(invoice.issued_date).toLocaleDateString()}</TableCell>
@@ -1419,8 +1417,8 @@ const Settings = () => {
                              invoice.billing_period === 'annual' ? t('settings.tierNames.annual') : 
                              invoice.billing_period || '-'}
                           </TableCell>
-                          <TableCell className="text-right font-medium">
-                            {invoice.amount.toFixed(2)}€
+                          <TableCell className={`text-right font-medium ${invoice.amount < 0 ? 'text-red-600' : ''}`}>
+                            {invoice.amount < 0 ? '-' : ''}{Math.abs(invoice.amount).toFixed(2)}€
                           </TableCell>
                           <TableCell>
                             <Badge variant={
