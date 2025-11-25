@@ -1557,5 +1557,9 @@
     "pagination": {
       "showing": "Affichage de {{start}} - {{end}} sur {{total}}"
     }
+  },
+  "meta": {
+    "title": "Layer Suite | Gérez Votre Entreprise d'Impression 3D",
+    "description": "Plateforme SaaS complète pour gérer votre entreprise d'impression 3D. Calculez les prix, gérez les matériaux, les projets et maximisez vos profits."
   }
 }

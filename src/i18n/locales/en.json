@@ -1568,5 +1568,9 @@
     "pagination": {
       "showing": "Showing {{start}} - {{end}} of {{total}}"
     }
+  },
+  "meta": {
+    "title": "Layer Suite | Manage Your 3D Printing Business",
+    "description": "Complete SaaS platform to manage your 3D printing business. Calculate prices, manage materials, projects and maximize your profits."
   }
 }

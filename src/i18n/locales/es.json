@@ -424,5 +424,9 @@
     "cancelSubscription": "Cancelar Suscripción",
     "processRefund": "Procesar Reembolso",
     "viewDetails": "Ver Detalles"
+  },
+  "meta": {
+    "title": "Layer Suite | Gestiona tu Negocio de Impresión 3D",
+    "description": "Plataforma SaaS completa para gestionar tu emprendimiento de impresión 3D. Calcula precios, gestiona materiales, proyectos y maximiza tus ganancias."
   }
 }
