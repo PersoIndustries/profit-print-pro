@@ -86,45 +86,52 @@ serve(async (req) => {
     // Create admin client
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get ANON_KEY for user client (should be available in Edge Functions)
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY');
-    
-    if (!supabaseAnonKey) {
-      console.warn('SUPABASE_ANON_KEY not found, using service role key for user operations');
+    // Decode JWT to get user_id (JWT format: header.payload.signature)
+    let userId: string | null = null;
+    try {
+      const parts = cleanAuthToken.split('.');
+      if (parts.length === 3) {
+        // Decode the payload (second part)
+        const payload = JSON.parse(
+          new TextDecoder().decode(
+            Uint8Array.from(
+              atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))
+                .split('')
+                .map(c => c.charCodeAt(0))
+            )
+          )
+        );
+        userId = payload.sub || payload.user_id || null;
+        console.log('Decoded JWT payload:', { 
+          userId, 
+          email: payload.email,
+          exp: payload.exp,
+          isExpired: payload.exp ? Date.now() / 1000 > payload.exp : false
+        });
+      }
+    } catch (decodeError) {
+      console.error('Error decoding JWT:', decodeError);
     }
 
-    // Create user client with anon key and auth token in header
-    // This is the correct way to authenticate in Edge Functions
-    const supabaseUser = createClient(
-      supabaseUrl, 
-      supabaseAnonKey || supabaseServiceKey, // Use anon key if available, fallback to service key
-      {
-        global: { 
-          headers: { 
-            Authorization: authHeader.startsWith('Bearer ') ? authHeader : `Bearer ${authHeader}`,
-          } 
-        },
-        auth: {
-          persistSession: false, // Important: don't persist session in Edge Functions
-          autoRefreshToken: false,
-        }
-      }
-    );
-
-    // Verify user is authenticated by getting user info
-    // This will use the Authorization header we set above
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
-    
-    if (userError || !user) {
-      console.error('Auth error:', userError);
-      console.error('User data:', user ? { id: user.id, email: user.email } : 'null');
-      console.error('Token preview:', cleanAuthToken.substring(0, 50) + '...');
+    if (!userId) {
       return new Response(
         JSON.stringify({ 
-          error: 'Usuario no autenticado', 
-          details: userError?.message || 'No se pudo obtener el usuario del token',
-          authError: userError?.name || 'unknown',
-          hint: 'Verifica que el token JWT sea válido y no haya expirado'
+          error: 'Token JWT inválido', 
+          details: 'No se pudo decodificar el token para obtener el user_id'
+        }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get user info using admin client
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId);
+    
+    if (userError || !user) {
+      console.error('Error getting user from admin client:', userError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Usuario no encontrado', 
+          details: userError?.message || 'No se pudo obtener el usuario con el ID del token'
         }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
