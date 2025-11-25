@@ -12,15 +12,18 @@ const resources = {
   fr: { translation: fr }
 };
 
+// Initialize i18n synchronously
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources,
     fallbackLng: 'en',
+    lng: 'es', // Default to Spanish
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],
       caches: ['localStorage'],
+      lookupLocalStorage: 'i18nextLng',
     },
     interpolation: {
       escapeValue: false,
@@ -28,6 +31,7 @@ i18n
     react: {
       useSuspense: false,
     },
+    debug: false,
   });
 
 export default i18n;
