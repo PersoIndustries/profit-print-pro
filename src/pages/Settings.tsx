@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/hooks/useCurrency";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,6 +80,7 @@ const Settings = () => {
   const { subscription } = useSubscription();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { currency, setCurrency, currencies, getCurrencySymbol } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile>({
     full_name: '',
@@ -2071,6 +2073,43 @@ const Settings = () => {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
+                  {/* Currency Selection */}
+                  <div className="p-6 border rounded-lg bg-muted/30">
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="currency-select" className="text-base font-semibold">
+                          {t('settings.advanced.currency.title')}
+                        </Label>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {t('settings.advanced.currency.description')}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <Select value={currency} onValueChange={(value) => setCurrency(value as any)}>
+                          <SelectTrigger id="currency-select" className="w-[250px]">
+                            <SelectValue>
+                              {getCurrencySymbol()} {currency} - {currencies.find(c => c.code === currency)?.name}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {currencies.map((curr) => (
+                              <SelectItem key={curr.code} value={curr.code}>
+                                {curr.symbol} {curr.code} - {curr.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription className="text-xs">
+                          {t('settings.advanced.currency.note')}
+                        </AlertDescription>
+                      </Alert>
+                    </div>
+                  </div>
+
+                  {/* Delete Account Section */}
                   <div className="p-6 border border-destructive/50 rounded-lg bg-destructive/5">
                     <div className="flex items-start gap-4">
                       <AlertCircle className="h-6 w-6 text-destructive mt-1 flex-shrink-0" />

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useTierFeatures } from "@/hooks/useTierFeatures";
+import { useCurrency } from "@/hooks/useCurrency";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1083,6 +1084,7 @@ function ProjectCard({
   viewMode?: 'list' | 'grid';
 }) {
   const { t } = useTranslation();
+  const { formatPrice } = useCurrency();
   const hasProducts = project.products && project.products.length > 0;
   const isGrid = viewMode === 'grid';
 
@@ -1221,7 +1223,7 @@ function ProjectCard({
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
                     <span className="text-sm font-semibold text-primary">
-                      {product.price.toFixed(2)} €
+                      {formatPrice(product.price)}
                     </span>
                     <Button
                       variant="ghost"

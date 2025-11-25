@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
+import { useCurrency } from "@/hooks/useCurrency";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -146,7 +147,7 @@ function SortableRow({ line, materials, updateInvoiceLine, removeInvoiceLine, ge
         />
       </TableCell>
       <TableCell className="text-right font-medium">
-        €{line.total.toFixed(2)}
+        {formatPrice(line.total)}
       </TableCell>
       <TableCell>
         <Button
@@ -165,6 +166,7 @@ function SortableRow({ line, materials, updateInvoiceLine, removeInvoiceLine, ge
 const CalculatorPage = () => {
   const { t } = useTranslation();
   const { user, loading } = useAuth();
+  const { formatPrice } = useCurrency();
   const navigate = useNavigate();
   const { projectId } = useParams();
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -613,7 +615,7 @@ const CalculatorPage = () => {
                 <div className="border-t bg-muted/30 p-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">{t('calculator.subtotal')}</span>
-                    <span className="font-medium">€{subtotal.toFixed(2)}</span>
+                    <span className="font-medium">{formatPrice(subtotal)}</span>
                   </div>
                   
                   <div className="flex items-center justify-between gap-4">
@@ -632,13 +634,13 @@ const CalculatorPage = () => {
                       </div>
                     </div>
                     <span className="text-sm font-medium">
-                      +€{(subtotal * (parseFloat(profitMargin) || 0) / 100).toFixed(2)}
+                      +{formatPrice(subtotal * (parseFloat(profitMargin) || 0) / 100)}
                     </span>
                   </div>
 
                   <div className="flex justify-between text-lg font-bold pt-2 border-t">
                     <span>{t('calculator.total')}</span>
-                    <span className="text-primary">€{total.toFixed(2)}</span>
+                    <span className="text-primary">{formatPrice(total)}</span>
                   </div>
                 </div>
               </div>

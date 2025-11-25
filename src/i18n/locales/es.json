@@ -419,6 +419,11 @@
     "advanced": {
       "title": "Configuración Avanzada",
       "description": "Opciones avanzadas de tu cuenta",
+      "currency": {
+        "title": "Moneda de Visualización",
+        "description": "Selecciona la moneda en la que deseas ver los precios en la aplicación",
+        "note": "Nota: Esta configuración es solo visual. Los precios se mostrarán convertidos a la moneda seleccionada, pero las transacciones reales se procesarán en EUR (Euro)."
+      },
       "deleteAccount": {
         "sectionTitle": "Eliminar Cuenta",
         "sectionDescription": "Si ya no necesitas tu cuenta, puedes eliminarla permanentemente. Esta acción no se puede deshacer.",

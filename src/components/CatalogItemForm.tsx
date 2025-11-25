@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrency } from "@/hooks/useCurrency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +42,7 @@ export function CatalogItemForm({
   projects,
   editingItem,
 }: CatalogItemFormProps) {
+  const { getCurrencySymbol } = useCurrency();
   const [projectId, setProjectId] = useState(editingItem?.project_id || "");
   const [referenceCode, setReferenceCode] = useState(editingItem?.reference_code || "");
   const [name, setName] = useState(editingItem?.name || "");
@@ -263,7 +265,7 @@ export function CatalogItemForm({
           </div>
 
           <div>
-            <Label htmlFor="pvpPrice">Precio PVP (€)</Label>
+            <Label htmlFor="pvpPrice">Precio PVP ({getCurrencySymbol()})</Label>
             <Input
               id="pvpPrice"
               type="number"

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useCurrency } from "@/hooks/useCurrency";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -48,6 +49,7 @@ interface Section {
 export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName, showPoweredBy = true, brandLogoUrl = null }: CatalogPreviewModalProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { formatPrice } = useCurrency();
   const [sections, setSections] = useState<Section[]>([]);
   const [projectsWithoutSection, setProjectsWithoutSection] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -683,7 +685,7 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
                                       <td className="p-2 text-sm">{product.reference_code}</td>
                                       <td className="p-2 text-sm">{product.name}</td>
                                       <td className="p-2 text-sm">{product.dimensions || "-"}</td>
-                                      <td className="p-2 text-sm text-right font-medium">{product.price.toFixed(2)} €</td>
+                                      <td className="p-2 text-sm text-right font-medium">{formatPrice(product.price)}</td>
                                     </tr>
                                   ))}
                                 </tbody>
@@ -761,7 +763,7 @@ export function CatalogPreviewModal({ open, onOpenChange, catalogId, catalogName
                                       <td className="p-2 text-sm">{product.reference_code}</td>
                                       <td className="p-2 text-sm">{product.name}</td>
                                       <td className="p-2 text-sm">{product.dimensions || "-"}</td>
-                                      <td className="p-2 text-sm text-right font-medium">{product.price.toFixed(2)} €</td>
+                                      <td className="p-2 text-sm text-right font-medium">{formatPrice(product.price)}</td>
                                     </tr>
                                   ))}
                                 </tbody>

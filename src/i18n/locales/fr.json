@@ -1583,6 +1583,11 @@
     "advanced": {
       "title": "Paramètres Avancés",
       "description": "Options avancées de votre compte",
+      "currency": {
+        "title": "Devise d'Affichage",
+        "description": "Sélectionnez la devise dans laquelle vous souhaitez voir les prix dans l'application",
+        "note": "Note: Ce paramètre est uniquement visuel. Les prix seront affichés convertis dans la devise sélectionnée, mais les transactions réelles seront traitées en EUR (Euro)."
+      },
       "deleteAccount": {
         "sectionTitle": "Supprimer le Compte",
         "sectionDescription": "Si vous n'avez plus besoin de votre compte, vous pouvez le supprimer définitivement. Cette action ne peut pas être annulée.",

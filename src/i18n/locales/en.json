@@ -1594,6 +1594,11 @@
     "advanced": {
       "title": "Advanced Settings",
       "description": "Advanced account options",
+      "currency": {
+        "title": "Display Currency",
+        "description": "Select the currency in which you want to see prices in the application",
+        "note": "Note: This setting is visual only. Prices will be displayed converted to the selected currency, but actual transactions will be processed in EUR (Euro)."
+      },
       "deleteAccount": {
         "sectionTitle": "Delete Account",
         "sectionDescription": "If you no longer need your account, you can delete it permanently. This action cannot be undone.",
