@@ -83,29 +83,48 @@ serve(async (req) => {
     const cleanAuthToken = authHeader.replace(/^Bearer\s+/i, '');
     console.log('Auth token length:', cleanAuthToken.length);
 
-    // Create Supabase client with user token
-    const supabaseUser = createClient(supabaseUrl, cleanAuthToken, {
-      global: { 
-        headers: { 
-          Authorization: authHeader.startsWith('Bearer ') ? authHeader : `Bearer ${authHeader}`,
-          apikey: cleanAuthToken // Also include as apikey for compatibility
-        } 
-      },
-    });
-
     // Create admin client
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify user is admin
+    // Get ANON_KEY for user client (should be available in Edge Functions)
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY');
+    
+    if (!supabaseAnonKey) {
+      console.warn('SUPABASE_ANON_KEY not found, using service role key for user operations');
+    }
+
+    // Create user client with anon key and auth token in header
+    // This is the correct way to authenticate in Edge Functions
+    const supabaseUser = createClient(
+      supabaseUrl, 
+      supabaseAnonKey || supabaseServiceKey, // Use anon key if available, fallback to service key
+      {
+        global: { 
+          headers: { 
+            Authorization: authHeader.startsWith('Bearer ') ? authHeader : `Bearer ${authHeader}`,
+          } 
+        },
+        auth: {
+          persistSession: false, // Important: don't persist session in Edge Functions
+          autoRefreshToken: false,
+        }
+      }
+    );
+
+    // Verify user is authenticated by getting user info
+    // This will use the Authorization header we set above
     const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+    
     if (userError || !user) {
       console.error('Auth error:', userError);
       console.error('User data:', user ? { id: user.id, email: user.email } : 'null');
+      console.error('Token preview:', cleanAuthToken.substring(0, 50) + '...');
       return new Response(
         JSON.stringify({ 
           error: 'Usuario no autenticado', 
           details: userError?.message || 'No se pudo obtener el usuario del token',
-          authError: userError?.name || 'unknown'
+          authError: userError?.name || 'unknown',
+          hint: 'Verifica que el token JWT sea válido y no haya expirado'
         }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

@@ -1218,9 +1218,18 @@ const AdminDashboard = () => {
         return;
       }
 
+      // Refresh session if needed to ensure token is valid
+      const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+      const activeSession = refreshedSession || session;
+
+      if (refreshError) {
+        console.warn('Error refreshing session (using existing):', refreshError);
+      }
+
       console.log('Invoking function with session:', { 
-        hasSession: !!session, 
-        userId: session.user.id 
+        hasSession: !!activeSession, 
+        userId: activeSession.user.id,
+        tokenExpiresAt: activeSession.expires_at
       });
 
       const { data, error } = await supabase.functions.invoke('admin-process-refund-request', {
