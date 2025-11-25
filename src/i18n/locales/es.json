@@ -166,6 +166,8 @@
       "resetsFirstDay": "Se reinicia el primer día de cada mes",
       "billingPeriod": "Período de Facturación",
       "nextBillingDate": "Próxima Fecha de Facturación",
+      "noBillingPeriod": "No aplica",
+      "noBillingDate": "No aplica (Suscripción permanente)",
       "appliedCode": "CÓDIGO APLICADO",
       "activePromoCode": "Código Promocional Activo",
       "applied": "Aplicado:",

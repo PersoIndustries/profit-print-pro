@@ -54,23 +54,49 @@ serve(async (req) => {
     // Create admin client for database operations
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Create user client to verify authentication
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
-    if (!supabaseAnonKey) {
-      throw new Error('SUPABASE_ANON_KEY no está configurada');
-    }
-    
-    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: { Authorization: authHeader },
-      },
-    });
+    // Clean auth header (remove 'Bearer ' prefix if present)
+    const cleanAuthToken = authHeader.replace(/^Bearer\s+/i, '');
 
-    // Get authenticated user
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
-    if (userError || !user) {
+    // Decode JWT to get user_id (JWT format: header.payload.signature)
+    let userId: string | null = null;
+    try {
+      const parts = cleanAuthToken.split('.');
+      if (parts.length === 3) {
+        // Decode the payload (second part)
+        const payload = JSON.parse(
+          new TextDecoder().decode(
+            Uint8Array.from(
+              atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))
+                .split('')
+                .map(c => c.charCodeAt(0))
+            )
+          )
+        );
+        userId = payload.sub || payload.user_id || null;
+        console.log('Decoded JWT payload:', { 
+          userId, 
+          email: payload.email,
+          exp: payload.exp,
+          isExpired: payload.exp ? Date.now() / 1000 > payload.exp : false
+        });
+      }
+    } catch (decodeError) {
+      console.error('Error decoding JWT:', decodeError);
+    }
+
+    if (!userId) {
       return new Response(
-        JSON.stringify({ error: 'Usuario no autenticado' }),
+        JSON.stringify({ error: 'No se pudo decodificar el token de autenticación' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify user exists and get user data using admin client
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId);
+    if (userError || !user) {
+      console.error('Error fetching user:', userError);
+      return new Response(
+        JSON.stringify({ error: 'Usuario no autenticado o no encontrado' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -83,7 +109,7 @@ serve(async (req) => {
     const { data: subscription, error: subError } = await supabaseAdmin
       .from('user_subscriptions')
       .select('tier, status, stripe_subscription_id, expires_at, next_billing_date, billing_period')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (subError) {
@@ -165,8 +191,8 @@ serve(async (req) => {
 
     // Set grace period if downgrading from paid to free
     const now = new Date();
-    let gracePeriodEnd = null;
-    let downgradeDate = null;
+    let gracePeriodEnd: string | null = null;
+    let downgradeDate: string | null = null;
 
     if (previousTier !== 'free') {
       // Set 30-day grace period after expiration
@@ -186,8 +212,8 @@ serve(async (req) => {
       // Only change tier to free if immediate cancellation
       tier: immediate ? 'free' : previousTier,
       previous_tier: previousTier,
-      downgrade_date: downgradeDate,
-      grace_period_end: gracePeriodEnd,
+      downgrade_date: downgradeDate || null,
+      grace_period_end: gracePeriodEnd || null,
       is_read_only: previousTier !== 'free' ? true : false,
     };
 
@@ -199,7 +225,7 @@ serve(async (req) => {
     const { error: updateError } = await supabaseAdmin
       .from('user_subscriptions')
       .update(updateData)
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     if (updateError) {
       console.error('Error updating subscription:', updateError);
@@ -213,7 +239,7 @@ serve(async (req) => {
     const { error: logError } = await supabaseAdmin
       .from('subscription_changes')
       .insert({
-        user_id: user.id,
+        user_id: userId,
         previous_tier: previousTier,
         new_tier: immediate ? 'free' : previousTier, // Only change tier if immediate
         change_type: 'cancel',

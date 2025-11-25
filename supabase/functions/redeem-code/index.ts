@@ -15,6 +15,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -43,6 +44,7 @@ serve(async (req) => {
     // Get environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || Deno.env.get('EXTERNAL_SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY');
+    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
 
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error('Missing environment variables:', { 
@@ -131,11 +133,11 @@ serve(async (req) => {
     const codeToApply = code.trim().toUpperCase();
 
     // Try to redeem as promo code first
-    let result: RedeemResult | null = await tryRedeemPromoCode(supabaseAdmin, userId, codeToApply);
+    let result: RedeemResult | null = await tryRedeemPromoCode(supabaseAdmin, userId, codeToApply, stripeSecretKey);
     
     // If promo code failed, try creator code
     if (!result || !result.success) {
-      const creatorResult = await tryRedeemCreatorCode(supabaseAdmin, userId, codeToApply);
+      const creatorResult = await tryRedeemCreatorCode(supabaseAdmin, userId, codeToApply, stripeSecretKey);
       if (creatorResult && creatorResult.success) {
         result = creatorResult;
       }
@@ -171,7 +173,8 @@ serve(async (req) => {
 async function tryRedeemPromoCode(
   supabaseAdmin: any,
   userId: string,
-  code: string
+  code: string,
+  stripeSecretKey?: string
 ): Promise<RedeemResult | null> {
   try {
     // Get promo code details
@@ -224,7 +227,7 @@ async function tryRedeemPromoCode(
     // Get user's current subscription
     const { data: subscription, error: subError } = await supabaseAdmin
       .from('user_subscriptions')
-      .select('id, tier')
+      .select('id, tier, stripe_subscription_id')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -235,15 +238,45 @@ async function tryRedeemPromoCode(
 
     const previousTier = subscription?.tier || 'free';
 
+    // Cancel Stripe subscription if exists (promo codes are free, so we cancel paid subscriptions)
+    let stripeCancelled = false;
+    if (stripeSecretKey && subscription?.stripe_subscription_id) {
+      try {
+        const stripe = new Stripe(stripeSecretKey, {
+          apiVersion: '2023-10-16',
+          httpClient: Stripe.createFetchHttpClient(),
+        });
+
+        await stripe.subscriptions.cancel(subscription.stripe_subscription_id);
+        stripeCancelled = true;
+        console.log('Stripe subscription cancelled:', subscription.stripe_subscription_id);
+      } catch (stripeError: any) {
+        console.error('Error cancelling Stripe subscription:', stripeError);
+        // Continue with promo code application even if Stripe cancellation fails
+      }
+    }
+
     // Update user subscription
+    const updateData: any = {
+      tier: promoCode.tier,
+      status: 'active',
+      expires_at: null, // Permanent subscription
+      updated_at: new Date().toISOString(),
+    };
+
+    // Clear Stripe IDs if subscription was cancelled
+    if (stripeCancelled) {
+      updateData.stripe_subscription_id = null;
+      updateData.stripe_customer_id = null;
+      updateData.billing_period = null;
+      updateData.next_billing_date = null;
+      updateData.last_payment_date = null;
+      updateData.price_paid = null;
+    }
+
     const { error: updateError } = await supabaseAdmin
       .from('user_subscriptions')
-      .update({
-        tier: promoCode.tier,
-        status: 'active',
-        expires_at: null, // Permanent subscription
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('user_id', userId);
 
     if (updateError) {
@@ -283,7 +316,7 @@ async function tryRedeemPromoCode(
         previous_tier: previousTier,
         new_tier: promoCode.tier,
         reason: `Código promocional aplicado: ${code}`,
-        notes: promoCode.description || null,
+        notes: `${promoCode.description || ''} | Stripe cancelled: ${stripeCancelled}`.trim(),
       });
 
     if (logError) {
@@ -308,7 +341,8 @@ async function tryRedeemPromoCode(
 async function tryRedeemCreatorCode(
   supabaseAdmin: any,
   userId: string,
-  code: string
+  code: string,
+  stripeSecretKey?: string
 ): Promise<RedeemResult | null> {
   try {
     // Get creator code details
@@ -361,7 +395,7 @@ async function tryRedeemCreatorCode(
     // Get user's current subscription
     const { data: subscription, error: subError } = await supabaseAdmin
       .from('user_subscriptions')
-      .select('id, tier, expires_at')
+      .select('id, tier, expires_at, stripe_subscription_id')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -371,6 +405,24 @@ async function tryRedeemCreatorCode(
     }
 
     const previousTier = subscription?.tier || 'free';
+
+    // Cancel Stripe subscription if exists (creator codes may provide free trials, so we cancel paid subscriptions)
+    let stripeCancelled = false;
+    if (stripeSecretKey && subscription?.stripe_subscription_id) {
+      try {
+        const stripe = new Stripe(stripeSecretKey, {
+          apiVersion: '2023-10-16',
+          httpClient: Stripe.createFetchHttpClient(),
+        });
+
+        await stripe.subscriptions.cancel(subscription.stripe_subscription_id);
+        stripeCancelled = true;
+        console.log('Stripe subscription cancelled:', subscription.stripe_subscription_id);
+      } catch (stripeError: any) {
+        console.error('Error cancelling Stripe subscription:', stripeError);
+        // Continue with creator code application even if Stripe cancellation fails
+      }
+    }
 
     // Calculate new expiration date (add trial days)
     let newExpiresAt: string | null = null;
@@ -408,6 +460,16 @@ async function tryRedeemCreatorCode(
       expires_at: newExpiresAt,
       updated_at: new Date().toISOString(),
     };
+
+    // Clear Stripe IDs if subscription was cancelled
+    if (stripeCancelled) {
+      updateData.stripe_subscription_id = null;
+      updateData.stripe_customer_id = null;
+      updateData.billing_period = null;
+      updateData.next_billing_date = null;
+      updateData.last_payment_date = null;
+      updateData.price_paid = null;
+    }
 
     if (subscription?.id) {
       const { error: updateError } = await supabaseAdmin
@@ -468,7 +530,7 @@ async function tryRedeemCreatorCode(
         previous_tier: previousTier,
         new_tier: newTier,
         reason: `Código de creador aplicado: ${code}`,
-        notes: `${creatorCode.description || ''} | Trial: ${creatorCode.trial_days} días | Descuento: ${creatorCode.discount_percentage}%`.trim(),
+        notes: `${creatorCode.description || ''} | Trial: ${creatorCode.trial_days} días | Descuento: ${creatorCode.discount_percentage}% | Stripe cancelled: ${stripeCancelled}`.trim(),
       });
 
     if (logError) {

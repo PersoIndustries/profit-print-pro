@@ -722,6 +722,8 @@
       "resetsFirstDay": "Resets on the first day of each month",
       "billingPeriod": "Billing Period",
       "nextBillingDate": "Next Billing Date",
+      "noBillingPeriod": "N/A",
+      "noBillingDate": "N/A (Permanent subscription)",
       "appliedCode": "CODE APPLIED",
       "activePromoCode": "Active Promo Code",
       "applied": "Applied:",

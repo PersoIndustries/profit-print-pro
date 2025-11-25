@@ -164,7 +164,7 @@ const Settings = () => {
             promo_code_id,
             applied_at,
             tier_granted,
-            promo_codes!inner(code, description)
+            promo_codes(code, description)
           `)
           .eq("user_id", user.id)
           .order("applied_at", { ascending: false })
@@ -246,6 +246,11 @@ const Settings = () => {
         // If we have a promo code, set it
         if (promoCodeRes.data && promoCodeRes.data.promo_codes) {
           const promoCodeData = promoCodeRes.data.promo_codes as any;
+          console.log('Promo code found:', { 
+            code: promoCodeData.code, 
+            data: promoCodeRes.data,
+            isPermanent 
+          });
           setAppliedPromoCode({
             code: promoCodeData.code,
             applied_at: promoCodeRes.data.applied_at,
@@ -254,6 +259,11 @@ const Settings = () => {
             is_permanent: isPermanent
           });
         } else {
+          console.log('No promo code found:', { 
+            hasData: !!promoCodeRes.data, 
+            hasPromoCodes: !!(promoCodeRes.data && promoCodeRes.data.promo_codes),
+            promoCodeRes: promoCodeRes 
+          });
           setAppliedPromoCode(null);
         }
 
@@ -458,12 +468,6 @@ const Settings = () => {
   };
 
   const handleCancelSubscription = () => {
-    // Si tiene un código promocional aplicado con suscripción permanente, prevenir cancelación
-    if (appliedPromoCode && appliedPromoCode.is_permanent) {
-      toast.error(t('settings.messages.cannotCancelPermanent'));
-      return;
-    }
-
     // Abrir modal de confirmación
     setCancelSubscriptionDialogOpen(true);
   };
@@ -1008,10 +1012,15 @@ const Settings = () => {
                                 hasPromo,
                                 isEarlyBird
                               );
-                              // Debug log (remove in production)
-                              if (hasPromo || isEarlyBird) {
-                                console.log('Badge info:', { tier: subscriptionInfo.tier, hasPromo, isEarlyBird, badgeText });
-                              }
+                              // Debug log
+                              console.log('Badge calculation:', { 
+                                tier: subscriptionInfo.tier, 
+                                hasPromo, 
+                                isEarlyBird, 
+                                badgeText,
+                                appliedPromoCode,
+                                appliedCreatorCode
+                              });
                               return badgeText;
                             })()}
                           </Badge>
@@ -1318,16 +1327,19 @@ const Settings = () => {
                         <div className="grid md:grid-cols-2 gap-4">
                           <div>
                             <Label className="text-sm text-muted-foreground">{t('settings.subscription.billingPeriod')}</Label>
-                            <p className="text-base font-medium capitalize mt-1">{subscriptionInfo.billing_period}</p>
+                            <p className="text-base font-medium capitalize mt-1">
+                              {subscriptionInfo.billing_period || t('settings.subscription.noBillingPeriod')}
+                            </p>
                           </div>
-                          {subscriptionInfo.next_billing_date && (
-                            <div>
-                              <Label className="text-sm text-muted-foreground">{t('settings.subscription.nextBillingDate')}</Label>
-                              <p className="text-base font-medium mt-1">
-                                {new Date(subscriptionInfo.next_billing_date).toLocaleDateString()}
-                              </p>
-                            </div>
-                          )}
+                          <div>
+                            <Label className="text-sm text-muted-foreground">{t('settings.subscription.nextBillingDate')}</Label>
+                            <p className="text-base font-medium mt-1">
+                              {subscriptionInfo.next_billing_date 
+                                ? new Date(subscriptionInfo.next_billing_date).toLocaleDateString()
+                                : t('settings.subscription.noBillingDate')
+                              }
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
