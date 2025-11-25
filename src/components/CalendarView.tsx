@@ -309,8 +309,23 @@ export function CalendarView({ onRefresh, onViewOrder }: CalendarViewProps) {
 
   const getItemsForDate = (date: Date) => {
     return items.filter(item => {
+      if (!item.orders.order_date) return false;
+      
       const orderDate = new Date(item.orders.order_date);
-      return isSameDay(orderDate, date);
+      // Normalize both dates to local date strings (YYYY-MM-DD) for comparison
+      // Use UTC to avoid timezone issues
+      const orderDateUTC = new Date(Date.UTC(
+        orderDate.getFullYear(),
+        orderDate.getMonth(),
+        orderDate.getDate()
+      ));
+      const targetDateUTC = new Date(Date.UTC(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate()
+      ));
+      
+      return orderDateUTC.getTime() === targetDateUTC.getTime();
     });
   };
 

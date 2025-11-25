@@ -312,6 +312,20 @@ export function KanbanBoard({ onRefresh, onViewOrder }: KanbanBoardProps) {
         return false;
       }
       
+      // Filter by date range
+      if (filters.dateFrom || filters.dateTo) {
+        const orderDate = new Date(item.orders.order_date);
+        const orderDateStr = orderDate.toISOString().split('T')[0];
+        
+        if (filters.dateFrom && orderDateStr < filters.dateFrom) {
+          return false;
+        }
+        
+        if (filters.dateTo && orderDateStr > filters.dateTo) {
+          return false;
+        }
+      }
+      
       return true;
     });
   };
