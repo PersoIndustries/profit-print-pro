@@ -137,29 +137,57 @@ serve(async (req) => {
       );
     }
 
-    // Get user subscription to cancel in Stripe if needed
+    // Get user subscription to cancel in Stripe and database
     let stripeCancelled = false;
-    if (stripeSecretKey) {
-      const { data: subscription, error: subError } = await supabaseAdmin
+    const { data: subscription, error: subError } = await supabaseAdmin
+      .from('user_subscriptions')
+      .select('stripe_subscription_id, tier, status')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    // Cancel subscription in Stripe if exists
+    if (stripeSecretKey && subscription?.stripe_subscription_id) {
+      try {
+        const stripe = new Stripe(stripeSecretKey, {
+          apiVersion: '2023-10-16',
+          httpClient: Stripe.createFetchHttpClient(),
+        });
+
+        await stripe.subscriptions.cancel(subscription.stripe_subscription_id);
+        stripeCancelled = true;
+        console.log('Stripe subscription cancelled:', subscription.stripe_subscription_id);
+      } catch (stripeError: any) {
+        console.error('Error cancelling Stripe subscription:', stripeError);
+        // Continue with deletion even if Stripe cancellation fails
+      }
+    }
+
+    // Cancel subscription in database if exists
+    if (subscription && subscription.status !== 'cancelled' && subscription.tier !== 'free') {
+      const previousTier = subscription.tier;
+      const { error: cancelError } = await supabaseAdmin
         .from('user_subscriptions')
-        .select('stripe_subscription_id')
-        .eq('user_id', userId)
-        .maybeSingle();
+        .update({
+          status: 'cancelled',
+          tier: 'free',
+          previous_tier: previousTier,
+        })
+        .eq('user_id', userId);
 
-      if (!subError && subscription?.stripe_subscription_id) {
-        try {
-          const stripe = new Stripe(stripeSecretKey, {
-            apiVersion: '2023-10-16',
-            httpClient: Stripe.createFetchHttpClient(),
+      if (cancelError) {
+        console.error('Error cancelling subscription in database:', cancelError);
+      } else {
+        // Log the change
+        await supabaseAdmin
+          .from('subscription_changes')
+          .insert({
+            user_id: userId,
+            previous_tier: previousTier,
+            new_tier: 'free',
+            change_type: 'cancel',
+            reason: 'Subscription cancelled due to account deletion',
+            notes: `Account deletion requested. Stripe cancelled: ${stripeCancelled}`,
           });
-
-          await stripe.subscriptions.cancel(subscription.stripe_subscription_id);
-          stripeCancelled = true;
-          console.log('Stripe subscription cancelled:', subscription.stripe_subscription_id);
-        } catch (stripeError: any) {
-          console.error('Error cancelling Stripe subscription:', stripeError);
-          // Continue with deletion even if Stripe cancellation fails
-        }
       }
     }
 
