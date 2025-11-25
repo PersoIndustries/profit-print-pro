@@ -921,6 +921,8 @@
     "overview": "Overview",
     "totalUsers": "Total Users",
     "activeUsers": "Active Users",
+    "deletedAccounts": "Deleted Accounts",
+    "today": "today",
     "freeUsers": "Free Users",
     "tier1Users": "Tier 1 Users",
     "tier2Users": "Tier 2 Users",

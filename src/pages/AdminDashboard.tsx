@@ -694,7 +694,7 @@ const AdminDashboard = () => {
       monthStart.setHours(0, 0, 0, 0);
 
       const [profilesRes, subscriptionsRes, materialsRes, projectsRes, ordersRes, printsRes, promoCodesRes, invoicesRes, refundRequestsRes, subscriptionChangesRes] = await Promise.all([
-        supabase.from('profiles').select('id, created_at'),
+        supabase.from('profiles').select('id, created_at, deleted_at'),
         supabase.from('user_subscriptions').select('user_id, tier, status, created_at, previous_tier, downgrade_date, expires_at, grace_period_end, is_paid_subscription, stripe_subscription_id, billing_period'),
         supabase.from('materials').select('id, user_id, created_at'),
         supabase.from('projects').select('id, user_id, created_at'),
@@ -721,6 +721,12 @@ const AdminDashboard = () => {
       const newUsersToday = allProfiles.filter(p => new Date(p.created_at) >= todayStart).length;
       const newUsersThisWeek = allProfiles.filter(p => new Date(p.created_at) >= weekStart).length;
       const newUsersThisMonth = allProfiles.filter(p => new Date(p.created_at) >= monthStart).length;
+      
+      // Deleted accounts metrics
+      const totalDeletedAccounts = allProfiles.filter(p => p.deleted_at !== null).length;
+      const deletedAccountsToday = allProfiles.filter(p => p.deleted_at && new Date(p.deleted_at) >= todayStart).length;
+      const deletedAccountsThisWeek = allProfiles.filter(p => p.deleted_at && new Date(p.deleted_at) >= weekStart).length;
+      const deletedAccountsThisMonth = allProfiles.filter(p => p.deleted_at && new Date(p.deleted_at) >= monthStart).length;
 
       const activeUserIds = new Set<string>();
       [...allMaterials, ...allProjects, ...allOrders].forEach(item => {
@@ -843,6 +849,7 @@ const AdminDashboard = () => {
       const projectsInRange = allProjects.filter(p => filterByDateRange(p.created_at));
       const ordersInRange = allOrders.filter(o => filterByDateRange(o.created_at));
       const printsInRange = allPrints.filter(p => filterByDateRange(p.created_at));
+      const deletedAccountsInRange = allProfiles.filter(p => p.deleted_at && filterByDateRange(p.deleted_at)).length;
 
       const metricsData = {
         totalUsers,
@@ -857,6 +864,12 @@ const AdminDashboard = () => {
         totalDowngrades: downgrades.length,
         cancellationsToday: cancellations.filter(c => c.downgrade_date && new Date(c.downgrade_date) >= todayStart).length,
         downgradesToday: downgrades.filter(d => d.downgrade_date && new Date(d.downgrade_date) >= todayStart).length,
+        // Deleted accounts metrics
+        totalDeletedAccounts,
+        deletedAccountsToday,
+        deletedAccountsThisWeek,
+        deletedAccountsThisMonth,
+        deletedAccountsInRange,
         totalMaterials: allMaterials.length,
         materialsToday: allMaterials.filter(m => new Date(m.created_at) >= todayStart).length,
         materialsInRange: materialsInRange.length,
@@ -959,6 +972,10 @@ const AdminDashboard = () => {
       csvRows.push('RESUMEN GENERAL');
       csvRows.push(`Total Usuarios,${metrics.totalUsers}`);
       csvRows.push(`Usuarios Activos,${metrics.activeUsers}`);
+      csvRows.push(`Cuentas Eliminadas,${metrics.totalDeletedAccounts || 0}`);
+      csvRows.push(`Eliminadas Hoy,${metrics.deletedAccountsToday || 0}`);
+      csvRows.push(`Eliminadas Esta Semana,${metrics.deletedAccountsThisWeek || 0}`);
+      csvRows.push(`Eliminadas Este Mes,${metrics.deletedAccountsThisMonth || 0}`);
       csvRows.push(`Usuarios de Pago,${metrics.paidUsers || 0}`);
       csvRows.push(`Usuarios con Promo Code,${metrics.promoUsers || 0}`);
       csvRows.push(`Usuarios en Trial,${metrics.usersInTrial || 0}`);
@@ -2793,7 +2810,7 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{t('admin.totalUsers')}</CardTitle>
@@ -2812,6 +2829,19 @@ const AdminDashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold">{activeUsers}</div>
               <p className="text-xs text-muted-foreground">Last 30 days</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{t('admin.deletedAccounts')}</CardTitle>
+              <Users className="h-4 w-4 text-red-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">{metrics?.totalDeletedAccounts || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                {metrics?.deletedAccountsToday || 0} {t('admin.today')}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -3369,6 +3399,24 @@ const AdminDashboard = () => {
                       <div className="flex items-center justify-between">
                         <span>Downgrades Hoy</span>
                         <span className="font-semibold">{metrics.downgradesToday}</span>
+                      </div>
+                      <div className="pt-2 border-t">
+                        <div className="flex items-center justify-between">
+                          <span>Cuentas Eliminadas</span>
+                          <span className="font-semibold text-red-600">{metrics.totalDeletedAccounts || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-sm text-muted-foreground">Eliminadas Hoy</span>
+                          <span className="text-sm font-semibold">{metrics.deletedAccountsToday || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-sm text-muted-foreground">Esta Semana</span>
+                          <span className="text-sm font-semibold">{metrics.deletedAccountsThisWeek || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-sm text-muted-foreground">Este Mes</span>
+                          <span className="text-sm font-semibold">{metrics.deletedAccountsThisMonth || 0}</span>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
