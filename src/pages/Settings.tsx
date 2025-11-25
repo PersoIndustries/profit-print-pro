@@ -446,34 +446,34 @@ const Settings = () => {
     }
 
     try {
-      // Si tiene código promocional, cambiar a free tier
-      // Si no tiene código promocional, solo cambiar status
-      const updateData: any = appliedPromoCode 
-        ? { status: 'cancelled', tier: 'free' as const }
-        : { status: 'cancelled' };
+      // Use Edge Function to cancel subscription (handles both database and Stripe)
+      const { data, error } = await supabase.functions.invoke('cancel-subscription', {
+        body: {
+          cancelInStripe: true, // Cancel in Stripe if subscription exists
+          immediate: false, // Cancel at period end to avoid immediate billing issues
+        },
+      });
 
-      const { error } = await supabase
-        .from("user_subscriptions")
-        .update(updateData)
-        .eq("user_id", user?.id);
+      if (error) {
+        console.error('Function invoke error:', error);
+        // Try to parse error message from response
+        let errorMessage = t('settings.messages.errorCancelling');
+        if (error.message) {
+          errorMessage = error.message;
+        } else if (error.context && error.context.body) {
+          try {
+            const errorBody = JSON.parse(error.context.body);
+            errorMessage = errorBody.error || errorBody.message || errorMessage;
+          } catch (e) {
+            // If parsing fails, use default message
+          }
+        }
+        throw new Error(errorMessage);
+      }
 
-      if (error) throw error;
-
-      // Log the change
-      if (subscriptionInfo) {
-        const changeData: any = {
-          user_id: user?.id,
-          previous_tier: subscriptionInfo.tier,
-          new_tier: appliedPromoCode ? ('free' as const) : subscriptionInfo.tier,
-          change_type: 'cancel',
-          reason: appliedPromoCode 
-            ? `Suscripción cancelada. Código promocional ${appliedPromoCode.code} revocado.`
-            : 'Suscripción cancelada por el usuario'
-        };
-        
-        await supabase
-          .from("subscription_changes")
-          .insert(changeData);
+      if (data?.error) {
+        console.error('Function returned error:', data);
+        throw new Error(data.error);
       }
 
       toast.success(t('settings.messages.subscriptionCancelled'));
