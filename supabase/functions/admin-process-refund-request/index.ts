@@ -236,57 +236,81 @@ serve(async (req) => {
         }
       }
 
-      // Create refund invoice with unique invoice number using timestamp and random suffix
-      const now = new Date();
-      const yearMonth = now.toISOString().slice(0, 7).replace('-', ''); // YYYYMM format
-      const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-      const invoiceNumber = `REF-${yearMonth}-${randomSuffix}`;
-      
-      // Get billing_period from original invoice if available
-      const billingPeriod = originalInvoice?.billing_period || null;
-      
-      const { data: newInvoice, error: invoiceError } = await supabaseAdmin
-        .from('invoices')
-        .insert({
-          user_id: refundRequest.user_id,
-          subscription_id: refundRequest.subscription_id || null,
-          invoice_number: invoiceNumber,
-          amount: -Math.abs(refundRequest.amount),
-          currency: refundRequest.currency || 'EUR',
-          status: 'refunded',
-          tier: tier,
-          billing_period: billingPeriod,
-          issued_date: new Date().toISOString(),
-          paid_date: new Date().toISOString(),
-          notes: `Refund approved for request: ${refundRequest.reason}. ${originalInvoice ? `Original invoice: ${originalInvoice.invoice_number}` : ''}`,
-        })
-        .select()
-        .single();
-
-      if (invoiceError) {
-        console.error('Error creating refund invoice:', invoiceError);
-        console.error('Invoice error details:', JSON.stringify(invoiceError, null, 2));
-        console.error('Invoice data attempted:', {
-          user_id: refundRequest.user_id,
-          subscription_id: refundRequest.subscription_id || null,
-          invoice_number: invoiceNumber,
-          amount: -Math.abs(refundRequest.amount),
-          currency: refundRequest.currency || 'EUR',
-          status: 'refunded',
-          tier: tier,
-          billing_period: billingPeriod,
-        });
-        return new Response(
-          JSON.stringify({ 
-            error: 'Error al crear factura de refund',
-            details: invoiceError.message || invoiceError.toString(),
-            code: (invoiceError as any).code
-          }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+      // Check if refund invoice already exists for this original invoice
+      let existingRefundInvoice: any = null;
+      if (originalInvoice) {
+        const originalInvoiceRef = originalInvoice.invoice_number || originalInvoice.id;
+        const { data: existing } = await supabaseAdmin
+          .from('invoices')
+          .select('*')
+          .eq('user_id', refundRequest.user_id)
+          .eq('amount', -Math.abs(refundRequest.amount))
+          .eq('status', 'refunded')
+          .like('invoice_number', 'REF-%')
+          .or(`notes.ilike.%Original invoice: ${originalInvoiceRef}%,notes.ilike.%Original Invoice: ${originalInvoiceRef}%`)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        existingRefundInvoice = existing;
       }
 
-      refundInvoice = newInvoice;
+      if (existingRefundInvoice) {
+        console.log(`Refund invoice already exists for original invoice ${originalInvoice?.invoice_number || originalInvoice?.id}, using existing invoice`);
+        refundInvoice = existingRefundInvoice;
+      } else {
+        // Create refund invoice with unique invoice number using timestamp and random suffix
+        const now = new Date();
+        const yearMonth = now.toISOString().slice(0, 7).replace('-', ''); // YYYYMM format
+        const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const invoiceNumber = `REF-${yearMonth}-${randomSuffix}`;
+        
+        // Get billing_period from original invoice if available
+        const billingPeriod = originalInvoice?.billing_period || null;
+        
+        const { data: newInvoice, error: invoiceError } = await supabaseAdmin
+          .from('invoices')
+          .insert({
+            user_id: refundRequest.user_id,
+            subscription_id: refundRequest.subscription_id || null,
+            invoice_number: invoiceNumber,
+            amount: -Math.abs(refundRequest.amount),
+            currency: refundRequest.currency || 'EUR',
+            status: 'refunded',
+            tier: tier,
+            billing_period: billingPeriod,
+            issued_date: new Date().toISOString(),
+            paid_date: new Date().toISOString(),
+            notes: `Refund approved for request: ${refundRequest.reason}. ${originalInvoice ? `Original invoice: ${originalInvoice.invoice_number}` : ''}`,
+          })
+          .select()
+          .single();
+
+        if (invoiceError) {
+          console.error('Error creating refund invoice:', invoiceError);
+          console.error('Invoice error details:', JSON.stringify(invoiceError, null, 2));
+          console.error('Invoice data attempted:', {
+            user_id: refundRequest.user_id,
+            subscription_id: refundRequest.subscription_id || null,
+            invoice_number: invoiceNumber,
+            amount: -Math.abs(refundRequest.amount),
+            currency: refundRequest.currency || 'EUR',
+            status: 'refunded',
+            tier: tier,
+            billing_period: billingPeriod,
+          });
+          return new Response(
+            JSON.stringify({ 
+              error: 'Error al crear factura de refund',
+              details: invoiceError.message || invoiceError.toString(),
+              code: (invoiceError as any).code
+            }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        refundInvoice = newInvoice;
+      }
       updateData.status = 'processed';
 
       // Process refund in Stripe if requested
