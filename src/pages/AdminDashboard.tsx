@@ -1854,6 +1854,21 @@ const AdminDashboard = () => {
     setDialogOpen(false);
 
     try {
+      // Refresh session if needed to ensure token is valid
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+      const activeSession = refreshedSession || session;
+
+      if (refreshError) {
+        console.warn('Error refreshing session (using existing):', refreshError);
+      }
+
+      console.log('Invoking cancel subscription with session:', { 
+        hasSession: !!activeSession, 
+        userId: activeSession?.user.id,
+        tokenExpiresAt: activeSession?.expires_at
+      });
+
       const { data, error } = await supabase.functions.invoke('admin-cancel-subscription', {
         body: {
           userId: selectedUser.id,
@@ -1863,10 +1878,30 @@ const AdminDashboard = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Function invoke error:', error);
+        // Try to parse error message from response
+        let errorMessage = 'Error al invocar la función';
+        if (error.message) {
+          errorMessage = error.message;
+        } else if (error.context && error.context.body) {
+          try {
+            const errorBody = JSON.parse(error.context.body);
+            errorMessage = errorBody.error || errorBody.message || errorMessage;
+            if (errorBody.details) {
+              errorMessage += `: ${errorBody.details}`;
+            }
+          } catch (e) {
+            // If parsing fails, use default message
+          }
+        }
+        throw new Error(errorMessage);
+      }
 
       if (data?.error) {
-        throw new Error(data.error);
+        console.error('Function returned error:', data);
+        const errorMessage = data.error + (data.details ? `: ${data.details}` : '');
+        throw new Error(errorMessage);
       }
 
       toast.success(data?.message || 'Subscription cancelled successfully');
@@ -1874,7 +1909,22 @@ const AdminDashboard = () => {
       fetchAdminData();
     } catch (error: any) {
       console.error('Error cancelling subscription:', error);
-      toast.error(error.message || 'Error cancelling subscription');
+      console.error('Full error object:', JSON.stringify(error, null, 2));
+      
+      // Extract error message
+      let errorMessage = error.message || error.toString() || 'Error cancelling subscription';
+      
+      // If error has a response, try to extract message from it
+      if (error.response) {
+        try {
+          const errorData = await error.response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (e) {
+          // If parsing fails, use the message we already have
+        }
+      }
+      
+      toast.error(errorMessage);
     }
   };
 

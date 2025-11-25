@@ -42,7 +42,10 @@ serve(async (req) => {
     }
 
     // Get auth token from request
-    const authHeader = req.headers.get('Authorization');
+    let authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      authHeader = req.headers.get('authorization');
+    }
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: 'No se proporcionó token de autenticación' }),
@@ -50,23 +53,57 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase client with user token
-    const supabaseUser = createClient(supabaseUrl, authHeader.replace('Bearer ', ''), {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // Clean auth header (remove 'Bearer ' prefix if present)
+    const cleanAuthToken = authHeader.replace(/^Bearer\s+/i, '');
 
     // Create admin client
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify user is admin
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
-    if (userError || !user) {
+    // Decode JWT to get user_id (JWT format: header.payload.signature)
+    let userId: string | null = null;
+    try {
+      const parts = cleanAuthToken.split('.');
+      if (parts.length === 3) {
+        // Decode the payload (second part)
+        const payload = JSON.parse(
+          new TextDecoder().decode(
+            Uint8Array.from(
+              atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))
+                .split('')
+                .map(c => c.charCodeAt(0))
+            )
+          )
+        );
+        userId = payload.sub || payload.user_id || null;
+        console.log('Decoded JWT payload:', { 
+          userId, 
+          email: payload.email,
+          exp: payload.exp,
+          isExpired: payload.exp ? Date.now() / 1000 > payload.exp : false
+        });
+      }
+    } catch (decodeError) {
+      console.error('Error decoding JWT:', decodeError);
+    }
+
+    if (!userId) {
       return new Response(
-        JSON.stringify({ error: 'Usuario no autenticado' }),
+        JSON.stringify({ error: 'No se pudo decodificar el token de autenticación' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // Verify user exists and get user data using admin client
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId);
+    if (userError || !user) {
+      console.error('Error fetching user:', userError);
+      return new Response(
+        JSON.stringify({ error: 'Usuario no autenticado o no encontrado' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify user is admin
     const { data: roleData, error: roleError } = await supabaseAdmin
       .from('user_roles')
       .select('role')
