@@ -66,7 +66,7 @@ const Pricing = () => {
       try {
         const { data, error } = await supabase
           .from('user_subscriptions')
-          .select('status, tier')
+          .select('status, tier, expires_at')
           .eq('user_id', user.id)
           .maybeSingle();
 
@@ -671,6 +671,22 @@ const Pricing = () => {
                     >
                       <CheckCircle2 className="h-4 w-4 mr-2" />
                       {t('pricing.alreadySubscribed')}
+                    </Button>
+                  ) : isCancelledPlan ? (
+                    <Button 
+                      className="w-full" 
+                      variant="default"
+                      onClick={() => handleSelectPlan(tier.tier, isAnnual ? 'annual' : 'monthly')}
+                      disabled={checkoutLoading}
+                    >
+                      {checkoutLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                          Procesando...
+                        </>
+                      ) : (
+                        t('pricing.reactivateSubscription')
+                      )}
                     </Button>
                   ) : (
                     <Button 

@@ -956,6 +956,8 @@
     "perYear": "year",
     "or": "or",
     "alreadySubscribed": "You are already subscribed to this plan",
+    "reactivateSubscription": "Reactivate Subscription",
+    "reactivateSubscription": "Reactivate Subscription",
     "comparison": {
       "title": "Plan Comparison",
       "feature": "Feature",

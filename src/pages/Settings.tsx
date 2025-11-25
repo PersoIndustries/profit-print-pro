@@ -1332,13 +1332,29 @@ const Settings = () => {
                             </p>
                           </div>
                           <div>
-                            <Label className="text-sm text-muted-foreground">{t('settings.subscription.nextBillingDate')}</Label>
-                            <p className="text-base font-medium mt-1">
-                              {subscriptionInfo.next_billing_date 
-                                ? new Date(subscriptionInfo.next_billing_date).toLocaleDateString()
-                                : t('settings.subscription.noBillingDate')
-                              }
-                            </p>
+                            {subscriptionInfo.status === 'cancelled' && subscriptionInfo.expires_at ? (
+                              <>
+                                <Label className="text-sm text-muted-foreground">{t('settings.subscription.periodEndDate')}</Label>
+                                <p className="text-base font-medium mt-1">
+                                  {new Date(subscriptionInfo.expires_at).toLocaleDateString('es-ES', { 
+                                    weekday: 'long', 
+                                    year: 'numeric', 
+                                    month: 'long', 
+                                    day: 'numeric' 
+                                  })}
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <Label className="text-sm text-muted-foreground">{t('settings.subscription.nextBillingDate')}</Label>
+                                <p className="text-base font-medium mt-1">
+                                  {subscriptionInfo.next_billing_date 
+                                    ? new Date(subscriptionInfo.next_billing_date).toLocaleDateString()
+                                    : t('settings.subscription.noBillingDate')
+                                  }
+                                </p>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1479,6 +1495,11 @@ const Settings = () => {
                       {subscriptionInfo.status === 'active' && subscriptionInfo.tier !== 'free' && (
                         <Button variant="destructive" size="sm" onClick={handleCancelSubscription}>
                           {t('settings.subscription.cancelSubscription')}
+                        </Button>
+                      )}
+                      {subscriptionInfo.status === 'cancelled' && subscriptionInfo.tier !== 'free' && (
+                        <Button variant="default" size="sm" onClick={() => navigate('/pricing')}>
+                          {t('settings.subscription.reactivateSubscription')}
                         </Button>
                       )}
                     </div>
