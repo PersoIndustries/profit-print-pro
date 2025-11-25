@@ -1975,51 +1975,6 @@ const Settings = () => {
               </CardContent>
             </Card>
           </TabsContent>
-
-          <TabsContent value="advanced">
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2">
-                  <SettingsIcon className="h-5 w-5" />
-                  {t('settings.advanced.title')}
-                </CardTitle>
-                <CardDescription>
-                  {t('settings.advanced.description')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="p-6 border border-destructive/50 rounded-lg bg-destructive/5">
-                    <div className="flex items-start gap-4">
-                      <AlertCircle className="h-6 w-6 text-destructive mt-1 flex-shrink-0" />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg mb-2 text-destructive">
-                          {t('settings.advanced.deleteAccount.sectionTitle')}
-                        </h3>
-                        <p className="text-muted-foreground mb-4">
-                          {t('settings.advanced.deleteAccount.sectionDescription')}
-                        </p>
-                        <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground mb-4">
-                          <li>{t('settings.advanced.deleteAccount.warning.item1')}</li>
-                          <li>{t('settings.advanced.deleteAccount.warning.item2')}</li>
-                          <li>{t('settings.advanced.deleteAccount.warning.item3')}</li>
-                          <li>{t('settings.advanced.deleteAccount.warning.item4')}</li>
-                        </ul>
-                        <Button
-                          variant="destructive"
-                          onClick={() => setDeleteAccountDialogOpen(true)}
-                          className="mt-4"
-                        >
-                          <AlertCircle className="h-4 w-4 mr-2" />
-                          {t('settings.advanced.deleteAccount.button')}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
 
       {/* Refund Request Dialog */}
