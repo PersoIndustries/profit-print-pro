@@ -1000,11 +1000,20 @@ const Settings = () => {
                         <div className="flex items-center gap-2 mt-1">
                           <p className="text-xl font-bold">{getTierName(subscriptionInfo.tier)}</p>
                           <Badge className={getTierBadgeColor(subscriptionInfo.tier)}>
-                            {getSubscriptionBadgeText(
-                              subscriptionInfo.tier,
-                              !!(appliedPromoCode || appliedCreatorCode),
-                              subscriptionInfo.is_early_bird || false
-                            )}
+                            {(() => {
+                              const hasPromo = !!(appliedPromoCode || appliedCreatorCode);
+                              const isEarlyBird = subscriptionInfo.is_early_bird || false;
+                              const badgeText = getSubscriptionBadgeText(
+                                subscriptionInfo.tier,
+                                hasPromo,
+                                isEarlyBird
+                              );
+                              // Debug log (remove in production)
+                              if (hasPromo || isEarlyBird) {
+                                console.log('Badge info:', { tier: subscriptionInfo.tier, hasPromo, isEarlyBird, badgeText });
+                              }
+                              return badgeText;
+                            })()}
                           </Badge>
                         </div>
                       </div>
