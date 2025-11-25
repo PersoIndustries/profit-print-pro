@@ -30,11 +30,17 @@ import Acquisitions from "./pages/Acquisitions";
 import Movements from "./pages/Movements";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useDocumentHead } from "@/hooks/useDocumentHead";
+import { useGoogleAnalytics } from "@/hooks/useGoogleAnalytics";
 
 const queryClient = new QueryClient();
 
+// Get Google Analytics ID from environment variable (optional, since it's also in HTML)
+const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
+
 const AppContent = () => {
   useDocumentHead();
+  // Track page views on route changes (GA is already initialized in index.html)
+  useGoogleAnalytics(GA_MEASUREMENT_ID);
 
   return (
     <Routes>
