@@ -500,7 +500,14 @@ const Settings = () => {
       }
 
       toast.success(t('settings.messages.subscriptionCancelled'));
+      
+      // Refresh data and reload page to show updated status
       await fetchData();
+      
+      // Small delay to ensure data is refreshed, then reload page
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch (error: any) {
       console.error("Error cancelling subscription:", error);
       toast.error(error.message || t('settings.messages.errorCancelling'));
@@ -1035,16 +1042,28 @@ const Settings = () => {
                             <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
                             <div className="flex-1">
                               <h4 className="font-semibold text-orange-600 mb-1">
-                                {t('settings.subscriptionStatus.cancelledTitle')}
+                                Plan Cancelado
                               </h4>
                               <p className="text-sm text-muted-foreground mb-3">
-                                {t('settings.subscriptionStatus.cancelledDescription')}{' '}
-                                <strong>{new Date(subscriptionInfo.expires_at).toLocaleDateString()}</strong>.
-                                {t('settings.subscriptionStatus.cancelledAfter')}
+                                Tu suscripción ha sido cancelada y finalizará el{' '}
+                                <strong className="text-orange-600">
+                                  {new Date(subscriptionInfo.expires_at).toLocaleDateString('es-ES', { 
+                                    weekday: 'long', 
+                                    year: 'numeric', 
+                                    month: 'long', 
+                                    day: 'numeric' 
+                                  })}
+                                </strong>.
+                                {' '}Podrás seguir usando todas las funcionalidades hasta esa fecha.
                               </p>
-                              <Button size="sm" onClick={() => navigate('/pricing')} variant="outline">
-                                {t('settings.subscriptionStatus.reactivate')}
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button size="sm" onClick={() => navigate('/pricing')} className="bg-primary hover:bg-primary/90">
+                                  Volver a Contratar
+                                </Button>
+                                <Button size="sm" onClick={() => navigate('/pricing')} variant="outline">
+                                  Ver Planes
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </CardContent>

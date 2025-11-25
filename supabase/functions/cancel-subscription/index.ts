@@ -82,7 +82,7 @@ serve(async (req) => {
     // Get current subscription
     const { data: subscription, error: subError } = await supabaseAdmin
       .from('user_subscriptions')
-      .select('tier, status, stripe_subscription_id, expires_at')
+      .select('tier, status, stripe_subscription_id, expires_at, next_billing_date, billing_period')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -113,6 +113,8 @@ serve(async (req) => {
 
     // Cancel in Stripe if requested and subscription exists
     let stripeCancelled = false;
+    let expirationDate: string | null = null;
+    
     if (cancelInStripe && stripeSecretKey && subscription.stripe_subscription_id) {
       try {
         const stripe = new Stripe(stripeSecretKey, {
@@ -121,10 +123,14 @@ serve(async (req) => {
         });
 
         if (immediate) {
-          // Cancel immediately
+          // Cancel immediately - get current period end from Stripe
+          const stripeSub = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id);
+          expirationDate = new Date(stripeSub.current_period_end * 1000).toISOString();
           await stripe.subscriptions.cancel(subscription.stripe_subscription_id);
         } else {
-          // Cancel at period end
+          // Cancel at period end - get period end from Stripe
+          const stripeSub = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id);
+          expirationDate = new Date(stripeSub.current_period_end * 1000).toISOString();
           await stripe.subscriptions.update(subscription.stripe_subscription_id, {
             cancel_at_period_end: true,
           });
@@ -134,6 +140,26 @@ serve(async (req) => {
       } catch (stripeError: any) {
         console.error('Error cancelling Stripe subscription:', stripeError);
         // Continue with database cancellation even if Stripe fails
+        // Calculate expiration date from next_billing_date or billing_period
+        if (subscription.next_billing_date) {
+          expirationDate = subscription.next_billing_date;
+        } else if (subscription.billing_period) {
+          const now = new Date();
+          const daysToAdd = subscription.billing_period === 'monthly' ? 30 : 365;
+          expirationDate = new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000).toISOString();
+        }
+      }
+    } else {
+      // No Stripe subscription - calculate expiration from next_billing_date or billing_period
+      if (subscription.next_billing_date) {
+        expirationDate = subscription.next_billing_date;
+      } else if (subscription.billing_period) {
+        const now = new Date();
+        const daysToAdd = subscription.billing_period === 'monthly' ? 30 : 365;
+        expirationDate = new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000).toISOString();
+      } else {
+        // Fallback: use current expires_at or 30 days from now
+        expirationDate = subscription.expires_at || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
       }
     }
 
@@ -143,20 +169,32 @@ serve(async (req) => {
     let downgradeDate = null;
 
     if (previousTier !== 'free') {
-      // Set 30-day grace period
-      gracePeriodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      // Set 30-day grace period after expiration
+      if (expirationDate) {
+        const expDate = new Date(expirationDate);
+        gracePeriodEnd = new Date(expDate.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      } else {
+        gracePeriodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      }
       downgradeDate = now.toISOString();
     }
 
     // Update subscription
+    // IMPORTANT: When immediate=false, keep the tier until expiration
     const updateData: any = {
       status: 'cancelled',
-      tier: 'free',
+      // Only change tier to free if immediate cancellation
+      tier: immediate ? 'free' : previousTier,
       previous_tier: previousTier,
       downgrade_date: downgradeDate,
       grace_period_end: gracePeriodEnd,
       is_read_only: previousTier !== 'free' ? true : false,
     };
+
+    // Update expiration date if we calculated one
+    if (expirationDate) {
+      updateData.expires_at = expirationDate;
+    }
 
     const { error: updateError } = await supabaseAdmin
       .from('user_subscriptions')
@@ -177,10 +215,12 @@ serve(async (req) => {
       .insert({
         user_id: user.id,
         previous_tier: previousTier,
-        new_tier: 'free',
+        new_tier: immediate ? 'free' : previousTier, // Only change tier if immediate
         change_type: 'cancel',
         reason: 'Usuario canceló suscripción',
-        notes: null,
+        notes: immediate 
+          ? 'Cancelación inmediata' 
+          : `Cancelación al final del período (${expirationDate ? new Date(expirationDate).toLocaleDateString() : 'N/A'})`,
       });
 
     if (logError) {
@@ -194,6 +234,8 @@ serve(async (req) => {
         previousTier,
         gracePeriodEnd,
         stripeCancelled,
+        expirationDate, // Return expiration date for UI display
+        immediate,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
