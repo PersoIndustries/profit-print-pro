@@ -215,6 +215,7 @@ serve(async (req) => {
       downgrade_date: downgradeDate || null,
       grace_period_end: gracePeriodEnd || null,
       is_read_only: previousTier !== 'free' ? true : false,
+      updated_at: new Date().toISOString(), // Ensure updated_at is set
     };
 
     // Update expiration date if we calculated one
@@ -222,10 +223,34 @@ serve(async (req) => {
       updateData.expires_at = expirationDate;
     }
 
-    const { error: updateError } = await supabaseAdmin
+    console.log('Updating subscription with data:', {
+      userId,
+      updateData,
+      previousStatus: subscription.status,
+      previousTier: subscription.tier,
+    });
+
+    const { data: updatedSubscription, error: updateError } = await supabaseAdmin
       .from('user_subscriptions')
       .update(updateData)
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('Error updating subscription:', updateError);
+      return new Response(
+        JSON.stringify({ error: 'Error al cancelar suscripción', details: updateError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Subscription updated successfully:', {
+      userId,
+      newStatus: updatedSubscription?.status,
+      newTier: updatedSubscription?.tier,
+      expiresAt: updatedSubscription?.expires_at,
+    });
 
     if (updateError) {
       console.error('Error updating subscription:', updateError);

@@ -234,6 +234,17 @@ const Settings = () => {
           }
         }
         
+        // Log subscription data for debugging
+        console.log('Subscription data from database:', {
+          status: subRes.data.status,
+          tier: subRes.data.tier,
+          expires_at: subRes.data.expires_at,
+          next_billing_date: subRes.data.next_billing_date,
+          grace_period_end: subRes.data.grace_period_end,
+          is_read_only: subRes.data.is_read_only,
+          fullData: subRes.data
+        });
+        
         setSubscriptionInfo({
           ...subRes.data,
           expires_at: subRes.data.expires_at,
@@ -516,13 +527,16 @@ const Settings = () => {
 
       toast.success(t('settings.messages.subscriptionCancelled'));
       
-      // Refresh data and reload page to show updated status
+      // Force refresh session to get updated subscription data
+      await supabase.auth.refreshSession();
+      
+      // Refresh data
       await fetchData();
       
       // Small delay to ensure data is refreshed, then reload page
       setTimeout(() => {
         window.location.reload();
-      }, 500);
+      }, 1000);
     } catch (error: any) {
       console.error("Error cancelling subscription:", error);
       toast.error(error.message || t('settings.messages.errorCancelling'));
@@ -1334,7 +1348,7 @@ const Settings = () => {
                             </p>
                           </div>
                           <div>
-                            {subscriptionInfo.status === 'cancelled' && subscriptionInfo.expires_at ? (
+                            {(subscriptionInfo.status === 'cancelled' || subscriptionInfo.status === 'canceled') && subscriptionInfo.expires_at ? (
                               <>
                                 <Label className="text-sm text-muted-foreground">{t('settings.subscription.periodEndDate')}</Label>
                                 <p className="text-base font-medium mt-1">
@@ -1499,7 +1513,7 @@ const Settings = () => {
                           {t('settings.subscription.cancelSubscription')}
                         </Button>
                       )}
-                      {subscriptionInfo.status === 'cancelled' && subscriptionInfo.tier !== 'free' && (
+                      {(subscriptionInfo.status === 'cancelled' || subscriptionInfo.status === 'canceled') && subscriptionInfo.tier !== 'free' && (
                         <Button variant="default" size="sm" onClick={() => navigate('/pricing')}>
                           {t('settings.subscription.reactivateSubscription')}
                         </Button>
