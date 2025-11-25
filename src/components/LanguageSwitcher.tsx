@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
 import {
@@ -15,7 +16,37 @@ const languages = [
 
 export const LanguageSwitcher = () => {
   const { i18n } = useTranslation();
-  const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
+  const [currentLanguage, setCurrentLanguage] = useState(
+    languages.find(lang => lang.code === i18n.language) || languages[1] // Default to Spanish
+  );
+
+  // Update current language when i18n language changes
+  useEffect(() => {
+    const updateLanguage = () => {
+      const lang = languages.find(l => l.code === i18n.language) || languages[1];
+      setCurrentLanguage(lang);
+    };
+
+    updateLanguage();
+    i18n.on('languageChanged', updateLanguage);
+
+    return () => {
+      i18n.off('languageChanged', updateLanguage);
+    };
+  }, [i18n]);
+
+  const handleLanguageChange = async (langCode: string) => {
+    try {
+      await i18n.changeLanguage(langCode);
+      // Force update document language attribute
+      document.documentElement.lang = langCode;
+      // Update state immediately
+      const lang = languages.find(l => l.code === langCode) || languages[1];
+      setCurrentLanguage(lang);
+    } catch (error) {
+      console.error('Error changing language:', error);
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -29,11 +60,14 @@ export const LanguageSwitcher = () => {
         {languages.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
-            onClick={() => i18n.changeLanguage(lang.code)}
-            className="cursor-pointer"
+            onClick={() => handleLanguageChange(lang.code)}
+            className={`cursor-pointer ${currentLanguage.code === lang.code ? 'bg-accent' : ''}`}
           >
             <span className="mr-2">{lang.flag}</span>
             {lang.name}
+            {currentLanguage.code === lang.code && (
+              <span className="ml-auto text-xs">✓</span>
+            )}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
