@@ -17,8 +17,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, CreditCard, Receipt, User, TrendingUp, AlertCircle, Calendar, BarChart3, Shield, Clock, DollarSign, FileText, HelpCircle, Mail, MessageCircle, Download } from "lucide-react";
+import { Settings as SettingsIcon, CreditCard, Receipt, User, TrendingUp, AlertCircle, Calendar, BarChart3, Shield, Clock, DollarSign, FileText, HelpCircle, Mail, MessageCircle, Download, Bell } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { NotificationsSection } from "@/components/settings/NotificationsSection";
 
 interface Profile {
   full_name: string;
@@ -709,7 +710,7 @@ const Settings = () => {
       </div>
 
         <Tabs defaultValue="profile" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5 max-w-2xl">
+          <TabsList className="grid w-full grid-cols-4 max-w-2xl">
             <TabsTrigger value="profile">
               <User className="h-4 w-4 mr-2" />
               {t('settings.tabs.profile')}
@@ -725,10 +726,6 @@ const Settings = () => {
             <TabsTrigger value="invoices">
               <Receipt className="h-4 w-4 mr-2" />
               {t('settings.tabs.invoices')}
-            </TabsTrigger>
-            <TabsTrigger value="support">
-              <HelpCircle className="h-4 w-4 mr-2" />
-              {t('settings.tabs.support')}
             </TabsTrigger>
           </TabsList>
 
@@ -1351,31 +1348,43 @@ const Settings = () => {
                         <TableHead>{t('settings.invoices.date')}</TableHead>
                         <TableHead>{t('settings.invoices.plan')}</TableHead>
                         <TableHead>{t('settings.invoices.period')}</TableHead>
-                        <TableHead>{t('settings.invoices.amount')}</TableHead>
+                        <TableHead className="text-right">{t('settings.invoices.amount')}</TableHead>
                         <TableHead>{t('settings.invoices.status')}</TableHead>
                         <TableHead>{t('settings.invoices.actions')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {invoices.map((invoice) => (
+                      {invoices
+                        .filter(invoice => invoice.amount > 0) // Only show positive invoices (payments)
+                        .map((invoice) => (
                         <TableRow key={invoice.id}>
                           <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                           <TableCell>{new Date(invoice.issued_date).toLocaleDateString()}</TableCell>
-                          <TableCell>{getTierName(invoice.tier)}</TableCell>
-                          <TableCell className="capitalize">{invoice.billing_period}</TableCell>
-                          <TableCell>{invoice.amount.toFixed(2)}€</TableCell>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                              invoice.status === 'paid' ? 'bg-primary/10 text-primary' :
-                              invoice.status === 'refunded' ? 'bg-destructive/10 text-destructive' :
-                              'bg-muted text-muted-foreground'
-                            }`}>
-                              {invoice.status.toUpperCase()}
-                            </span>
+                            {invoice.tier ? getTierName(invoice.tier) : '-'}
+                          </TableCell>
+                          <TableCell className="capitalize">
+                            {invoice.billing_period === 'monthly' ? t('settings.tierNames.monthly') : 
+                             invoice.billing_period === 'annual' ? t('settings.tierNames.annual') : 
+                             invoice.billing_period || '-'}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {invoice.amount.toFixed(2)}€
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={
+                              invoice.status === 'paid' ? 'default' :
+                              invoice.status === 'refunded' ? 'destructive' :
+                              'secondary'
+                            }>
+                              {invoice.status === 'paid' ? t('settings.invoices.statusPaid') :
+                               invoice.status === 'refunded' ? t('settings.invoices.statusRefunded') :
+                               invoice.status?.toUpperCase()}
+                            </Badge>
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-2">
-                              {(invoice.stripe_invoice_id || invoice.stripe_invoice_pdf_url) ? (
+                              {(invoice.stripe_invoice_id || invoice.stripe_invoice_pdf_url) && (
                                 <Button
                                   variant="secondary"
                                   size="sm"
@@ -1388,27 +1397,11 @@ const Settings = () => {
                                     ? t('settings.invoices.downloading')
                                     : t('settings.invoices.download')}
                                 </Button>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">
-                                  {t('settings.invoices.noStripeInvoice')}
-                                </span>
-                              )}
-                              {invoice.status === 'paid' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setRefundInvoiceId(invoice.id);
-                                    setRefundDialogOpen(true);
-                                  }}
-                                  className="text-xs"
-                                >
-                                  <DollarSign className="h-3 w-3 mr-1" />
-                                  {t('settings.support.refundRequest.title')}
-                                </Button>
                               )}
                               {invoice.status === 'refunded' && (
-                                <span className="text-xs text-muted-foreground">{t('settings.invoices.refunded')}</span>
+                                <span className="text-xs text-muted-foreground italic">
+                                  {t('settings.invoices.refundedNote')}
+                                </span>
                               )}
                             </div>
                           </TableCell>
@@ -1417,8 +1410,46 @@ const Settings = () => {
                     </TableBody>
                   </Table>
                 )}
+                
+                {/* Refund Request Link - Less prominent */}
+                {invoices.some(inv => inv.status === 'paid' && inv.amount > 0) && (
+                  <div className="mt-6 pt-6 border-t">
+                    <details className="group">
+                      <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>{t('settings.invoices.refundInfo')}</span>
+                        <span className="ml-auto text-xs group-open:hidden">▼</span>
+                        <span className="ml-auto text-xs hidden group-open:inline">▲</span>
+                      </summary>
+                      <div className="mt-4 p-4 bg-muted/30 rounded-lg border space-y-3">
+                        <p className="text-sm text-muted-foreground">
+                          {t('settings.invoices.refundPolicyText')}
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const paidInvoice = invoices.find(inv => inv.status === 'paid' && inv.amount > 0);
+                            if (paidInvoice) {
+                              setRefundInvoiceId(paidInvoice.id);
+                              setRefundDialogOpen(true);
+                            }
+                          }}
+                          className="text-xs"
+                        >
+                          <HelpCircle className="h-3 w-3 mr-1" />
+                          {t('settings.support.refundRequest.title')}
+                        </Button>
+                      </div>
+                    </details>
+                  </div>
+                )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            <NotificationsSection />
           </TabsContent>
 
           <TabsContent value="support">

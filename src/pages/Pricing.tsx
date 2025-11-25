@@ -135,16 +135,16 @@ const Pricing = () => {
     const fetchProducts = async () => {
       try {
         const now = new Date().toISOString();
-        const { data: productsData, error: productsError } = await supabase
-          .from('products')
+        const { data: productsData, error: productsError } = await (supabase
+          .from('products' as any)
           .select('*')
           .eq('is_active', true)
           .or(`start_date.is.null,start_date.lte.${now}`)
           .or(`end_date.is.null,end_date.gte.${now}`)
-          .in('product_type', ['regular', 'early_bird']); // Don't show VIP products in pricing
+          .in('product_type', ['regular', 'early_bird']) as any); // Don't show VIP products in pricing
 
         if (productsError) throw productsError;
-        setProducts(productsData || []);
+        setProducts((productsData as any) || []);
       } catch (error) {
         console.error('Error fetching products:', error);
         // Fallback to default products if database fails
