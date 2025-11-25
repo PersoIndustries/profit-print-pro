@@ -43,9 +43,18 @@ export const ProtectedRoute = ({
 
   // Check feature requirement
   if (requiredFeature) {
+    // If subscription is not loaded yet, wait
+    if (!subscription) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      );
+    }
+    
     const hasAccess = requiredFeature.startsWith('feature_') 
       ? hasFeature(requiredFeature.replace('feature_', ''))
-      : hasPermission(subscription?.tier, requiredFeature);
+      : hasPermission(subscription.tier, requiredFeature);
     
     if (!hasAccess) {
       return <Navigate to={fallbackPath} state={{ from: location }} replace />;
