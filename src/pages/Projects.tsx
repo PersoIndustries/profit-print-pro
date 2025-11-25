@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/hooks/useCurrency";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -55,6 +56,7 @@ const Projects = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { isPro, isEnterprise } = useTierFeatures();
+  const { formatPrice } = useCurrency();
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectMaterials, setProjectMaterials] = useState<Record<string, ProjectMaterial[]>>({});
   const [projectsLoading, setProjectsLoading] = useState(true);
@@ -332,7 +334,7 @@ const Projects = () => {
                   <span>•</span>
                   <span>{project.print_time_hours}h</span>
                   <span>•</span>
-                  <span className="font-semibold text-foreground">{project.total_price?.toFixed(2)}€</span>
+                  <span className="font-semibold text-foreground">{formatPrice(project.total_price || 0)}</span>
                 </div>
                 {projectMaterials[project.id] && projectMaterials[project.id].length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
@@ -441,7 +443,7 @@ const Projects = () => {
                         <span>•</span>
                         <span>{project.print_time_hours}h</span>
                         <span>•</span>
-                        <span className="font-semibold text-foreground">{project.total_price?.toFixed(2)}€</span>
+                        <span className="font-semibold text-foreground">{formatPrice(project.total_price || 0)}</span>
                       </div>
                       {projectMaterials[project.id] && projectMaterials[project.id].length > 0 && (
                         <div className="flex flex-wrap gap-1.5 items-center">
@@ -575,7 +577,7 @@ const Projects = () => {
                           <Euro className="w-4 h-4 text-muted-foreground" />
                           <div>
                             <p className="text-sm text-muted-foreground">{t('projects.detail.price')}</p>
-                            <p className="font-semibold text-lg">{selectedProject.total_price?.toFixed(2)}€</p>
+                            <p className="font-semibold text-lg">{formatPrice(selectedProject.total_price || 0)}</p>
                           </div>
                         </div>
                       </div>
