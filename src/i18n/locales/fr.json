@@ -947,8 +947,8 @@
       "title": "Comparaison des Plans",
       "feature": "Caractéristique",
       "free": "Gratuit",
-      "pro": "Pro",
-      "enterprise": "Enterprise",
+      "pro": "Professionnel",
+      "enterprise": "Business",
       "unlimited": "Illimités",
       "no": "Non",
       "days60": "60 jours",
@@ -1014,7 +1014,7 @@
       ]
     },
     "tier1": {
-      "name": "Pro",
+      "name": "Professionnel",
       "cta": "Démarrer l'Essai Gratuit",
       "features": [
         "50 matériaux",
@@ -1026,7 +1026,7 @@
       ]
     },
     "tier2": {
-      "name": "Enterprise",
+      "name": "Business",
       "cta": "Démarrer l'Essai Gratuit",
       "features": [
         "Matériaux illimités",
@@ -1035,9 +1035,10 @@
         "Historique de 2 ans",
         "Catalogues personnalisés",
         "Support dédié 24/7",
-        "Accès API"
+        "Support développeur renforcé"
       ]
-    }
+    },
+    "earlyBirdNotice": "Les prix affichés sont des prix spéciaux Early Bird. Au Q1 2026, les prix seront augmentés."
   },
   "trial": {
     "expiringToday": "Votre essai gratuit se termine aujourd'hui",

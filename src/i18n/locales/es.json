@@ -441,6 +441,118 @@
     "title": "Layer Suite | Gestiona tu Negocio de Impresión 3D",
     "description": "Plataforma SaaS completa para gestionar tu emprendimiento de impresión 3D. Calcula precios, gestiona materiales, proyectos y maximiza tus ganancias."
   },
+  "pricing": {
+    "title": "Precios",
+    "subtitle": "Elige el plan perfecto para tu negocio",
+    "monthly": "/mes",
+    "annual": "Anual",
+    "freeTrial": "Prueba gratuita de 15 días",
+    "currency": "Moneda",
+    "save20": "Ahorra 20%",
+    "popular": "Popular",
+    "currentPlan": "Tu plan actual",
+    "billedAnnually": "facturado anualmente",
+    "save": "Ahorra",
+    "perYear": "año",
+    "or": "o",
+    "alreadySubscribed": "Ya estás suscrito a este plan",
+    "comparison": {
+      "title": "Comparación de Planes",
+      "feature": "Característica",
+      "free": "Gratis",
+      "pro": "PROFESIONAL",
+      "enterprise": "BUSINESS",
+      "unlimited": "Ilimitado",
+      "no": "No",
+      "days60": "60 días",
+      "years2": "2 años",
+      "comingSoon": "Próximamente",
+      "categories": {
+        "materials": "Gestión de Materiales",
+        "orders": "Pedidos",
+        "analysis": "Análisis",
+        "tools": "Herramientas",
+        "catalogs": "Catálogos",
+        "support": "Soporte",
+        "enterprise": "Empresa",
+        "inventory": "Inventario",
+        "security": "Seguridad"
+      },
+      "features": {
+        "materials": "Materiales",
+        "projects": "Proyectos",
+        "ordersPerMonth": "Pedidos por mes",
+        "listView": "Vista de lista",
+        "kanbanView": "Vista Kanban",
+        "calendarView": "Vista calendario",
+        "basicDashboard": "Panel básico",
+        "advancedDashboard": "Panel avanzado",
+        "metricsHistory": "Historial de métricas",
+        "detailedFinancial": "Análisis financiero detallado",
+        "calculator": "Calculadora",
+        "advancedFilters": "Filtros avanzados",
+        "exportData": "Exportar datos",
+        "customCatalogs": "Catálogos personalizados",
+        "templates": "Plantillas",
+        "premiumTemplates": "Plantillas premium",
+        "sectionsOrganization": "Secciones y organización",
+        "basicSupport": "Soporte básico",
+        "prioritySupport": "Soporte prioritario",
+        "dedicatedSupport": "Soporte dedicado",
+        "customBranding": "Marca personalizada",
+        "teamCollaboration": "Colaboración en equipo",
+        "apiAccess": "Acceso API",
+        "inventoryHistory": "Historial de inventario",
+        "autoStockCalculation": "Cálculo automático de stock y consumo",
+        "machineStockMaintenance": "Alertas de stock y mantenimiento de máquinas",
+        "dataEncryption": "Cifrado de datos",
+        "gdprCompliance": "Cumplimiento GDPR",
+        "autoBackup": "Copia de seguridad automática",
+        "twoFactorAuth": "Autenticación de dos factores"
+      }
+    },
+    "roadmap": {
+      "title": "Hoja de ruta viva para todos los planes",
+      "description": "Continuaremos construyendo nuevas funcionalidades (como el acceso API planeado para 2026) basándonos en el éxito de Layer Suite y el feedback de la comunidad. Todas las mejoras clave se implementarán progresivamente en cada plan para que puedas crecer con nosotros."
+    },
+    "free": {
+      "name": "Gratis",
+      "cta": "Empezar Gratis",
+      "features": [
+        "10 materiales",
+        "15 proyectos",
+        "15 pedidos/mes",
+        "Calculadora de costos",
+        "Soporte básico"
+      ]
+    },
+    "tier1": {
+      "name": "PROFESIONAL",
+      "cta": "Iniciar Prueba Gratuita",
+      "features": [
+        "50 materiales",
+        "100 proyectos",
+        "50 pedidos/mes",
+        "Historial de 60 días",
+        "Catálogos personalizados",
+        "Soporte prioritario"
+      ]
+    },
+    "tier2": {
+      "name": "BUSINESS",
+      "cta": "Iniciar Prueba Gratuita",
+      "features": [
+        "Materiales ilimitados",
+        "Proyectos ilimitados",
+        "Pedidos ilimitados",
+        "Historial de 2 años",
+        "Catálogos personalizados",
+        "Soporte dedicado 24/7",
+        "Mayor soporte al desarrollador"
+      ]
+    },
+    "earlyBirdNotice": "Los precios mostrados son precios especiales de Early Bird. En Q1 2026 los precios se verán incrementados."
+  },
   "settings": {
     "advanced": {
       "title": "Configuración Avanzada",

@@ -695,6 +695,22 @@ const Pricing = () => {
           })}
         </div>
 
+        {/* Early Bird Notice */}
+        <div className="max-w-6xl mx-auto mb-8">
+          <Card className="bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800">
+            <CardContent className="py-6 px-6">
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">🎯</div>
+                <div className="flex-1">
+                  <p className="text-sm text-orange-900 dark:text-orange-100 font-medium">
+                    {t('pricing.earlyBirdNotice')}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Tabla Comparativa */}
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-8">{t('pricing.comparison.title')}</h2>

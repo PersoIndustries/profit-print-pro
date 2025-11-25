@@ -958,8 +958,8 @@
       "title": "Plan Comparison",
       "feature": "Feature",
       "free": "Free",
-      "pro": "Pro",
-      "enterprise": "Enterprise",
+      "pro": "Professional",
+      "enterprise": "Business",
       "unlimited": "Unlimited",
       "no": "No",
       "days60": "60 days",
@@ -1025,7 +1025,7 @@
       ]
     },
     "tier1": {
-      "name": "Pro",
+      "name": "Professional",
       "cta": "Start Free Trial",
       "features": [
         "50 materials",
@@ -1037,7 +1037,7 @@
       ]
     },
     "tier2": {
-      "name": "Enterprise",
+      "name": "Business",
       "cta": "Start Free Trial",
       "features": [
         "Unlimited materials",
@@ -1046,9 +1046,10 @@
         "2-year history",
         "Custom catalogs",
         "Dedicated 24/7 support",
-        "API access"
+        "Enhanced developer support"
       ]
-    }
+    },
+    "earlyBirdNotice": "The prices shown are special Early Bird prices. In Q1 2026 prices will be increased."
   },
   "trial": {
     "expiringToday": "Your free trial ends today",
