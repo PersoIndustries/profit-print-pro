@@ -446,17 +446,14 @@ async function handleChargeRefunded(supabase: any, charge: Stripe.Charge) {
   const invoice = invoices[0];
   const refundAmount = (charge.amount_refunded || 0) / 100; // Convert from cents
 
-  // Check if refund invoice already exists for this specific original invoice
-  // Look for refund invoices that reference this invoice in their notes
-  const originalInvoiceRef = invoice.invoice_number || invoice.id;
+  // Check if refund invoice already exists for this specific charge
   const { data: existingRefundInvoice } = await supabase
     .from('invoices')
     .select('id')
     .eq('user_id', userId)
-    .eq('amount', -refundAmount)
     .eq('status', 'refunded')
     .like('invoice_number', 'REF-%')
-    .or(`notes.ilike.%Original Invoice: ${originalInvoiceRef}%,notes.ilike.%Original invoice: ${originalInvoiceRef}%`)
+    .ilike('notes', `%Charge ID: ${charge.id}%`)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -466,33 +463,35 @@ async function handleChargeRefunded(supabase: any, charge: Stripe.Charge) {
     // Update original invoice status
     await supabase
       .from('invoices')
-      .update({
-        status: 'refunded',
-        notes: `Stripe Refund: ${charge.id}. Original charge: ${charge.id}`,
-      })
+      .update({ status: 'refunded' })
       .eq('id', invoice.id);
 
     // Create a refund invoice (negative amount) for accounting purposes
+    const now = new Date();
+    const yearMonth = now.toISOString().slice(0, 7).replace('-', '');
+    const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const refundInvoiceNumber = `REF-${yearMonth}-${randomSuffix}`;
+
     const { error: refundInvoiceError } = await supabase
       .from('invoices')
       .insert({
         user_id: userId,
-        invoice_number: `REF-${Date.now()}`,
-        amount: -refundAmount, // Negative amount for refund
+        invoice_number: refundInvoiceNumber,
+        amount: -refundAmount,
         currency: charge.currency.toUpperCase(),
         status: 'refunded',
         billing_period: invoice.billing_period || null,
         tier: invoice.tier || null,
         issued_date: new Date().toISOString(),
         paid_date: new Date().toISOString(),
-        notes: `Stripe Refund Invoice. Original Invoice: ${invoice.invoice_number || invoice.id}. Charge ID: ${charge.id}`,
+        notes: `Stripe Webhook Refund. Original Invoice: ${invoice.invoice_number || invoice.id}. Charge ID: ${charge.id}`,
       });
 
-      if (refundInvoiceError) {
-        console.error('Error creating refund invoice:', refundInvoiceError);
-      }
+    if (refundInvoiceError) {
+      console.error('Error creating refund invoice:', refundInvoiceError);
+    }
   } else {
-    console.log(`Refund invoice already exists for original invoice ${originalInvoiceRef}, skipping duplicate creation`);
+    console.log(`Refund invoice already exists for charge ${charge.id}, skipping duplicate creation`);
     // Still update the original invoice status if not already refunded
     await supabase
       .from('invoices')
