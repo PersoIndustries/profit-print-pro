@@ -35,6 +35,7 @@ const Pricing = () => {
   const { subscription } = useSubscription();
   const { createCheckoutSession, loading: checkoutLoading } = useStripeCheckout();
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
+  const [subscriptionData, setSubscriptionData] = useState<{ status: string; tier: string; expires_at: string | null; grace_period_end: string | null } | null>(null);
   const [isAnnual, setIsAnnual] = useState(false);
   const [currency, setCurrency] = useState<Currency>('EUR');
   const [limits, setLimits] = useState<{
@@ -66,15 +67,17 @@ const Pricing = () => {
       try {
         const { data, error } = await supabase
           .from('user_subscriptions')
-          .select('status, tier, expires_at')
+          .select('status, tier, expires_at, grace_period_end')
           .eq('user_id', user.id)
           .maybeSingle();
 
         if (error) throw error;
         setSubscriptionStatus(data?.status || null);
+        setSubscriptionData(data || null);
       } catch (error) {
         console.error('Error fetching subscription status:', error);
         setSubscriptionStatus(null);
+        setSubscriptionData(null);
       }
     };
 
@@ -585,8 +588,24 @@ const Pricing = () => {
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16">
           {tiers.map((tier) => {
             const savings = getSavings(tier);
-            const isCurrentPlan = user && subscription && subscription.tier === tier.tier && subscriptionStatus === 'active';
-            const isCancelledPlan = user && subscription && subscription.tier === tier.tier && (subscriptionStatus === 'cancelled' || subscriptionStatus === 'canceled');
+            // Check if this is the user's current tier
+            const userTier = subscriptionData?.tier || subscription?.tier;
+            const isUserTier = userTier === tier.tier;
+            
+            // Check if subscription is active (not cancelled and not expired)
+            const isActive = subscriptionStatus === 'active' && 
+              (!subscriptionData?.expires_at || new Date(subscriptionData.expires_at) > new Date()) &&
+              (!subscriptionData?.grace_period_end || new Date(subscriptionData.grace_period_end) > new Date());
+            
+            // Check if subscription is cancelled (status is cancelled OR has grace_period_end)
+            const isCancelled = (subscriptionStatus === 'cancelled' || subscriptionStatus === 'canceled') ||
+              (subscriptionData?.grace_period_end && new Date(subscriptionData.grace_period_end) > new Date());
+            
+            // Check if subscription has expired
+            const isExpired = subscriptionData?.expires_at && new Date(subscriptionData.expires_at) <= new Date();
+            
+            const isCurrentPlan = user && isUserTier && isActive && !isCancelled && !isExpired;
+            const isCancelledPlan = user && isUserTier && (isCancelled || isExpired);
             const monthlyPrice = getMonthlyPrice(tier);
             return (
               <Card 
@@ -686,7 +705,7 @@ const Pricing = () => {
                           Procesando...
                         </>
                       ) : (
-                        t('pricing.reactivateSubscription')
+                        t('pricing.renewNow')
                       )}
                     </Button>
                   ) : (

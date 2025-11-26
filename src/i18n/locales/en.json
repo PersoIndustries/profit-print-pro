@@ -957,7 +957,9 @@
     "or": "or",
     "alreadySubscribed": "You are already subscribed to this plan",
     "reactivateSubscription": "Reactivate Subscription",
+    "renewNow": "Renew Now",
     "reactivateSubscription": "Reactivate Subscription",
+    "renewNow": "Renew Now",
     "comparison": {
       "title": "Plan Comparison",
       "feature": "Feature",
