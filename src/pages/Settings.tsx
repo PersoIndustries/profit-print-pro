@@ -160,8 +160,8 @@ const Settings = () => {
       const [profileRes, subRes, invoicesRes, promoCodeRes, creatorCodeRes, refundRequestsRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
         supabase.from("user_subscriptions").select("*").eq("user_id", user.id).maybeSingle(),
-        // Filter invoices to show only payments (amount > 0) for regular users
-        supabase.from("invoices").select("*").eq("user_id", user.id).gt("amount", 0).order("issued_date", { ascending: false }),
+        // Get all invoices including refunds (negative amounts)
+        supabase.from("invoices").select("*").eq("user_id", user.id).order("issued_date", { ascending: false }),
         supabase
           .from("user_promo_codes")
           .select(`

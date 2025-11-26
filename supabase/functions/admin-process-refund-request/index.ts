@@ -236,27 +236,20 @@ serve(async (req) => {
         }
       }
 
-      // Check if refund invoice already exists for this original invoice
-      let existingRefundInvoice: any = null;
-      if (originalInvoice) {
-        const originalInvoiceRef = originalInvoice.invoice_number || originalInvoice.id;
-        const { data: existing } = await supabaseAdmin
-          .from('invoices')
-          .select('*')
-          .eq('user_id', refundRequest.user_id)
-          .eq('amount', -Math.abs(refundRequest.amount))
-          .eq('status', 'refunded')
-          .like('invoice_number', 'REF-%')
-          .or(`notes.ilike.%Original invoice: ${originalInvoiceRef}%,notes.ilike.%Original Invoice: ${originalInvoiceRef}%`)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        
-        existingRefundInvoice = existing;
-      }
+      // Check if refund invoice already exists for this refund request ID
+      const { data: existingRefundInvoice } = await supabaseAdmin
+        .from('invoices')
+        .select('*')
+        .eq('user_id', refundRequest.user_id)
+        .eq('status', 'refunded')
+        .like('invoice_number', 'REF-%')
+        .ilike('notes', `%Refund Request: ${refundRequestId}%`)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (existingRefundInvoice) {
-        console.log(`Refund invoice already exists for original invoice ${originalInvoice?.invoice_number || originalInvoice?.id}, using existing invoice`);
+        console.log(`Refund invoice already exists for refund request ${refundRequestId}, skipping creation`);
         refundInvoice = existingRefundInvoice;
       } else {
         // Create refund invoice with unique invoice number using timestamp and random suffix
@@ -281,7 +274,7 @@ serve(async (req) => {
             billing_period: billingPeriod,
             issued_date: new Date().toISOString(),
             paid_date: new Date().toISOString(),
-            notes: `Refund approved for request: ${refundRequest.reason}. ${originalInvoice ? `Original invoice: ${originalInvoice.invoice_number}` : ''}`,
+            notes: `Refund Request: ${refundRequestId}. Reason: ${refundRequest.reason}. ${originalInvoice ? `Original invoice: ${originalInvoice.invoice_number}` : ''}`,
           })
           .select()
           .single();
