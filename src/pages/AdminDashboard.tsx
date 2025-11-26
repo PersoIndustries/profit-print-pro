@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -17,7 +17,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Users, Package, FolderOpen, ShoppingCart, Edit, DollarSign, Settings, Save, History, Clock, BarChart3, Search, X, Tag, RefreshCw, Trash2, AlertTriangle, FileText, Loader2, Download, Calendar } from "lucide-react";
+import { Users, Package, FolderOpen, ShoppingCart, Edit, DollarSign, Settings, Save, History, Clock, BarChart3, Search, X, Tag, RefreshCw, Trash2, AlertTriangle, FileText, Loader2, Download, Calendar, TrendingUp, TrendingDown, Activity, Table as TableIcon } from "lucide-react";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { LineChart as RechartsLineChart, Line, CartesianGrid, XAxis, YAxis, BarChart as RechartsBarChart, Bar } from "recharts";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
@@ -166,7 +168,6 @@ const AdminDashboard = () => {
   // Metrics
   const [metrics, setMetrics] = useState<any>(null);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
-  const [dailyMetrics, setDailyMetrics] = useState<any[]>([]);
   
   // Invoices management
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -178,6 +179,29 @@ const AdminDashboard = () => {
     dateTo: '',
   });
   const [invoiceSearchQuery, setInvoiceSearchQuery] = useState('');
+  const [projectedMetrics, setProjectedMetrics] = useState<any>(null);
+  const [dailyMetrics, setDailyMetrics] = useState<any[]>([]);
+  const [dailyMetricsDays, setDailyMetricsDays] = useState(30);
+  const filteredDailyMetrics = useMemo(() => {
+    if (!dailyMetrics?.length) return [];
+    return dailyMetrics.slice(0, dailyMetricsDays);
+  }, [dailyMetrics, dailyMetricsDays]);
+  const dailyMetricsChartData = useMemo(() => {
+    return [...filteredDailyMetrics].reverse();
+  }, [filteredDailyMetrics]);
+  const formatDateLabel = (dateStr: string) => {
+    if (!dateStr) return '';
+    try {
+      return new Date(dateStr).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
+    } catch {
+      return dateStr;
+    }
+  };
+  const dailyChartConfig = {
+    newUsers: { label: 'Altas nuevas', color: 'hsl(var(--primary))' },
+    cancellations: { label: 'Cancelaciones', color: '#f97316' },
+    revenue: { label: 'Ingresos', color: '#16a34a' },
+  };
   
   // Ref para evitar múltiples redirecciones
   const hasRedirected = useRef(false);
@@ -665,6 +689,42 @@ const AdminDashboard = () => {
     try {
       setLoadingMetrics(true);
       const now = new Date();
+      const dateKey = (date: Date) => date.toISOString().split('T')[0];
+      const addDays = (baseDate: Date, days: number) => {
+        const newDate = new Date(baseDate);
+        newDate.setDate(newDate.getDate() + days);
+        return newDate;
+      };
+
+      const daysToTrack = 60;
+      const dailyMetricsMap = new Map<string, any>();
+      for (let i = daysToTrack - 1; i >= 0; i--) {
+        const day = new Date(now);
+        day.setDate(day.getDate() - i);
+        const key = dateKey(day);
+        dailyMetricsMap.set(key, {
+          date: key,
+          newUsers: 0,
+          upgrades: 0,
+          cancellations: 0,
+          downgrades: 0,
+          reactivations: 0,
+          revenue: 0,
+          refunds: 0,
+          trials: 0,
+        });
+      }
+
+      const addDailyMetric = (dateValue: string | null | undefined, updater: (entry: any) => void) => {
+        if (!dateValue) return;
+        const dateObj = new Date(dateValue);
+        if (isNaN(dateObj.getTime())) return;
+        const key = dateKey(dateObj);
+        const entry = dailyMetricsMap.get(key);
+        if (entry) {
+          updater(entry);
+        }
+      };
       
       // Calculate date range based on filter
       let startDate: Date;
@@ -705,7 +765,7 @@ const AdminDashboard = () => {
 
       const [profilesRes, subscriptionsRes, materialsRes, projectsRes, ordersRes, printsRes, promoCodesRes, invoicesRes, refundRequestsRes, subscriptionChangesRes] = await Promise.all([
         supabase.from('profiles').select('id, created_at, deleted_at'),
-        supabase.from('user_subscriptions').select('user_id, tier, status, created_at, previous_tier, downgrade_date, expires_at, grace_period_end, is_paid_subscription, stripe_subscription_id, billing_period'),
+        supabase.from('user_subscriptions').select('user_id, tier, status, created_at, previous_tier, downgrade_date, expires_at, grace_period_end, is_paid_subscription, stripe_subscription_id, billing_period, next_billing_date'),
         supabase.from('materials').select('id, user_id, created_at'),
         supabase.from('projects').select('id, user_id, created_at'),
         supabase.from('orders').select('id, user_id, created_at, total_amount'),
@@ -792,6 +852,12 @@ const AdminDashboard = () => {
         const isMarkedCancelled = s.status === 'cancelled' || s.status === 'canceled' || !!s.grace_period_end;
         return isMarkedCancelled && hasFutureAccess;
       }).length;
+      const downgradeButActiveCount = allSubscriptions.filter(s =>
+        s.previous_tier &&
+        s.previous_tier !== s.tier &&
+        s.downgrade_date &&
+        new Date(s.downgrade_date) > nowDate
+      ).length;
 
       // Billing period distribution
       const monthlySubscriptions = allSubscriptions.filter(s => s.billing_period === 'monthly' && s.is_paid_subscription).length;
@@ -866,6 +932,65 @@ const AdminDashboard = () => {
         return sub?.status === 'cancelled';
       });
 
+      // Build daily metrics (last 60 days)
+      allProfiles.forEach(profile => {
+        addDailyMetric(profile.created_at, (entry) => {
+          entry.newUsers += 1;
+        });
+      });
+
+      (allSubscriptionChanges as any[]).forEach((change: any) => {
+        addDailyMetric(change.created_at, (entry) => {
+          if (change.change_type === 'upgrade') entry.upgrades += 1;
+          if (change.change_type === 'downgrade') entry.downgrades += 1;
+          if (change.change_type === 'cancel') entry.cancellations += 1;
+          if (change.change_type === 'reactivate') entry.reactivations += 1;
+        });
+      });
+
+      (allSubscriptions as any[]).forEach((sub: any) => {
+        if (sub.status === 'trial') {
+          addDailyMetric(sub.created_at, (entry) => {
+            entry.trials += 1;
+          });
+        }
+      });
+
+      allInvoices.forEach(inv => {
+        const invoiceDate = inv.issued_date || inv.paid_date;
+        addDailyMetric(invoiceDate, (entry) => {
+          const amount = parseFloat(inv.amount?.toString() || '0') || 0;
+          if (inv.status === 'paid' && amount > 0) {
+            entry.revenue += amount;
+          }
+          if (inv.status === 'refunded' && (amount < 0 || (inv.invoice_number || '').toUpperCase().startsWith('REF-'))) {
+            entry.refunds += Math.abs(amount);
+          }
+        });
+      });
+
+      const dailyMetricsArray = Array.from(dailyMetricsMap.values()).map(entry => ({
+        ...entry,
+        netChange: entry.newUsers + entry.upgrades - entry.cancellations - entry.downgrades,
+      })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      const withinRange = (dateValue: string | null | undefined, daysAhead: number) => {
+        if (!dateValue) return false;
+        const target = new Date(dateValue);
+        if (isNaN(target.getTime())) return false;
+        const limit = addDays(now, daysAhead);
+        return target > now && target <= limit;
+      };
+
+      const projectedData = {
+        renewalsWeek: allSubscriptions.filter(s => withinRange(s.next_billing_date, 7) && s.tier !== 'free').length,
+        renewalsMonth: allSubscriptions.filter(s => withinRange(s.next_billing_date, 30) && s.tier !== 'free').length,
+        cancellationsWeek: allSubscriptions.filter(s => withinRange(s.expires_at || s.grace_period_end, 7) && (s.status === 'cancelled' || s.status === 'canceled' || !!s.grace_period_end)).length,
+        cancellationsMonth: allSubscriptions.filter(s => withinRange(s.expires_at || s.grace_period_end, 30) && (s.status === 'cancelled' || s.status === 'canceled' || !!s.grace_period_end)).length,
+        downgradesWeek: allSubscriptions.filter(s => withinRange(s.downgrade_date, 7) && s.previous_tier && s.previous_tier !== s.tier).length,
+        downgradesMonth: allSubscriptions.filter(s => withinRange(s.downgrade_date, 30) && s.previous_tier && s.previous_tier !== s.tier).length,
+      };
+
       // Usage metrics filtered by date range
       const materialsInRange = allMaterials.filter(m => filterByDateRange(m.created_at));
       const projectsInRange = allProjects.filter(p => filterByDateRange(p.created_at));
@@ -919,6 +1044,7 @@ const AdminDashboard = () => {
         promoUsers,
         adminGrantedUsers,
         cancelledButActive,
+        downgradeButActive: downgradeButActiveCount,
         monthlySubscriptions,
         annualSubscriptions,
         paidByTier,
@@ -945,6 +1071,8 @@ const AdminDashboard = () => {
       };
 
       setMetrics(metricsData);
+      setProjectedMetrics(projectedData);
+      setDailyMetrics(dailyMetricsArray);
     } catch (error: any) {
       console.error('Error fetching metrics:', error);
       toast.error('Error loading metrics');
@@ -1539,6 +1667,36 @@ const AdminDashboard = () => {
     } finally {
       setLoadingHistory(false);
     }
+  };
+
+  const exportDailyMetricsData = () => {
+    if (!dailyMetrics.length) {
+      toast.error('No hay métricas diarias para exportar');
+      return;
+    }
+    const headers = ['Fecha', 'Nuevos usuarios', 'Upgrades', 'Downgrades', 'Cancelaciones', 'Reactivaciones', 'Trials', 'Ingresos', 'Reembolsos', 'Cambio neto'];
+    const rows = dailyMetrics.map(entry => [
+      entry.date,
+      entry.newUsers,
+      entry.upgrades,
+      entry.downgrades,
+      entry.cancellations,
+      entry.reactivations,
+      entry.trials,
+      entry.revenue.toFixed(2),
+      entry.refunds.toFixed(2),
+      entry.netChange,
+    ]);
+    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `daily-metrics-${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const fetchAdminData = async () => {
@@ -3197,7 +3355,7 @@ const AdminDashboard = () => {
           ) : metrics ? (
             <div className="space-y-6">
               {/* Métricas principales */}
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total Usuarios</CardTitle>
@@ -3374,6 +3532,19 @@ const AdminDashboard = () => {
                     </p>
                   </CardContent>
                 </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Downgrade Pendiente</CardTitle>
+                    <TrendingDown className="h-4 w-4 text-amber-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-amber-600">{metrics.downgradeButActive || 0}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Usuarios que bajarán de plan próximamente
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Suscripciones y Cancelaciones */}
@@ -3507,6 +3678,169 @@ const AdminDashboard = () => {
                   </CardContent>
                 </Card>
               </div>
+
+              {projectedMetrics && (
+                <div className="grid md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Proyección Próxima Semana</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span>Renovaciones esperadas</span>
+                        <span className="font-semibold text-green-600">{projectedMetrics.renewalsWeek || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Cancelaciones previstas</span>
+                        <span className="font-semibold text-destructive">{projectedMetrics.cancellationsWeek || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Downgrades previstos</span>
+                        <span className="font-semibold text-amber-600">{projectedMetrics.downgradesWeek || 0}</span>
+                      </div>
+                      <div className="pt-3 border-t flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Cambio neto estimado</span>
+                        <span className="text-sm font-semibold text-primary">
+                          {(projectedMetrics.renewalsWeek || 0) - (projectedMetrics.cancellationsWeek || 0) - (projectedMetrics.downgradesWeek || 0)}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Proyección Próximo Mes</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span>Renovaciones esperadas</span>
+                        <span className="font-semibold text-green-600">{projectedMetrics.renewalsMonth || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Cancelaciones previstas</span>
+                        <span className="font-semibold text-destructive">{projectedMetrics.cancellationsMonth || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Downgrades previstos</span>
+                        <span className="font-semibold text-amber-600">{projectedMetrics.downgradesMonth || 0}</span>
+                      </div>
+                      <div className="pt-3 border-t flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Cambio neto estimado</span>
+                        <span className="text-sm font-semibold text-primary">
+                          {(projectedMetrics.renewalsMonth || 0) - (projectedMetrics.cancellationsMonth || 0) - (projectedMetrics.downgradesMonth || 0)}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              <Card>
+                <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <CardTitle>Tendencias Diarias</CardTitle>
+                    <p className="text-sm text-muted-foreground">Visualiza altas, cancelaciones e ingresos recientes</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <Label className="text-xs uppercase tracking-wide">Rango</Label>
+                    <Select value={dailyMetricsDays.toString()} onValueChange={(value) => setDailyMetricsDays(Number(value))}>
+                      <SelectTrigger className="w-[150px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="7">Últimos 7 días</SelectItem>
+                        <SelectItem value="14">Últimos 14 días</SelectItem>
+                        <SelectItem value="30">Últimos 30 días</SelectItem>
+                        <SelectItem value="60">Últimos 60 días</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {dailyMetricsChartData.length ? (
+                    <ChartContainer config={dailyChartConfig} className="h-[320px]">
+                      <RechartsLineChart data={dailyMetricsChartData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" tickFormatter={formatDateLabel} />
+                        <YAxis />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Line type="monotone" dataKey="newUsers" stroke="var(--color-newUsers)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="cancellations" stroke="var(--color-cancellations)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="revenue" stroke="var(--color-revenue)" strokeWidth={2} dot={false} />
+                      </RechartsLineChart>
+                    </ChartContainer>
+                  ) : (
+                    <div className="text-center text-muted-foreground py-12">
+                      No hay datos suficientes para el rango seleccionado
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <CardTitle>Registro Diario Detallado</CardTitle>
+                    <p className="text-sm text-muted-foreground">Descarga los datos para tus propios gráficos o BI</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={exportDailyMetricsData}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Exportar CSV
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setDailyMetricsDays(60)}>
+                      <TableIcon className="h-4 w-4 mr-2" />
+                      Ver últimos 60 días
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Fecha</TableHead>
+                          <TableHead>Nuevos</TableHead>
+                          <TableHead>Upgrades</TableHead>
+                          <TableHead>Downgrades</TableHead>
+                          <TableHead>Cancelaciones</TableHead>
+                          <TableHead>Reactivaciones</TableHead>
+                          <TableHead>Trials</TableHead>
+                          <TableHead>Ingresos</TableHead>
+                          <TableHead>Reembolsos</TableHead>
+                          <TableHead>Cambio neto</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredDailyMetrics.length ? (
+                          filteredDailyMetrics.map((entry) => (
+                            <TableRow key={entry.date}>
+                              <TableCell className="font-medium">{formatDateLabel(entry.date)}</TableCell>
+                              <TableCell>{entry.newUsers}</TableCell>
+                              <TableCell>{entry.upgrades}</TableCell>
+                              <TableCell>{entry.downgrades}</TableCell>
+                              <TableCell>{entry.cancellations}</TableCell>
+                              <TableCell>{entry.reactivations}</TableCell>
+                              <TableCell>{entry.trials}</TableCell>
+                              <TableCell className="text-green-600 font-semibold">€ {entry.revenue.toFixed(2)}</TableCell>
+                              <TableCell className="text-destructive font-semibold">€ {entry.refunds.toFixed(2)}</TableCell>
+                              <TableCell className={`font-semibold ${entry.netChange >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                                {entry.netChange}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={10} className="text-center text-muted-foreground py-6">
+                              No hay datos para mostrar
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Actividad de Usuarios */}
               <Card>
