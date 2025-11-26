@@ -514,8 +514,18 @@ const AdminDashboard = () => {
         throw error;
       }
 
+      const filteredInvoices = (data || []).filter((invoice: any) => {
+        if (invoice.status !== 'refunded') {
+          return true;
+        }
+        const amount = parseFloat(invoice.amount?.toString() || '0') || 0;
+        const invoiceNumber = (invoice.invoice_number?.toString() || '').toUpperCase();
+        // Keep only actual refund invoices (negative amount or REF- prefix)
+        return amount < 0 || invoiceNumber.startsWith('REF-');
+      });
+
       // Enrich with user data
-      const enrichedData = await Promise.all((data || []).map(async (invoice: any) => {
+      const enrichedData = await Promise.all(filteredInvoices.map(async (invoice: any) => {
         let user = null;
         try {
           const userRes = await supabase
@@ -775,11 +785,13 @@ const AdminDashboard = () => {
         !promoUserIds.has(s.user_id) &&
         s.status !== 'trial'
       ).length;
-      const cancelledButActive = allSubscriptions.filter(s => 
-        s.status === 'cancelled' && 
-        s.expires_at && 
-        new Date(s.expires_at) > new Date()
-      ).length;
+      const nowDate = new Date();
+      const cancelledButActive = allSubscriptions.filter(s => {
+        const hasFutureAccess = (s.expires_at && new Date(s.expires_at) > nowDate) ||
+          (s.grace_period_end && new Date(s.grace_period_end) > nowDate);
+        const isMarkedCancelled = s.status === 'cancelled' || s.status === 'canceled' || !!s.grace_period_end;
+        return isMarkedCancelled && hasFutureAccess;
+      }).length;
 
       // Billing period distribution
       const monthlySubscriptions = allSubscriptions.filter(s => s.billing_period === 'monthly' && s.is_paid_subscription).length;
