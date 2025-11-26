@@ -413,6 +413,7 @@ export type Database = {
           calculated_at: string | null
           cancellations: number | null
           created_at: string | null
+          deleted_accounts: number | null
           downgrades: number | null
           id: string
           materials_created: number | null
@@ -434,6 +435,7 @@ export type Database = {
           calculated_at?: string | null
           cancellations?: number | null
           created_at?: string | null
+          deleted_accounts?: number | null
           downgrades?: number | null
           id?: string
           materials_created?: number | null
@@ -455,6 +457,7 @@ export type Database = {
           calculated_at?: string | null
           cancellations?: number | null
           created_at?: string | null
+          deleted_accounts?: number | null
           downgrades?: number | null
           id?: string
           materials_created?: number | null

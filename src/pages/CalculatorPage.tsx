@@ -147,7 +147,7 @@ function SortableRow({ line, materials, updateInvoiceLine, removeInvoiceLine, ge
         />
       </TableCell>
       <TableCell className="text-right font-medium">
-        {formatPrice(line.total)}
+        {line.total.toFixed(2)}
       </TableCell>
       <TableCell>
         <Button

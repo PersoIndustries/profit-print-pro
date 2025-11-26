@@ -373,9 +373,9 @@ serve(async (req) => {
               await supabaseAdmin
                 .from('invoices')
                 .update({ 
-                  notes: `${newInvoice.notes} Stripe Refund ID: ${refund.id}` 
+                  notes: `${refundInvoice.notes} Stripe Refund ID: ${refund.id}` 
                 })
-                .eq('id', newInvoice.id);
+                .eq('id', refundInvoice.id);
             } else {
               console.warn('No matching charge found in Stripe for refund amount:', refundRequest.amount);
             }

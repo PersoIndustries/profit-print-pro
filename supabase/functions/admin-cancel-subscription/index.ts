@@ -60,7 +60,7 @@ serve(async (req) => {
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     // Decode JWT to get user_id (JWT format: header.payload.signature)
-    let userId: string | null = null;
+    let decodedUserId: string | null = null;
     try {
       const parts = cleanAuthToken.split('.');
       if (parts.length === 3) {
@@ -74,9 +74,9 @@ serve(async (req) => {
             )
           )
         );
-        userId = payload.sub || payload.user_id || null;
+        decodedUserId = payload.sub || payload.user_id || null;
         console.log('Decoded JWT payload:', { 
-          userId, 
+          userId: decodedUserId, 
           email: payload.email,
           exp: payload.exp,
           isExpired: payload.exp ? Date.now() / 1000 > payload.exp : false
@@ -86,7 +86,7 @@ serve(async (req) => {
       console.error('Error decoding JWT:', decodeError);
     }
 
-    if (!userId) {
+    if (!decodedUserId) {
       return new Response(
         JSON.stringify({ error: 'No se pudo decodificar el token de autenticación' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -94,7 +94,7 @@ serve(async (req) => {
     }
 
     // Verify user exists and get user data using admin client
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId);
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.admin.getUserById(decodedUserId);
     if (userError || !user) {
       console.error('Error fetching user:', userError);
       return new Response(

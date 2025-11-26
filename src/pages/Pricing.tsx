@@ -586,6 +586,7 @@ const Pricing = () => {
           {tiers.map((tier) => {
             const savings = getSavings(tier);
             const isCurrentPlan = user && subscription && subscription.tier === tier.tier && subscriptionStatus === 'active';
+            const isCancelledPlan = user && subscription && subscription.tier === tier.tier && (subscriptionStatus === 'cancelled' || subscriptionStatus === 'canceled');
             const monthlyPrice = getMonthlyPrice(tier);
             return (
               <Card 
