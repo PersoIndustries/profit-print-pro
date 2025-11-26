@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { Settings as SettingsIcon, CreditCard, Receipt, User, TrendingUp, AlertCircle, Calendar, BarChart3, Shield, Clock, DollarSign, FileText, HelpCircle, Mail, MessageCircle, Download, Bell } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NotificationsSection } from "@/components/settings/NotificationsSection";
+import { OtherSection } from "@/components/settings/OtherSection";
 
 interface Profile {
   full_name: string;
@@ -159,7 +160,8 @@ const Settings = () => {
       const [profileRes, subRes, invoicesRes, promoCodeRes, creatorCodeRes, refundRequestsRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
         supabase.from("user_subscriptions").select("*").eq("user_id", user.id).maybeSingle(),
-        supabase.from("invoices").select("*").eq("user_id", user.id).order("issued_date", { ascending: false }),
+        // Filter invoices to show only payments (amount > 0) for regular users
+        supabase.from("invoices").select("*").eq("user_id", user.id).gt("amount", 0).order("issued_date", { ascending: false }),
         supabase
           .from("user_promo_codes")
           .select(`
@@ -822,7 +824,7 @@ const Settings = () => {
       </div>
 
         <Tabs defaultValue="profile" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-7 max-w-5xl">
+          <TabsList className="grid w-full grid-cols-8 max-w-5xl">
             <TabsTrigger value="profile">
               <User className="h-4 w-4 mr-2" />
               {t('settings.tabs.profile')}
@@ -850,6 +852,10 @@ const Settings = () => {
             <TabsTrigger value="advanced">
               <SettingsIcon className="h-4 w-4 mr-2" />
               {t('settings.tabs.advanced')}
+            </TabsTrigger>
+            <TabsTrigger value="other">
+              <SettingsIcon className="h-4 w-4 mr-2" />
+              Otros
             </TabsTrigger>
           </TabsList>
 
@@ -2161,6 +2167,19 @@ const Settings = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Other Tab Content */}
+        <Tabs defaultValue="profile" className="space-y-4">
+          {/* ... other tabs ... */}
+          <TabsContent value="other">
+            <OtherSection 
+              appliedPromoCode={appliedPromoCode}
+              appliedCreatorCode={appliedCreatorCode}
+              subscriptionInfo={subscriptionInfo}
+              onCodeApplied={fetchData}
+            />
           </TabsContent>
         </Tabs>
 

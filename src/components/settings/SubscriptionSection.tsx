@@ -16,6 +16,7 @@ interface SubscriptionInfo {
   price_paid: number;
   expires_at: string | null;
   is_paid_subscription?: boolean;
+  is_early_bird?: boolean;
 }
 
 interface SubscriptionSectionProps {
@@ -74,6 +75,12 @@ export function SubscriptionSection({ subscriptionInfo, onCancelSubscription }: 
                 {subscriptionInfo.tier === 'free' ? 'FREE' : subscriptionInfo.tier === 'tier_1' ? 'PRO' : 'BUSINESS'}
               </Badge>
             </div>
+            {/* Show product type */}
+            {subscriptionInfo.tier !== 'free' && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {subscriptionInfo.is_early_bird ? 'Early Access' : 'Standard'}
+              </p>
+            )}
           </div>
           <div>
             <Label className="text-sm text-muted-foreground">{t('settings.subscription.status')}</Label>
