@@ -41,12 +41,20 @@ interface PrintMaterial {
   };
 }
 
+interface Printer {
+  id: string;
+  brand: string;
+  model: string;
+  usage_hours: number;
+}
+
 interface Print {
   id: string;
   name: string;
   print_type: 'order' | 'tools' | 'personal' | 'operational' | 'for_sale';
   order_id: string | null;
   project_id: string | null;
+  printer_id: string | null;
   print_time_hours: number;
   material_used_grams: number;
   print_date: string;
@@ -60,6 +68,7 @@ interface Print {
   projects?: {
     name: string;
   };
+  printers?: Printer;
 }
 
 interface Order {
@@ -109,12 +118,18 @@ const Prints = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [printers, setPrinters] = useState<Printer[]>([]);
   const [inventory, setInventory] = useState<Array<{ material_id: string; quantity_grams: number }>>([]);
   const [printsLoading, setPrintsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPrint, setEditingPrint] = useState<Print | null>(null);
   const [selectedPrint, setSelectedPrint] = useState<Print | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [isFailedDialogOpen, setIsFailedDialogOpen] = useState(false);
+  const [failedFormData, setFailedFormData] = useState({
+    final_hours: "",
+    materials: [] as FormMaterial[]
+  });
   const [stockWarning, setStockWarning] = useState<{
     show: boolean;
     insufficientMaterials: Array<{ materialName: string; available: number; needed: number }>;
@@ -130,6 +145,7 @@ const Prints = () => {
     print_type: 'order' as 'order' | 'tools' | 'personal' | 'operational' | 'for_sale',
     order_id: '',
     project_id: '',
+    printer_id: '',
     print_time_hours: '',
     print_date: new Date().toISOString().slice(0, 16),
     notes: '',
@@ -152,6 +168,7 @@ const Prints = () => {
       fetchProjects();
       fetchMaterials();
       fetchInventory();
+      fetchPrinters();
     }
   }, [user]);
 
@@ -165,6 +182,7 @@ const Prints = () => {
           *,
           orders(order_number, customer_name),
           projects(name),
+          printers(id, brand, model, usage_hours),
           print_materials(
             id,
             material_id,
@@ -252,6 +270,23 @@ const Prints = () => {
     }
   };
 
+  const fetchPrinters = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("printers")
+        .select("id, brand, model, usage_hours")
+        .eq("user_id", user.id)
+        .order("brand");
+
+      if (error) throw error;
+      setPrinters(data || []);
+    } catch (error: any) {
+      console.error("Error fetching printers:", error);
+    }
+  };
+
   const handleImportFromProject = async () => {
     if (!formData.project_id) {
       toast.error(t('prints.messages.selectProjectFirst'));
@@ -316,6 +351,7 @@ const Prints = () => {
       print_type: 'order',
       order_id: '',
       project_id: '',
+      printer_id: '',
       print_time_hours: '',
       print_date: new Date().toISOString().slice(0, 16),
       notes: '',
@@ -339,6 +375,7 @@ const Prints = () => {
       print_type: print.print_type,
       order_id: print.order_id || '',
       project_id: print.project_id || '',
+      printer_id: print.printer_id || '',
       print_time_hours: print.print_time_hours.toString(),
       print_date: print.print_date,
       notes: print.notes || '',
@@ -429,6 +466,7 @@ const Prints = () => {
         print_type: formData.print_type,
         order_id: formData.order_id || null,
         project_id: formData.project_id || null,
+        printer_id: formData.printer_id || null,
         print_time_hours: parseFloat(formData.print_time_hours) || 0,
         material_used_grams: totalWeight,
         print_date: formData.print_date,
@@ -777,6 +815,26 @@ const Prints = () => {
                     </Button>
                   )}
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="printer_id">{t('prints.form.printer')} ({t('prints.form.optional')})</Label>
+                <Select
+                  value={formData.printer_id || "none"}
+                  onValueChange={(value) => setFormData({ ...formData, printer_id: value === "none" ? "" : value })}
+                >
+                  <SelectTrigger id="printer_id">
+                    <SelectValue placeholder={t('prints.form.selectPrinter')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t('prints.form.noPrinter')}</SelectItem>
+                    {printers.map((printer) => (
+                      <SelectItem key={printer.id} value={printer.id}>
+                        {printer.brand} {printer.model}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
