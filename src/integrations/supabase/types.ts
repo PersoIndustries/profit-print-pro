@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_daily_metrics: {
+        Row: {
+          cancellations: number
+          created_at: string
+          date: string
+          downgrades: number
+          net_change: number
+          new_users: number
+          projected_cancellations_month: number
+          projected_cancellations_week: number
+          projected_downgrades_month: number
+          projected_downgrades_week: number
+          projected_renewals_month: number
+          projected_renewals_week: number
+          reactivations: number
+          refunds: number
+          revenue: number
+          trials: number
+          upgrades: number
+        }
+        Insert: {
+          cancellations?: number
+          created_at?: string
+          date: string
+          downgrades?: number
+          net_change?: number
+          new_users?: number
+          projected_cancellations_month?: number
+          projected_cancellations_week?: number
+          projected_downgrades_month?: number
+          projected_downgrades_week?: number
+          projected_renewals_month?: number
+          projected_renewals_week?: number
+          reactivations?: number
+          refunds?: number
+          revenue?: number
+          trials?: number
+          upgrades?: number
+        }
+        Update: {
+          cancellations?: number
+          created_at?: string
+          date?: string
+          downgrades?: number
+          net_change?: number
+          new_users?: number
+          projected_cancellations_month?: number
+          projected_cancellations_week?: number
+          projected_downgrades_month?: number
+          projected_downgrades_week?: number
+          projected_renewals_month?: number
+          projected_renewals_week?: number
+          reactivations?: number
+          refunds?: number
+          revenue?: number
+          trials?: number
+          upgrades?: number
+        }
+        Relationships: []
+      }
       catalog_items: {
         Row: {
           additional_notes: string | null
