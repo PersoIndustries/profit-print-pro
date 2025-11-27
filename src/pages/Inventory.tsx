@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, ShoppingCart, History, Trash, Edit, Star, Info, Disc, Droplet, KeyRound, Wrench, Paintbrush, FileBox, Package, PackagePlus, Printer, ListPlus, ArrowUpDown, ArrowUp, ArrowDown, Search, Filter, X, PrinterIcon } from "lucide-react";
+import { Loader2, Plus, ShoppingCart, History, Trash, Edit, Star, Info, Disc, Droplet, KeyRound, Wrench, Paintbrush, FileBox, Package, PackagePlus, Printer, ListPlus, ArrowUpDown, ArrowUp, ArrowDown, Search, Filter, X, PrinterIcon, Trash2 } from "lucide-react";
 import { HexColorPicker } from "react-colorful";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -56,6 +56,14 @@ interface InventoryItem {
 }
 
 
+interface MaintenancePart {
+  id: string;
+  part_name: string;
+  maintenance_hours: number;
+  current_hours: number;
+  notes: string | null;
+}
+
 interface Printer {
   id: string;
   brand: string;
@@ -64,6 +72,7 @@ interface Printer {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  printer_maintenance_parts?: MaintenancePart[];
 }
 
 // Helper function to get material types with translations
@@ -178,6 +187,14 @@ const Inventory = () => {
     usage_hours: "",
     notes: ""
   });
+
+  const [maintenanceParts, setMaintenanceParts] = useState<Array<{
+    tempId: string;
+    part_name: string;
+    maintenance_hours: string;
+    current_hours: string;
+    notes: string;
+  }>>([]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -304,7 +321,7 @@ const Inventory = () => {
     try {
       const { data, error } = await supabase
         .from("printers")
-        .select("*")
+        .select("*, printer_maintenance_parts(*)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -741,7 +758,7 @@ const Inventory = () => {
     if (!user) return;
 
     try {
-      const { error } = await supabase
+      const { data: newPrinter, error } = await supabase
         .from("printers")
         .insert([
           {
@@ -751,9 +768,28 @@ const Inventory = () => {
             usage_hours: parseFloat(printerForm.usage_hours) || 0,
             notes: printerForm.notes || null
           }
-        ]);
+        ])
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Insert maintenance parts if any
+      if (maintenanceParts.length > 0 && newPrinter) {
+        const partsToInsert = maintenanceParts.map(part => ({
+          printer_id: newPrinter.id,
+          part_name: part.part_name,
+          maintenance_hours: parseFloat(part.maintenance_hours) || 0,
+          current_hours: parseFloat(part.current_hours) || 0,
+          notes: part.notes || null
+        }));
+
+        const { error: partsError } = await supabase
+          .from("printer_maintenance_parts")
+          .insert(partsToInsert);
+
+        if (partsError) throw partsError;
+      }
 
       toast.success(t('inventory.messages.printerAdded'));
       setIsPrinterDialogOpen(false);
@@ -763,6 +799,7 @@ const Inventory = () => {
         usage_hours: "",
         notes: ""
       });
+      setMaintenanceParts([]);
       fetchPrinters();
     } catch (error: any) {
       toast.error(t('inventory.messages.errorAddingPrinter'));
@@ -786,6 +823,31 @@ const Inventory = () => {
 
       if (error) throw error;
 
+      // Delete existing maintenance parts
+      const { error: deleteError } = await supabase
+        .from("printer_maintenance_parts")
+        .delete()
+        .eq("printer_id", editingPrinter.id);
+
+      if (deleteError) throw deleteError;
+
+      // Insert new maintenance parts
+      if (maintenanceParts.length > 0) {
+        const partsToInsert = maintenanceParts.map(part => ({
+          printer_id: editingPrinter.id,
+          part_name: part.part_name,
+          maintenance_hours: parseFloat(part.maintenance_hours) || 0,
+          current_hours: parseFloat(part.current_hours) || 0,
+          notes: part.notes || null
+        }));
+
+        const { error: partsError } = await supabase
+          .from("printer_maintenance_parts")
+          .insert(partsToInsert);
+
+        if (partsError) throw partsError;
+      }
+
       toast.success(t('inventory.messages.printerUpdated'));
       setIsPrinterDialogOpen(false);
       setEditingPrinter(null);
@@ -795,6 +857,7 @@ const Inventory = () => {
         usage_hours: "",
         notes: ""
       });
+      setMaintenanceParts([]);
       fetchPrinters();
     } catch (error: any) {
       toast.error(t('inventory.messages.errorUpdatingPrinter'));
@@ -822,6 +885,20 @@ const Inventory = () => {
       usage_hours: printer.usage_hours.toString(),
       notes: printer.notes || ""
     });
+    
+    // Load maintenance parts
+    if (printer.printer_maintenance_parts && printer.printer_maintenance_parts.length > 0) {
+      setMaintenanceParts(printer.printer_maintenance_parts.map(part => ({
+        tempId: part.id,
+        part_name: part.part_name,
+        maintenance_hours: part.maintenance_hours.toString(),
+        current_hours: part.current_hours.toString(),
+        notes: part.notes || ""
+      })));
+    } else {
+      setMaintenanceParts([]);
+    }
+    
     setIsPrinterDialogOpen(true);
   };
 
@@ -1957,6 +2034,125 @@ const Inventory = () => {
                 rows={3}
               />
             </div>
+
+            {/* Maintenance Parts Section */}
+            <div className="space-y-3 border-t pt-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">{t('inventory.maintenance.title')}</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setMaintenanceParts([
+                      ...maintenanceParts,
+                      {
+                        tempId: `temp-${Date.now()}`,
+                        part_name: "",
+                        maintenance_hours: "",
+                        current_hours: "0",
+                        notes: ""
+                      }
+                    ]);
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  {t('inventory.maintenance.addPart')}
+                </Button>
+              </div>
+
+              {maintenanceParts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('inventory.maintenance.noParts')}</p>
+              ) : (
+                <div className="space-y-3">
+                  {maintenanceParts.map((part, index) => (
+                    <Card key={part.tempId} className="p-3">
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1 space-y-3">
+                            <div>
+                              <Label htmlFor={`part_name_${index}`} className="text-xs">{t('inventory.maintenance.partName')} *</Label>
+                              <Input
+                                id={`part_name_${index}`}
+                                value={part.part_name}
+                                onChange={(e) => {
+                                  const newParts = [...maintenanceParts];
+                                  newParts[index].part_name = e.target.value;
+                                  setMaintenanceParts(newParts);
+                                }}
+                                placeholder={t('inventory.maintenance.partNamePlaceholder')}
+                                required
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <Label htmlFor={`maintenance_hours_${index}`} className="text-xs">{t('inventory.maintenance.maintenanceHours')} *</Label>
+                                <Input
+                                  id={`maintenance_hours_${index}`}
+                                  type="number"
+                                  step="0.1"
+                                  min="0"
+                                  value={part.maintenance_hours}
+                                  onChange={(e) => {
+                                    const newParts = [...maintenanceParts];
+                                    newParts[index].maintenance_hours = e.target.value;
+                                    setMaintenanceParts(newParts);
+                                  }}
+                                  placeholder="100"
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor={`current_hours_${index}`} className="text-xs">{t('inventory.maintenance.currentHours')} *</Label>
+                                <Input
+                                  id={`current_hours_${index}`}
+                                  type="number"
+                                  step="0.1"
+                                  min="0"
+                                  value={part.current_hours}
+                                  onChange={(e) => {
+                                    const newParts = [...maintenanceParts];
+                                    newParts[index].current_hours = e.target.value;
+                                    setMaintenanceParts(newParts);
+                                  }}
+                                  placeholder="0"
+                                  required
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <Label htmlFor={`part_notes_${index}`} className="text-xs">{t('inventory.formLabels.notes')}</Label>
+                              <Textarea
+                                id={`part_notes_${index}`}
+                                value={part.notes}
+                                onChange={(e) => {
+                                  const newParts = [...maintenanceParts];
+                                  newParts[index].notes = e.target.value;
+                                  setMaintenanceParts(newParts);
+                                }}
+                                placeholder={t('inventory.maintenance.notesPlaceholder')}
+                                rows={2}
+                              />
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setMaintenanceParts(maintenanceParts.filter((_, i) => i !== index));
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-2 justify-end">
               <Button type="button" variant="outline" onClick={() => {
                 setIsPrinterDialogOpen(false);
@@ -1967,6 +2163,7 @@ const Inventory = () => {
                   usage_hours: "",
                   notes: ""
                 });
+                setMaintenanceParts([]);
               }}>
                 {t('common.cancel')}
               </Button>
