@@ -760,6 +760,7 @@ export type Database = {
           name: string
           price_per_kg: number
           type: string | null
+          unit_type: string
           updated_at: string | null
           user_id: string
         }
@@ -772,6 +773,7 @@ export type Database = {
           name: string
           price_per_kg: number
           type?: string | null
+          unit_type?: string
           updated_at?: string | null
           user_id: string
         }
@@ -784,6 +786,7 @@ export type Database = {
           name?: string
           price_per_kg?: number
           type?: string | null
+          unit_type?: string
           updated_at?: string | null
           user_id?: string
         }
@@ -1022,6 +1025,47 @@ export type Database = {
           },
         ]
       }
+      printer_maintenance_parts: {
+        Row: {
+          created_at: string | null
+          current_hours: number
+          id: string
+          maintenance_hours: number
+          notes: string | null
+          part_name: string
+          printer_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_hours?: number
+          id?: string
+          maintenance_hours?: number
+          notes?: string | null
+          part_name: string
+          printer_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_hours?: number
+          id?: string
+          maintenance_hours?: number
+          notes?: string | null
+          part_name?: string
+          printer_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "printer_maintenance_parts_printer_id_fkey"
+            columns: ["printer_id"]
+            isOneToOne: false
+            referencedRelation: "printers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       printers: {
         Row: {
           brand: string
@@ -1066,6 +1110,7 @@ export type Database = {
           print_date: string
           print_time_hours: number
           print_type: string
+          printer_id: string | null
           project_id: string | null
           status: string
           updated_at: string
@@ -1081,6 +1126,7 @@ export type Database = {
           print_date?: string
           print_time_hours?: number
           print_type: string
+          printer_id?: string | null
           project_id?: string | null
           status?: string
           updated_at?: string
@@ -1096,6 +1142,7 @@ export type Database = {
           print_date?: string
           print_time_hours?: number
           print_type?: string
+          printer_id?: string | null
           project_id?: string | null
           status?: string
           updated_at?: string
@@ -1107,6 +1154,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prints_printer_id_fkey"
+            columns: ["printer_id"]
+            isOneToOne: false
+            referencedRelation: "printers"
             referencedColumns: ["id"]
           },
           {

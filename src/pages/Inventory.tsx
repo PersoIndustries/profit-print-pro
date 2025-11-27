@@ -168,6 +168,8 @@ const Inventory = () => {
     color: "",
     type: "",
     display_mode: "color" as 'color' | 'icon',
+    unit_type: "g",
+    min_stock_alert: "500",
   });
 
   const [printerForm, setPrinterForm] = useState({
@@ -343,17 +345,32 @@ const Inventory = () => {
         price_per_kg: parseFloat(materialForm.price_per_kg),
         display_mode: materialForm.display_mode,
         type: materialForm.type || null,
+        unit_type: materialForm.unit_type,
       };
 
       if (materialForm.display_mode === 'color') {
         materialData.color = materialForm.color;
       }
 
-      const { error: materialError } = await supabase
+      const { data: newMaterial, error: materialError } = await supabase
         .from("materials")
-        .insert([materialData]);
+        .insert([materialData])
+        .select()
+        .single();
 
       if (materialError) throw materialError;
+
+      // Create inventory item with min_stock_alert
+      if (newMaterial) {
+        await supabase
+          .from("inventory_items")
+          .insert([{
+            user_id: user.id,
+            material_id: newMaterial.id,
+            quantity_grams: 0,
+            min_stock_alert: parseFloat(materialForm.min_stock_alert) || 500
+          }]);
+      }
 
       toast.success(t('inventory.messages.materialAdded'));
       setIsMaterialDialogOpen(false);
@@ -363,6 +380,8 @@ const Inventory = () => {
         color: "",
         type: "",
         display_mode: "color",
+        unit_type: "g",
+        min_stock_alert: "500",
       });
       fetchData();
     } catch (error: any) {
@@ -370,14 +389,25 @@ const Inventory = () => {
     }
   };
 
-  const handleEditMaterial = (material: Material) => {
+  const handleEditMaterial = async (material: Material) => {
     setEditingMaterial(material);
+    
+    // Get current inventory item to get min_stock_alert
+    const { data: inventoryItem } = await supabase
+      .from("inventory_items")
+      .select("min_stock_alert")
+      .eq("material_id", material.id)
+      .eq("user_id", user?.id || "")
+      .single();
+    
     setMaterialForm({
       name: material.name,
       price_per_kg: material.price_per_kg.toString(),
       color: material.color || "",
       type: material.type || "",
       display_mode: material.display_mode,
+      unit_type: (material as any).unit_type || "g",
+      min_stock_alert: inventoryItem?.min_stock_alert?.toString() || "500",
     });
     setIsMaterialDialogOpen(true);
   };
@@ -392,6 +422,7 @@ const Inventory = () => {
         price_per_kg: parseFloat(materialForm.price_per_kg),
         display_mode: materialForm.display_mode,
         type: materialForm.type || null,
+        unit_type: materialForm.unit_type,
       };
 
       if (materialForm.display_mode === 'color') {
@@ -407,6 +438,13 @@ const Inventory = () => {
 
       if (error) throw error;
 
+      // Update inventory min_stock_alert
+      await supabase
+        .from("inventory_items")
+        .update({ min_stock_alert: parseFloat(materialForm.min_stock_alert) || 500 })
+        .eq("material_id", editingMaterial.id)
+        .eq("user_id", user.id);
+
       toast.success(t('inventory.messages.materialUpdated'));
       setIsMaterialDialogOpen(false);
       const wasViewing = materialViewerOpen && viewingMaterial && editingMaterial?.id === viewingMaterial.id;
@@ -418,6 +456,8 @@ const Inventory = () => {
         color: "",
         type: "",
         display_mode: "color",
+        unit_type: "g",
+        min_stock_alert: "500",
       });
       fetchData();
       // Si el modal de visualización está abierto, actualizar el material que se está viendo
@@ -1133,6 +1173,8 @@ const Inventory = () => {
                       color: "",
                       type: "",
                       display_mode: "color",
+                      unit_type: "g",
+                      min_stock_alert: "500",
                     });
                     setIsMaterialDialogOpen(true);
                   }}
@@ -1724,16 +1766,49 @@ const Inventory = () => {
                 required
               />
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="material-price">{t('inventory.formLabels.pricePerKg')} *</Label>
+                <Input
+                  id="material-price"
+                  type="number"
+                  step="0.01"
+                  value={materialForm.price_per_kg}
+                  onChange={(e) => setMaterialForm({ ...materialForm, price_per_kg: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="unit-type">{t('inventory.formLabels.unitType')} *</Label>
+                <Select
+                  value={materialForm.unit_type}
+                  onValueChange={(value) => setMaterialForm({ ...materialForm, unit_type: value })}
+                >
+                  <SelectTrigger id="unit-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="g">{t('inventory.units.grams')}</SelectItem>
+                    <SelectItem value="kg">{t('inventory.units.kilograms')}</SelectItem>
+                    <SelectItem value="l">{t('inventory.units.liters')}</SelectItem>
+                    <SelectItem value="units">{t('inventory.units.units')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div>
-              <Label htmlFor="material-price">{t('inventory.formLabels.pricePerKg')} *</Label>
+              <Label htmlFor="min-stock-alert">{t('inventory.formLabels.minStockAlert')} *</Label>
               <Input
-                id="material-price"
+                id="min-stock-alert"
                 type="number"
-                step="0.01"
-                value={materialForm.price_per_kg}
-                onChange={(e) => setMaterialForm({ ...materialForm, price_per_kg: e.target.value })}
+                step="0.1"
+                value={materialForm.min_stock_alert}
+                onChange={(e) => setMaterialForm({ ...materialForm, min_stock_alert: e.target.value })}
                 required
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                {t('inventory.formLabels.minStockAlertHelp')}
+              </p>
             </div>
             <div>
               <Label htmlFor="material-type">{t('inventory.formLabels.type')}</Label>
