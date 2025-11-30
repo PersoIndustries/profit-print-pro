@@ -322,9 +322,6 @@ const Projects = () => {
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditProject(project.id)}>
                       <Edit className="w-3.5 h-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteProject(project.id)}>
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
                   </div>
                 </CardTitle>
               </CardHeader>
@@ -431,9 +428,6 @@ const Projects = () => {
                       <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditProject(project.id)}>
                           <Edit className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteProject(project.id)}>
-                          <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>
                     </div>
@@ -726,8 +720,15 @@ const Projects = () => {
                 </Card>
               </div>
 
-              {/* Botón Edit en la parte inferior */}
-              <div className="flex justify-end pt-4 border-t mt-6">
+              {/* Botones Edit y Delete en la parte inferior */}
+              <div className="flex justify-between pt-4 border-t mt-6">
+                <Button
+                  variant="destructive"
+                  onClick={() => handleDeleteProject(selectedProject.id)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {t('common.delete')}
+                </Button>
                 <Button
                   variant="outline"
                   onClick={() => {
