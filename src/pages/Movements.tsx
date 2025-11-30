@@ -98,7 +98,7 @@ const Movements = () => {
     try {
       const { data, error } = await supabase
         .from("inventory_movements")
-        .select("*, materials!fk_material(*)")
+        .select("*, materials(id, name)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -106,9 +106,7 @@ const Movements = () => {
       if (error) throw error;
       setMovements((data || []).map(mov => ({
         ...mov,
-        materials: {
-          ...mov.materials,
-        }
+        materials: Array.isArray(mov.materials) ? mov.materials[0] : mov.materials
       })));
     } catch (error: any) {
       toast.error(t('inventory.messages.errorLoadingMovements'));
