@@ -258,6 +258,8 @@
     "type": "Type",
     "color": "Color",
     "pricePerKg": "Price per kg",
+    "pricePerKgUnits": "Price/(units, Kg, L)",
+    "stockAvailableUnits": "Stock (units, Kg, L)",
     "stock": "Stock (kg)",
     "supplier": "Supplier",
     "actions": "Actions",

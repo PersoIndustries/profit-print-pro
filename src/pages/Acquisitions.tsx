@@ -12,7 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Trash } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Loader2, Plus, Trash, Check, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -43,6 +45,7 @@ const Acquisitions = () => {
   const [acquisitions, setAcquisitions] = useState<Acquisition[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [isAcquisitionDialogOpen, setIsAcquisitionDialogOpen] = useState(false);
+  const [materialComboboxOpen, setMaterialComboboxOpen] = useState(false);
   
   const [acquisitionForm, setAcquisitionForm] = useState({
     material_id: "",
@@ -320,21 +323,48 @@ const Acquisitions = () => {
           <form onSubmit={handleSaveAcquisition} className="space-y-4">
             <div>
               <Label htmlFor="acq_material">{t('inventory.material')} *</Label>
-              <Select
-                value={acquisitionForm.material_id}
-                onValueChange={(value) => setAcquisitionForm({ ...acquisitionForm, material_id: value })}
-              >
-                <SelectTrigger id="acq_material">
-                  <SelectValue placeholder="Seleccionar material" />
-                </SelectTrigger>
-                <SelectContent>
-                  {materials.map((mat) => (
-                    <SelectItem key={mat.id} value={mat.id}>
-                      {mat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={materialComboboxOpen} onOpenChange={setMaterialComboboxOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={materialComboboxOpen}
+                    className="w-full justify-between"
+                  >
+                    {acquisitionForm.material_id
+                      ? materials.find((mat) => mat.id === acquisitionForm.material_id)?.name
+                      : "Seleccionar material"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput placeholder={t('inventory.searchMaterial')} />
+                    <CommandList>
+                      <CommandEmpty>No se encontró material.</CommandEmpty>
+                      <CommandGroup>
+                        {materials.map((mat) => (
+                          <CommandItem
+                            key={mat.id}
+                            value={mat.name}
+                            onSelect={() => {
+                              setAcquisitionForm({ ...acquisitionForm, material_id: mat.id });
+                              setMaterialComboboxOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${
+                                acquisitionForm.material_id === mat.id ? "opacity-100" : "opacity-0"
+                              }`}
+                            />
+                            {mat.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div>
               <Label htmlFor="acq_quantity">{t('inventory.formLabels.quantityWithUnits')} *</Label>

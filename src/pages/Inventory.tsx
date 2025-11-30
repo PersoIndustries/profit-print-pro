@@ -1303,7 +1303,7 @@ const Inventory = () => {
                           onSort={(field) => handleSort(field, materialSortField, materialSortDirection, setMaterialSortField, setMaterialSortDirection)}
                         >
                           <div className="flex items-center gap-2">
-                            {t('inventory.pricePerKg')}
+                            {t('inventory.pricePerKgUnits')}
                             <Tooltip open={tooltipOpen['precio-kg']} onOpenChange={(open) => setTooltipOpen(prev => ({ ...prev, 'precio-kg': open }))}>
                               <TooltipTrigger asChild>
                                 <button
@@ -1354,7 +1354,7 @@ const Inventory = () => {
                               onSort={(field) => handleSort(field, materialSortField, materialSortDirection, setMaterialSortField, setMaterialSortDirection)}
                             >
                               <div className="flex items-center gap-2">
-                                {t('inventory.stockAvailable')}
+                                {t('inventory.stockAvailableUnits')}
                                 <Tooltip open={tooltipOpen['stock-disponible']} onOpenChange={(open) => setTooltipOpen(prev => ({ ...prev, 'stock-disponible': open }))}>
                                   <TooltipTrigger asChild>
                                     <button
