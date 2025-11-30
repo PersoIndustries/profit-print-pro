@@ -15,6 +15,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface Project {
@@ -54,6 +64,7 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
   const [nextItemId, setNextItemId] = useState(1);
   const [linkedPrintsCount, setLinkedPrintsCount] = useState<Record<string, number>>({});
   const [orderStatus, setOrderStatus] = useState("pending");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -302,6 +313,26 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
     }
   };
 
+  const handleDeleteOrder = async () => {
+    if (!orderId) return;
+
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .delete()
+        .eq("id", orderId);
+
+      if (error) throw error;
+
+      toast.success("Pedido eliminado");
+      onSuccess();
+      onOpenChange(false);
+      setShowDeleteDialog(false);
+    } catch (error: any) {
+      toast.error("Error al eliminar pedido: " + error.message);
+    }
+  };
+
   const total = calculateTotal();
 
   return (
@@ -499,12 +530,38 @@ export function OrderFormModal({ open, onOpenChange, orderId, onSuccess }: Order
               <Save className="w-4 h-4 mr-2" />
               {orderId ? 'Actualizar Pedido' : 'Guardar Pedido'}
             </Button>
+            {orderId && (
+              <Button 
+                variant="destructive" 
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Eliminar
+              </Button>
+            )}
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
           </div>
         </div>
       </DialogContent>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar pedido?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará el pedido y todos sus items asociados permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteOrder} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
