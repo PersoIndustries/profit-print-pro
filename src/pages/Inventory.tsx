@@ -1488,7 +1488,7 @@ const Inventory = () => {
                         <TableHead>{t('inventory.realStock')}</TableHead>
                       </>
                     )}
-                    <TableHead>{t('inventory.actions')}</TableHead>
+                    <TableHead>{t('inventory.actions.label')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1707,7 +1707,7 @@ const Inventory = () => {
                     <TableHead>{t('inventory.tables.quantity')}</TableHead>
                     <TableHead>{t('inventory.tables.notes')}</TableHead>
                     <TableHead>{t('inventory.tables.order')}</TableHead>
-                    <TableHead>{t('inventory.actions')}</TableHead>
+                    <TableHead>{t('inventory.actions.label')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
