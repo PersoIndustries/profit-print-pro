@@ -1185,6 +1185,8 @@
       "errorRegisteringWaste": "Error registering waste",
       "acquisitionDeleted": "Acquisition deleted",
       "errorDeletingAcquisition": "Error deleting acquisition",
+      "featureNotAvailable": "This feature is not available in your plan",
+      "upgradeForAcquisitions": "Upgrade your plan to access this feature",
       "selectOrder": "Please select an order",
       "assignedToOrder": "Item assigned to order successfully",
       "errorAssigningToOrder": "Error assigning item to order",
@@ -1197,6 +1199,7 @@
     },
     "tabs": {
       "materials": "Stock",
+      "stock": "Stock",
       "acquisitions": "Acquisitions",
       "movements": "Movements",
       "printers": "Printers",

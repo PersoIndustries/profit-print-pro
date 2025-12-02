@@ -1174,6 +1174,8 @@
       "errorRegisteringWaste": "Erreur lors de l'enregistrement du déchet",
       "acquisitionDeleted": "Acquisition supprimée",
       "errorDeletingAcquisition": "Erreur lors de la suppression de l'acquisition",
+      "featureNotAvailable": "Cette fonctionnalité n'est pas disponible dans votre plan",
+      "upgradeForAcquisitions": "Mettez à niveau votre plan pour accéder à cette fonctionnalité",
       "selectOrder": "Veuillez sélectionner une commande",
       "assignedToOrder": "Article assigné à la commande avec succès",
       "errorAssigningToOrder": "Erreur lors de l'assignation de l'article à la commande",
@@ -1186,6 +1188,7 @@
     },
     "tabs": {
       "materials": "Stock",
+      "stock": "Stock",
       "acquisitions": "Acquisitions",
       "movements": "Mouvements",
       "printers": "Imprimantes",

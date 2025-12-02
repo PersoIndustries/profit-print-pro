@@ -681,6 +681,8 @@
       "errorRegisteringWaste": "Error al registrar desperdicio",
       "acquisitionDeleted": "Adquisición eliminada",
       "errorDeletingAcquisition": "Error al eliminar adquisición",
+      "featureNotAvailable": "Esta función no está disponible en tu plan",
+      "upgradeForAcquisitions": "Actualiza tu plan para acceder a esta función",
       "selectOrder": "Por favor selecciona un pedido",
       "assignedToOrder": "Objeto asignado al pedido correctamente",
       "errorAssigningToOrder": "Error al asignar objeto al pedido",
@@ -693,6 +695,7 @@
     },
     "tabs": {
       "materials": "Stock",
+      "stock": "Stock",
       "acquisitions": "Adquisiciones",
       "movements": "Movimientos",
       "printers": "Impresoras",

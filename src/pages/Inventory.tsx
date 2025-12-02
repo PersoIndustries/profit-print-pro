@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, ShoppingCart, History, Trash, Edit, Star, Info, Disc, Droplet, KeyRound, Wrench, Paintbrush, FileBox, Package, PackagePlus, Printer, ListPlus, ArrowUpDown, ArrowUp, ArrowDown, Search, Filter, X, PrinterIcon, Trash2, MinusCircle } from "lucide-react";
+import { Loader2, Plus, ShoppingCart, History, Trash, Edit, Star, Info, Disc, Droplet, KeyRound, Wrench, Paintbrush, FileBox, Package, PackagePlus, Printer, ListPlus, ArrowUpDown, ArrowUp, ArrowDown, Search, Filter, X, PrinterIcon, Trash2, MinusCircle, TrendingUp } from "lucide-react";
 import { HexColorPicker } from "react-colorful";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -865,6 +865,17 @@ const Inventory = () => {
     let filtered = materials.filter((material) => {
       const matchesSearch = material.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType = filterType === "all" || material.type === filterType;
+      
+      // Filtro de stock bajo (solo Pro/Enterprise)
+      if (showLowStock && (isPro || isEnterprise)) {
+        const inventoryItem = inventory.find(inv => inv.material_id === material.id);
+        if (!inventoryItem) return matchesSearch && matchesType; // Mostrar materiales sin stock
+        const pending = pendingMaterials[material.id] || 0;
+        const realStock = inventoryItem.quantity_grams - pending;
+        const isLowStock = realStock < (inventoryItem.min_stock_alert || 0);
+        return matchesSearch && matchesType && isLowStock;
+      }
+      
       return matchesSearch && matchesType;
     });
 
@@ -876,6 +887,15 @@ const Inventory = () => {
       if (materialSortField === "name") {
         aValue = aValue?.toLowerCase() || "";
         bValue = bValue?.toLowerCase() || "";
+      }
+
+      if (materialSortField === "stock" && (isPro || isEnterprise)) {
+        const invA = inventory.find(inv => inv.material_id === a.id);
+        const invB = inventory.find(inv => inv.material_id === b.id);
+        const pendingA = pendingMaterials[a.id] || 0;
+        const pendingB = pendingMaterials[b.id] || 0;
+        aValue = invA ? invA.quantity_grams - pendingA : 0;
+        bValue = invB ? invB.quantity_grams - pendingB : 0;
       }
 
       if (aValue < bValue) return materialSortDirection === "asc" ? -1 : 1;
@@ -1011,14 +1031,10 @@ const Inventory = () => {
       </div>
 
       <Tabs defaultValue="materials" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="materials">{t('inventory.tabs.materials')}</TabsTrigger>
-          <TabsTrigger value="stock">{t('inventory.tabs.stock')}</TabsTrigger>
           <TabsTrigger value="assignments">{t('inventory.tabs.assignments')}</TabsTrigger>
           <TabsTrigger value="printers">{t('inventory.tabs.printers')}</TabsTrigger>
-          <TabsTrigger value="acquisitions" onClick={() => navigate('/acquisitions')}>
-            {t('inventory.tabs.acquisitions')}
-          </TabsTrigger>
         </TabsList>
 
         {/* Materials Tab */}
@@ -1027,10 +1043,43 @@ const Inventory = () => {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>{t('inventory.tabs.materials')}</CardTitle>
-                <Button onClick={() => setIsMaterialDialogOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  {t('inventory.buttons.newMaterial')}
-                </Button>
+                <div className="flex gap-2">
+                  {!hasFeature('acquisition_history') ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>
+                            <Button 
+                              onClick={() => {
+                                toast.error(t('inventory.messages.featureNotAvailable') || 'Esta función no está disponible en tu plan');
+                              }} 
+                              variant="outline"
+                              disabled
+                            >
+                              <TrendingUp className="w-4 h-4 mr-2" />
+                              {t('inventory.tabs.acquisitions')}
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{t('inventory.messages.upgradeForAcquisitions') || 'Actualiza tu plan para acceder a esta función'}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <Button 
+                      onClick={() => navigate('/acquisitions')} 
+                      variant="outline"
+                    >
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      {t('inventory.tabs.acquisitions')}
+                    </Button>
+                  )}
+                  <Button onClick={() => setIsMaterialDialogOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    {t('inventory.buttons.newMaterial')}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -1061,8 +1110,16 @@ const Inventory = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                {searchTerm || filterType !== "all" ? (
-                  <Button variant="ghost" onClick={() => { setSearchTerm(""); setFilterType("all"); }}>
+                {(isPro || isEnterprise) && (
+                  <Button
+                    variant={showLowStock ? "default" : "outline"}
+                    onClick={() => setShowLowStock(!showLowStock)}
+                  >
+                    {t('inventory.lowStock')}
+                  </Button>
+                )}
+                {searchTerm || filterType !== "all" || showLowStock ? (
+                  <Button variant="ghost" onClick={() => { setSearchTerm(""); setFilterType("all"); setShowLowStock(false); }}>
                     <X className="w-4 h-4" />
                   </Button>
                 ) : null}
@@ -1102,21 +1159,46 @@ const Inventory = () => {
                         {getSortIcon("price_per_kg", materialSortField, materialSortDirection)}
                       </Button>
                     </TableHead>
+                    {(isPro || isEnterprise) && (
+                      <>
+                        <TableHead>
+                          <Button
+                            variant="ghost"
+                            onClick={() => toggleMaterialSort("stock")}
+                            className="flex items-center p-0 h-auto font-semibold hover:bg-transparent"
+                          >
+                            {t('inventory.stockAvailableUnits')}
+                            {getSortIcon("stock", materialSortField, materialSortDirection)}
+                          </Button>
+                        </TableHead>
+                        <TableHead>{t('inventory.pending')}</TableHead>
+                        <TableHead>{t('inventory.realStock')}</TableHead>
+                      </>
+                    )}
                     <TableHead>{t('inventory.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredMaterials.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={(isPro || isEnterprise) ? 8 : 5} className="text-center py-8 text-muted-foreground">
                         {t('inventory.noMaterials')}
                       </TableCell>
                     </TableRow>
                   ) : (
                     getPaginatedItems(filteredMaterials).map((material) => {
                       const IconComponent = getMaterialIcon(material.type, MATERIAL_TYPES);
+                      const inventoryItem = inventory.find(inv => inv.material_id === material.id);
+                      const pending = pendingMaterials[material.id] || 0;
+                      const stockAvailable = inventoryItem ? inventoryItem.quantity_grams : 0;
+                      const realStock = stockAvailable - pending;
+                      const isLowStock = inventoryItem && realStock < (inventoryItem.min_stock_alert || 0);
+                      
                       return (
-                        <TableRow key={material.id}>
+                        <TableRow 
+                          key={material.id}
+                          className={(isPro || isEnterprise) && isLowStock ? "bg-yellow-50 dark:bg-yellow-950/20" : ""}
+                        >
                           <TableCell>
                             <Button
                               variant="ghost"
@@ -1141,6 +1223,11 @@ const Inventory = () => {
                                 <IconComponent className="w-4 h-4 flex-shrink-0" />
                               )}
                               <span>{material.name}</span>
+                              {(isPro || isEnterprise) && isLowStock && (
+                                <Badge variant="destructive" className="ml-2">
+                                  {t('inventory.lowStock')}
+                                </Badge>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -1149,6 +1236,31 @@ const Inventory = () => {
                               : "-"}
                           </TableCell>
                           <TableCell>{material.price_per_kg.toFixed(2)}€</TableCell>
+                          {(isPro || isEnterprise) && (
+                            <>
+                              <TableCell>
+                                {stockAvailable > 0 ? (
+                                  <span>{(stockAvailable / 1000).toFixed(2)} kg</span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {pending > 0 ? (
+                                  <span className="text-orange-600">{(pending / 1000).toFixed(2)} kg</span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {realStock > 0 ? (
+                                  <span>{(realStock / 1000).toFixed(2)} kg</span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                            </>
+                          )}
                           <TableCell>
                             <div className="flex gap-2">
                               <Button
@@ -1220,142 +1332,6 @@ const Inventory = () => {
                   </Pagination>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Stock Tab */}
-        <TabsContent value="stock" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>{t('inventory.tabs.stock')}</CardTitle>
-                <Button onClick={() => navigate('/acquisitions')} className="shadow-sm">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nueva Adquisición
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Filtros */}
-              <div className="flex gap-4 mb-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                    <Input
-                      placeholder={t('inventory.search')}
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                <Select value={filterType} onValueChange={setFilterType}>
-                  <SelectTrigger className="w-[200px]">
-                    <Filter className="w-4 h-4 mr-2" />
-                    <SelectValue placeholder={t('inventory.filterByType')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('inventory.allTypes')}</SelectItem>
-                    {MATERIAL_TYPES.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant={showLowStock ? "default" : "outline"}
-                  onClick={() => setShowLowStock(!showLowStock)}
-                >
-                  {t('inventory.lowStock')}
-                </Button>
-                {searchTerm || filterType !== "all" || showLowStock ? (
-                  <Button variant="ghost" onClick={() => { setSearchTerm(""); setFilterType("all"); setShowLowStock(false); }}>
-                    <X className="w-4 h-4" />
-                  </Button>
-                ) : null}
-              </div>
-
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('inventory.material')}</TableHead>
-                    <TableHead>{t('inventory.tables.pricePerUnit')} (units, Kg, L)</TableHead>
-                    <TableHead>{t('inventory.tables.available')} (units, Kg, L)</TableHead>
-                    <TableHead>{t('inventory.tables.pending')}</TableHead>
-                    <TableHead>{t('inventory.tables.location')}</TableHead>
-                    <TableHead>{t('inventory.tables.notes')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredInventory.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        {t('inventory.noStock')}
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredInventory.map((item) => {
-                      const IconComponent = getMaterialIcon(item.materials.type, MATERIAL_TYPES);
-                      const isLowStock = item.quantity_grams < item.min_stock_alert;
-                      const pendingGrams = pendingMaterials[item.material_id] || 0;
-
-                      return (
-                        <TableRow key={item.id} className={isLowStock ? "bg-red-50" : ""}>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              {item.materials.display_mode === 'color' ? (
-                                <div
-                                  className="w-4 h-4 rounded-full border flex-shrink-0"
-                                  style={{ backgroundColor: item.materials.color || '#gray' }}
-                                />
-                              ) : (
-                                <IconComponent className="w-4 h-4 flex-shrink-0" />
-                              )}
-                              <span>{item.materials.name}</span>
-                              {isLowStock && (
-                                <Badge variant="destructive" className="ml-2">
-                                  {t('inventory.lowStock')}
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {(item.quantity_grams / 1000).toFixed(2)} kg
-                          </TableCell>
-                          <TableCell>
-                            {pendingGrams > 0 ? (
-                              <span className="text-orange-600">
-                                {(pendingGrams / 1000).toFixed(2)} kg
-                              </span>
-                            ) : (
-                              "-"
-                            )}
-                          </TableCell>
-                          <TableCell>{item.location || "-"}</TableCell>
-                          <TableCell>
-                            {item.notes ? (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info className="w-4 h-4 text-muted-foreground cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent className="max-w-xs">
-                                    <p>{item.notes}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            ) : (
-                              "-"
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
             </CardContent>
           </Card>
         </TabsContent>
