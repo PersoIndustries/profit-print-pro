@@ -104,10 +104,15 @@ const Movements = () => {
         .limit(50);
 
       if (error) throw error;
-      setMovements((data || []).map(mov => ({
-        ...mov,
-        materials: Array.isArray(mov.materials) ? mov.materials[0] : mov.materials
-      })));
+      // Ensure materials is properly structured
+      const processedMovements = (data || []).map(mov => {
+        const materials = Array.isArray(mov.materials) ? mov.materials[0] : mov.materials;
+        return {
+          ...mov,
+          materials: materials || { id: '', name: 'Material eliminado' }
+        };
+      });
+      setMovements(processedMovements);
     } catch (error: any) {
       toast.error(t('inventory.messages.errorLoadingMovements'));
     }
