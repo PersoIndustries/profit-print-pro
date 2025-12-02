@@ -14,7 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Loader2, Plus, Trash, Check, ChevronsUpDown } from "lucide-react";
+import { Loader2, Plus, Trash, Check, ChevronsUpDown, Edit, Info, Disc, Droplet, KeyRound, Wrench, Paintbrush, FileBox, Package } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -22,7 +23,24 @@ import { es } from "date-fns/locale";
 interface Material {
   id: string;
   name: string;
+  type: string | null;
+  color: string | null;
+  display_mode: 'color' | 'icon';
 }
+
+const getMaterialIcon = (type: string | null) => {
+  const icons: Record<string, React.ReactNode> = {
+    'filament': <Disc className="w-4 h-4" />,
+    'resin': <Droplet className="w-4 h-4" />,
+    'glue': <Droplet className="w-4 h-4" />,
+    'keyring': <KeyRound className="w-4 h-4" />,
+    'screw': <Wrench className="w-4 h-4" />,
+    'paint': <Paintbrush className="w-4 h-4" />,
+    'sandpaper': <FileBox className="w-4 h-4" />,
+    'other': <Package className="w-4 h-4" />
+  };
+  return icons[type || 'other'] || <Package className="w-4 h-4" />;
+};
 
 interface Acquisition {
   id: string;
@@ -86,12 +104,15 @@ const Acquisitions = () => {
     try {
       const { data, error } = await supabase
         .from("materials")
-        .select("id, name")
+        .select("id, name, type, color, display_mode")
         .eq("user_id", user.id)
         .order("name", { ascending: true });
 
       if (error) throw error;
-      setMaterials(data || []);
+      setMaterials((data || []).map(m => ({
+        ...m,
+        display_mode: (m.display_mode || 'color') as 'color' | 'icon'
+      })));
     } catch (error: any) {
       toast.error(t('inventory.messages.errorLoadingMaterials'));
     }
@@ -115,11 +136,15 @@ const Acquisitions = () => {
     }
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingAcquisition, setEditingAcquisition] = useState<Acquisition | null>(null);
+
   const handleSaveAcquisition = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || isSubmitting) return;
 
     try {
+      setIsSubmitting(true);
       const quantityKg = parseFloat(acquisitionForm.quantity_kg);
       const quantityGrams = quantityKg * 1000; // Convertir kg a gramos
       const unitPrice = parseFloat(acquisitionForm.unit_price);
@@ -186,8 +211,69 @@ const Acquisitions = () => {
 
       if (movementError) throw movementError;
 
-      toast.success(t('inventory.messages.acquisitionRegistered'));
+      if (editingAcquisition) {
+        // Update existing acquisition
+        const oldAcquisition = acquisitions.find(a => a.id === editingAcquisition.id);
+        if (oldAcquisition) {
+          const quantityDiff = quantityGrams - oldAcquisition.quantity_grams;
+          
+          // Update inventory
+          const { data: inventoryData } = await supabase
+            .from("inventory_items")
+            .select("*")
+            .eq("material_id", acquisitionForm.material_id)
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          if (inventoryData) {
+            const { error: updateError } = await supabase
+              .from("inventory_items")
+              .update({
+                quantity_grams: inventoryData.quantity_grams + quantityDiff
+              })
+              .eq("id", inventoryData.id);
+
+            if (updateError) throw updateError;
+          }
+
+          // Register movement for edit
+          const { error: movementError } = await supabase
+            .from("inventory_movements")
+            .insert([
+              {
+                user_id: user.id,
+                material_id: acquisitionForm.material_id,
+                movement_type: "adjustment",
+                quantity_grams: Math.abs(quantityDiff),
+                notes: `Edición de adquisición. ${quantityDiff > 0 ? 'Incremento' : 'Reducción'}: ${Math.abs(quantityDiff)}g. ${acquisitionForm.notes || ''}`
+              }
+            ]);
+
+          if (movementError) throw movementError;
+        }
+
+        // Update acquisition
+        const { error: updateError } = await supabase
+          .from("material_acquisitions")
+          .update({
+            material_id: acquisitionForm.material_id,
+            quantity_grams: quantityGrams,
+            unit_price: unitPrice,
+            total_price: totalPrice,
+            supplier: acquisitionForm.supplier || null,
+            purchase_date: acquisitionForm.purchase_date,
+            notes: acquisitionForm.notes || null
+          })
+          .eq("id", editingAcquisition.id);
+
+        if (updateError) throw updateError;
+        toast.success('Adquisición actualizada');
+      } else {
+        toast.success(t('inventory.messages.acquisitionRegistered'));
+      }
+      
       setIsAcquisitionDialogOpen(false);
+      setEditingAcquisition(null);
       setAcquisitionForm({
         material_id: "",
         quantity_kg: "",
@@ -199,19 +285,74 @@ const Acquisitions = () => {
       fetchData();
     } catch (error: any) {
       toast.error(t('inventory.messages.errorRegisteringAcquisition'));
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const handleEditAcquisition = (acquisition: Acquisition) => {
+    setEditingAcquisition(acquisition);
+    setAcquisitionForm({
+      material_id: acquisition.material_id,
+      quantity_kg: (acquisition.quantity_grams / 1000).toString(),
+      unit_price: acquisition.unit_price.toString(),
+      supplier: acquisition.supplier || "",
+      purchase_date: acquisition.purchase_date.split('T')[0],
+      notes: acquisition.notes || ""
+    });
+    setIsAcquisitionDialogOpen(true);
   };
 
   const handleDeleteAcquisition = async (id: string) => {
     if (!confirm(t('inventory.dialogs.confirmDeleteAcquisition'))) return;
 
     try {
+      // Find the acquisition to delete
+      const acquisitionToDelete = acquisitions.find(a => a.id === id);
+      if (!acquisitionToDelete) return;
+
+      // Delete from material_acquisitions
       const { error } = await supabase
         .from("material_acquisitions")
         .delete()
         .eq("id", id);
 
       if (error) throw error;
+
+      // Update inventory
+      const { data: inventoryData } = await supabase
+        .from("inventory_items")
+        .select("*")
+        .eq("material_id", acquisitionToDelete.material_id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (inventoryData) {
+        const { error: updateError } = await supabase
+          .from("inventory_items")
+          .update({
+            quantity_grams: inventoryData.quantity_grams - acquisitionToDelete.quantity_grams
+          })
+          .eq("id", inventoryData.id);
+
+        if (updateError) throw updateError;
+      }
+
+      // Register movement for deletion
+      const { error: movementError } = await supabase
+        .from("inventory_movements")
+        .insert([
+          {
+            user_id: user!.id,
+            material_id: acquisitionToDelete.material_id,
+            movement_type: "adjustment",
+            quantity_grams: acquisitionToDelete.quantity_grams,
+            notes: `Eliminación de adquisición. Reducción: ${acquisitionToDelete.quantity_grams}g`
+          }
+        ]);
+
+      if (movementError) throw movementError;
+
       toast.success(t('inventory.messages.acquisitionDeleted'));
       fetchData();
     } catch (error: any) {
@@ -274,40 +415,86 @@ const Acquisitions = () => {
                 <TableHead>{t('inventory.tables.pricePerUnit')}</TableHead>
                 <TableHead>{t('inventory.tables.total')}</TableHead>
                 <TableHead>{t('inventory.tables.supplier')}</TableHead>
+                <TableHead>{t('inventory.formLabels.notes')}</TableHead>
                 <TableHead>{t('inventory.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {acquisitions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     No hay adquisiciones registradas
                   </TableCell>
                 </TableRow>
               ) : (
-                acquisitions.map((acquisition) => (
-                  <TableRow key={acquisition.id}>
-                    <TableCell>
-                      {format(new Date(acquisition.purchase_date), "dd/MM/yyyy", { locale: es })}
-                    </TableCell>
-                    <TableCell>{acquisition.materials.name}</TableCell>
-                    <TableCell>
-                      {(acquisition.quantity_grams / 1000).toFixed(2)} kg
-                    </TableCell>
-                    <TableCell>{acquisition.unit_price.toFixed(2)}€</TableCell>
-                    <TableCell>{acquisition.total_price.toFixed(2)}€</TableCell>
-                    <TableCell>{acquisition.supplier || "-"}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        onClick={() => handleDeleteAcquisition(acquisition.id)}
-                      >
-                        <Trash className="w-4 h-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                acquisitions.map((acquisition) => {
+                  const materialIcon = acquisition.materials.display_mode === 'icon' && acquisition.materials.type
+                    ? getMaterialIcon(acquisition.materials.type)
+                    : null;
+                  
+                  return (
+                    <TableRow key={acquisition.id}>
+                      <TableCell>
+                        {format(new Date(acquisition.purchase_date), "dd/MM/yyyy", { locale: es })}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {acquisition.materials.display_mode === 'color' ? (
+                            <div
+                              className="w-4 h-4 rounded-full border flex-shrink-0"
+                              style={{ backgroundColor: acquisition.materials.color || '#gray' }}
+                            />
+                          ) : materialIcon && (
+                            <div className="w-4 h-4 flex-shrink-0">
+                              {materialIcon}
+                            </div>
+                          )}
+                          <span>{acquisition.materials.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {(acquisition.quantity_grams / 1000).toFixed(2)} kg
+                      </TableCell>
+                      <TableCell>{acquisition.unit_price.toFixed(2)}€</TableCell>
+                      <TableCell>{acquisition.total_price.toFixed(2)}€</TableCell>
+                      <TableCell>{acquisition.supplier || "-"}</TableCell>
+                      <TableCell>
+                        {acquisition.notes ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p>{acquisition.notes}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          "-"
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditAcquisition(acquisition)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => handleDeleteAcquisition(acquisition.id)}
+                          >
+                            <Trash className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -315,10 +502,25 @@ const Acquisitions = () => {
       </Card>
 
       {/* Dialog para añadir adquisición */}
-      <Dialog open={isAcquisitionDialogOpen} onOpenChange={setIsAcquisitionDialogOpen}>
+      <Dialog open={isAcquisitionDialogOpen} onOpenChange={(open) => {
+        setIsAcquisitionDialogOpen(open);
+        if (!open) {
+          setEditingAcquisition(null);
+          setAcquisitionForm({
+            material_id: "",
+            quantity_kg: "",
+            unit_price: "",
+            supplier: "",
+            purchase_date: new Date().toISOString().split('T')[0],
+            notes: ""
+          });
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{t('inventory.tabs.acquisitions')}</DialogTitle>
+            <DialogTitle>
+              {editingAcquisition ? 'Editar Adquisición' : t('inventory.tabs.acquisitions')}
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSaveAcquisition} className="space-y-4">
             <div>
@@ -343,23 +545,39 @@ const Acquisitions = () => {
                     <CommandList>
                       <CommandEmpty>No se encontró material.</CommandEmpty>
                       <CommandGroup>
-                        {materials.map((mat) => (
-                          <CommandItem
-                            key={mat.id}
-                            value={mat.name}
-                            onSelect={() => {
-                              setAcquisitionForm({ ...acquisitionForm, material_id: mat.id });
-                              setMaterialComboboxOpen(false);
-                            }}
-                          >
-                            <Check
-                              className={`mr-2 h-4 w-4 ${
-                                acquisitionForm.material_id === mat.id ? "opacity-100" : "opacity-0"
-                              }`}
-                            />
-                            {mat.name}
-                          </CommandItem>
-                        ))}
+                        {materials.map((mat) => {
+                          const materialIcon = mat.display_mode === 'icon' && mat.type
+                            ? getMaterialIcon(mat.type)
+                            : null;
+                          
+                          return (
+                            <CommandItem
+                              key={mat.id}
+                              value={mat.name}
+                              onSelect={() => {
+                                setAcquisitionForm({ ...acquisitionForm, material_id: mat.id });
+                                setMaterialComboboxOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${
+                                  acquisitionForm.material_id === mat.id ? "opacity-100" : "opacity-0"
+                                }`}
+                              />
+                              {mat.display_mode === 'color' ? (
+                                <div
+                                  className="w-4 h-4 rounded-full border mr-2 flex-shrink-0"
+                                  style={{ backgroundColor: mat.color || '#gray' }}
+                                />
+                              ) : materialIcon && (
+                                <div className="mr-2 flex-shrink-0">
+                                  {materialIcon}
+                                </div>
+                              )}
+                              {mat.name}
+                            </CommandItem>
+                          );
+                        })}
                       </CommandGroup>
                     </CommandList>
                   </Command>
@@ -420,11 +638,21 @@ const Acquisitions = () => {
               />
             </div>
             <div className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={() => setIsAcquisitionDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => {
+                setIsAcquisitionDialogOpen(false);
+                setEditingAcquisition(null);
+              }}>
                 {t('common.cancel')}
               </Button>
-              <Button type="submit">
-                {t('inventory.dialogs.create')}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {editingAcquisition ? 'Actualizando...' : 'Guardando...'}
+                  </>
+                ) : (
+                  editingAcquisition ? 'Actualizar' : t('inventory.dialogs.create')
+                )}
               </Button>
             </div>
           </form>
