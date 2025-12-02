@@ -221,7 +221,10 @@ const Inventory = () => {
         .order("name", { ascending: true });
 
       if (materialsError) throw materialsError;
-      setMaterials(materialsData || []);
+      setMaterials((materialsData || []).map(m => ({
+        ...m,
+        display_mode: (m.display_mode || 'color') as 'color' | 'icon'
+      })));
 
       // Fetch inventory
       const { data: inventoryData, error: inventoryError } = await supabase
@@ -241,45 +244,39 @@ const Inventory = () => {
         .eq("user_id", user.id);
 
       if (inventoryError) throw inventoryError;
-      setInventory(inventoryData || []);
+      setInventory((inventoryData || []).map(item => ({
+        ...item,
+        materials: {
+          ...item.materials,
+          display_mode: (item.materials.display_mode || 'color') as 'color' | 'icon'
+        }
+      })));
 
-      // Fetch pending materials (from projects)
-      const { data: projectsData, error: projectsError } = await supabase
-        .from("projects")
-        .select(`
-          id,
-          project_materials (
-            material_id,
-            weight_grams
-          )
-        `)
-        .eq("user_id", user.id)
-        .eq("status", "pending");
+      // Fetch pending materials from print_materials
+      const { data: pendingPrintsData, error: pendingPrintsError } = await supabase
+        .from("print_materials")
+        .select("material_id, weight_grams, prints!inner(status, user_id)")
+        .eq("prints.user_id", user.id)
+        .in("prints.status", ["pending_print", "printing"]);
 
-      if (projectsError) throw projectsError;
+      if (pendingPrintsError) console.error("Error loading pending prints:", pendingPrintsError);
 
       const pending: Record<string, number> = {};
-      projectsData?.forEach(project => {
-        project.project_materials?.forEach((pm: any) => {
-          pending[pm.material_id] = (pending[pm.material_id] || 0) + pm.weight_grams;
-        });
+      (pendingPrintsData || []).forEach((item: any) => {
+        if (!pending[item.material_id]) {
+          pending[item.material_id] = 0;
+        }
+        pending[item.material_id] += item.weight_grams;
       });
       setPendingMaterials(pending);
 
       // Fetch stock prints
       const { data: stockPrintsData, error: stockPrintsError } = await supabase
-        .from("stock_prints")
-        .select(`
-          *,
-          materials (
-            id,
-            name,
-            color,
-            type,
-            display_mode
-          )
-        `)
+        .from("prints")
+        .select("*, projects(id, name)")
         .eq("user_id", user.id)
+        .eq("status", "completed")
+        .is("order_id", null)
         .order("print_date", { ascending: false });
 
       if (stockPrintsError) throw stockPrintsError;
@@ -749,7 +746,7 @@ const Inventory = () => {
 
     try {
       const { error } = await supabase
-        .from("stock_prints")
+        .from("prints")
         .update({ order_id: selectedOrderId })
         .eq("id", selectedPrint.id);
 
@@ -771,7 +768,7 @@ const Inventory = () => {
 
     try {
       const { error } = await supabase
-        .from("stock_prints")
+        .from("prints")
         .delete()
         .eq("id", printId);
 
@@ -839,16 +836,17 @@ const Inventory = () => {
 
       // Add item to list
       const { error } = await supabase
-        .from("shopping_list_items")
+        .from("shopping_list")
         .insert([
           {
             shopping_list_id: listId,
-            item_name: shoppingListItemName,
+            name: shoppingListItemName,
             quantity: shoppingListItemQuantity || null,
             estimated_price: shoppingListItemEstimatedPrice
               ? parseFloat(shoppingListItemEstimatedPrice)
               : null,
-            is_purchased: false,
+            is_completed: false,
+            user_id: user.id
           },
         ]);
 
@@ -1283,7 +1281,8 @@ const Inventory = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t('inventory.material')}</TableHead>
-                    <TableHead>{t('inventory.tables.available')}</TableHead>
+                    <TableHead>{t('inventory.tables.pricePerUnit')} (units, Kg, L)</TableHead>
+                    <TableHead>{t('inventory.tables.available')} (units, Kg, L)</TableHead>
                     <TableHead>{t('inventory.tables.pending')}</TableHead>
                     <TableHead>{t('inventory.tables.location')}</TableHead>
                     <TableHead>{t('inventory.tables.notes')}</TableHead>

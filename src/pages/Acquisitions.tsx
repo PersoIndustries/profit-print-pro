@@ -130,7 +130,13 @@ const Acquisitions = () => {
         .limit(50);
 
       if (error) throw error;
-      setAcquisitions(data || []);
+      setAcquisitions((data || []).map(acq => ({
+        ...acq,
+        materials: {
+          ...(Array.isArray(acq.materials) ? acq.materials[0] : acq.materials),
+          display_mode: ((Array.isArray(acq.materials) ? acq.materials[0]?.display_mode : acq.materials?.display_mode) || 'color') as 'color' | 'icon'
+        }
+      })));
     } catch (error: any) {
       toast.error(t('inventory.messages.errorLoadingAcquisitions'));
     }
