@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, ShoppingCart, History, Trash, Edit, Star, Info, Disc, Droplet, KeyRound, Wrench, Paintbrush, FileBox, Package, PackagePlus, Printer, ListPlus, ArrowUpDown, ArrowUp, ArrowDown, Search, Filter, X, PrinterIcon, Trash2, MinusCircle, TrendingUp } from "lucide-react";
+import { Loader2, Plus, ShoppingCart, History, Trash, Edit, Star, Info, Disc, Droplet, KeyRound, Wrench, Paintbrush, FileBox, Package, PackagePlus, Printer, ListPlus, ArrowUpDown, ArrowUp, ArrowDown, Search, Filter, X, PrinterIcon, Trash2, MinusCircle, TrendingUp, MoreVertical } from "lucide-react";
 import { HexColorPicker } from "react-colorful";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -34,6 +34,13 @@ import { es } from "date-fns/locale";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Material {
   id: string;
@@ -156,6 +163,17 @@ const Inventory = () => {
   const [rectifyQuantity, setRectifyQuantity] = useState("");
   const [rectifyNotes, setRectifyNotes] = useState("");
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [isAcquisitionDialogOpen, setIsAcquisitionDialogOpen] = useState(false);
+  const [acquisitionMaterial, setAcquisitionMaterial] = useState<Material | null>(null);
+  const [acquisitionForm, setAcquisitionForm] = useState({
+    material_id: "",
+    quantity_kg: "",
+    unit_price: "",
+    supplier: "",
+    purchase_date: new Date().toISOString().split('T')[0],
+    notes: ""
+  });
+  const [isSubmittingAcquisition, setIsSubmittingAcquisition] = useState(false);
   const [selectedColor, setSelectedColor] = useState("#000000");
   const [stockPrints, setStockPrints] = useState<any[]>([]);
   const [printers, setPrinters] = useState<Printer[]>([]);
@@ -206,6 +224,19 @@ const Inventory = () => {
       fetchData();
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (acquisitionMaterial && isAcquisitionDialogOpen) {
+      setAcquisitionForm({
+        material_id: acquisitionMaterial.id,
+        quantity_kg: "",
+        unit_price: acquisitionMaterial.price_per_kg.toString(),
+        supplier: "",
+        purchase_date: new Date().toISOString().split('T')[0],
+        notes: ""
+      });
+    }
+  }, [acquisitionMaterial, isAcquisitionDialogOpen]);
 
   const fetchData = async () => {
     if (!user) return;
@@ -572,20 +603,122 @@ const Inventory = () => {
             material_id: viewingMaterial.id,
             movement_type: "adjustment",
             quantity_grams: quantityToReduce,
-            notes: `Rectificación de cantidad. ${rectifyNotes || 'Sin notas'}`
+            notes: `${t('inventory.rectify.title')}. ${rectifyNotes || t('inventory.rectify.notesPlaceholder')}`
           }
         ]);
 
       if (movementError) throw movementError;
 
-      toast.success('Cantidad rectificada correctamente');
+      toast.success(t('inventory.messages.rectifySuccess'));
       setIsRectifyDialogOpen(false);
       setRectifyQuantity("");
       setRectifyNotes("");
       fetchData();
     } catch (error: any) {
       console.error('Error rectifying quantity:', error);
-      toast.error('Error al rectificar la cantidad');
+      toast.error(t('inventory.messages.rectifyError'));
+    }
+  };
+
+  const handleSaveAcquisition = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || isSubmittingAcquisition || !acquisitionMaterial) return;
+
+    try {
+      setIsSubmittingAcquisition(true);
+      const quantityKg = parseFloat(acquisitionForm.quantity_kg);
+      if (isNaN(quantityKg) || quantityKg <= 0) {
+        toast.error(t('inventory.messages.invalidQuantity') || 'Cantidad inválida');
+        return;
+      }
+
+      const quantityGrams = quantityKg * 1000;
+      const unitPrice = parseFloat(acquisitionForm.unit_price);
+      if (isNaN(unitPrice) || unitPrice <= 0) {
+        toast.error(t('inventory.messages.invalidPrice') || 'Precio inválido');
+        return;
+      }
+
+      const totalPrice = quantityKg * unitPrice;
+
+      const { error: acquisitionError } = await supabase
+        .from("material_acquisitions")
+        .insert([
+          {
+            user_id: user.id,
+            material_id: acquisitionMaterial.id,
+            quantity_grams: quantityGrams,
+            unit_price: unitPrice,
+            total_price: totalPrice,
+            supplier: acquisitionForm.supplier || null,
+            purchase_date: acquisitionForm.purchase_date,
+            notes: acquisitionForm.notes || null
+          }
+        ]);
+
+      if (acquisitionError) throw acquisitionError;
+
+      const { data: inventoryData } = await supabase
+        .from("inventory_items")
+        .select("*")
+        .eq("material_id", acquisitionMaterial.id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (inventoryData) {
+        const { error: updateError } = await supabase
+          .from("inventory_items")
+          .update({
+            quantity_grams: inventoryData.quantity_grams + quantityGrams
+          })
+          .eq("id", inventoryData.id);
+
+        if (updateError) throw updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from("inventory_items")
+          .insert([
+            {
+              user_id: user.id,
+              material_id: acquisitionMaterial.id,
+              quantity_grams: quantityGrams
+            }
+          ]);
+
+        if (insertError) throw insertError;
+      }
+
+      const { error: movementError } = await supabase
+        .from("inventory_movements")
+        .insert([
+          {
+            user_id: user.id,
+            material_id: acquisitionMaterial.id,
+            movement_type: "acquisition",
+            quantity_grams: quantityGrams,
+            notes: acquisitionForm.notes || null
+          }
+        ]);
+
+      if (movementError) throw movementError;
+
+      toast.success(t('inventory.messages.acquisitionRegistered'));
+      setIsAcquisitionDialogOpen(false);
+      setAcquisitionMaterial(null);
+      setAcquisitionForm({
+        material_id: "",
+        quantity_kg: "",
+        unit_price: "",
+        supplier: "",
+        purchase_date: new Date().toISOString().split('T')[0],
+        notes: ""
+      });
+      fetchData();
+    } catch (error: any) {
+      console.error('Error saving acquisition:', error);
+      toast.error(t('inventory.messages.errorRegisteringAcquisition'));
+    } finally {
+      setIsSubmittingAcquisition(false);
     }
   };
 
@@ -1262,36 +1395,44 @@ const Inventory = () => {
                             </>
                           )}
                           <TableCell>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleViewMaterial(material)}
-                              >
-                                <Info className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEditMaterial(material)}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => openAddToShoppingListDialog(material)}
-                              >
-                                <ShoppingCart className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="icon"
-                                onClick={() => handleDeleteMaterial(material)}
-                              >
-                                <Trash className="w-4 h-4" />
-                              </Button>
-                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleViewMaterial(material)}>
+                                  <Info className="w-4 h-4 mr-2" />
+                                  {t('inventory.actions.view')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openAddToShoppingListDialog(material)}>
+                                  <ListPlus className="w-4 h-4 mr-2" />
+                                  {t('inventory.actions.addToShoppingList')}
+                                </DropdownMenuItem>
+                                {hasFeature('acquisition_history') && (
+                                  <DropdownMenuItem onClick={() => {
+                                    setAcquisitionMaterial(material);
+                                    setIsAcquisitionDialogOpen(true);
+                                  }}>
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    {t('inventory.actions.acquire')}
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem onClick={() => handleEditMaterial(material)}>
+                                  <Edit className="w-4 h-4 mr-2" />
+                                  {t('inventory.actions.edit')}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => handleDeleteMaterial(material)}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash className="w-4 h-4 mr-2" />
+                                  {t('inventory.actions.delete')}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       );
@@ -1861,7 +2002,7 @@ const Inventory = () => {
                 }}
               >
                 <MinusCircle className="w-4 h-4 mr-2" />
-                Rectificar Cantidad
+                {t('inventory.rectify.title')}
               </Button>
             </div>
           </div>
@@ -1872,14 +2013,14 @@ const Inventory = () => {
       <Dialog open={isRectifyDialogOpen} onOpenChange={setIsRectifyDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Rectificar Cantidad</DialogTitle>
+            <DialogTitle>{t('inventory.rectify.title')}</DialogTitle>
             <DialogDescription>
-              Reduce la cantidad de material en el inventario
+              {t('inventory.rectify.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="rectify_quantity">Cantidad a reducir (gramos)</Label>
+              <Label htmlFor="rectify_quantity">{t('inventory.formLabels.quantityToReduce')}</Label>
               <Input
                 id="rectify_quantity"
                 type="number"
@@ -1890,21 +2031,21 @@ const Inventory = () => {
               />
             </div>
             <div>
-              <Label htmlFor="rectify_notes">Notas</Label>
+              <Label htmlFor="rectify_notes">{t('inventory.formLabels.rectifyNotes')}</Label>
               <Textarea
                 id="rectify_notes"
                 value={rectifyNotes}
                 onChange={(e) => setRectifyNotes(e.target.value)}
-                placeholder="Motivo de la rectificación..."
+                placeholder={t('inventory.formLabels.rectifyNotesPlaceholder')}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsRectifyDialogOpen(false)}>
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleRectifyQuantity}>
-              Rectificar
+              {t('inventory.rectify.button')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2194,6 +2335,108 @@ const Inventory = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Acquisition Dialog */}
+      <Dialog open={isAcquisitionDialogOpen} onOpenChange={(open) => {
+        setIsAcquisitionDialogOpen(open);
+        if (!open) {
+          setAcquisitionMaterial(null);
+          setAcquisitionForm({
+            material_id: "",
+            quantity_kg: "",
+            unit_price: "",
+            supplier: "",
+            purchase_date: new Date().toISOString().split('T')[0],
+            notes: ""
+          });
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('inventory.dialogs.newAcquisition')}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveAcquisition} className="space-y-4">
+            <div>
+              <Label htmlFor="acq_material">{t('inventory.material')} *</Label>
+              <Input
+                id="acq_material"
+                value={acquisitionMaterial?.name || ""}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+            <div>
+              <Label htmlFor="acq_quantity">{t('inventory.formLabels.quantityWithUnits')} *</Label>
+              <Input
+                id="acq_quantity"
+                type="number"
+                step="0.01"
+                min="0"
+                value={acquisitionForm.quantity_kg}
+                onChange={(e) => setAcquisitionForm({ ...acquisitionForm, quantity_kg: e.target.value })}
+                placeholder="0.00"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="acq_unit_price">{t('inventory.tables.pricePerUnit')} *</Label>
+              <Input
+                id="acq_unit_price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={acquisitionForm.unit_price}
+                onChange={(e) => setAcquisitionForm({ ...acquisitionForm, unit_price: e.target.value })}
+                placeholder="0.00"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="acq_supplier">{t('inventory.tables.supplier')}</Label>
+              <Input
+                id="acq_supplier"
+                value={acquisitionForm.supplier}
+                onChange={(e) => setAcquisitionForm({ ...acquisitionForm, supplier: e.target.value })}
+                placeholder={t('inventory.formLabels.supplierPlaceholder') || "Nombre del proveedor"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="acq_date">{t('inventory.tables.date')} *</Label>
+              <Input
+                id="acq_date"
+                type="date"
+                value={acquisitionForm.purchase_date}
+                onChange={(e) => setAcquisitionForm({ ...acquisitionForm, purchase_date: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="acq_notes">{t('inventory.formLabels.notes')}</Label>
+              <Textarea
+                id="acq_notes"
+                value={acquisitionForm.notes}
+                onChange={(e) => setAcquisitionForm({ ...acquisitionForm, notes: e.target.value })}
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button type="button" variant="outline" onClick={() => setIsAcquisitionDialogOpen(false)}>
+                {t('common.cancel')}
+              </Button>
+              <Button type="submit" disabled={isSubmittingAcquisition}>
+                {isSubmittingAcquisition ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {t('common.saving') || 'Guardando...'}
+                  </>
+                ) : (
+                  t('inventory.dialogs.create')
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

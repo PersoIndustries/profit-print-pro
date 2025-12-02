@@ -1128,7 +1128,13 @@
     "pendingTooltip": "Matériau réservé pour les impressions en attente",
     "realStock": "Stock Réel",
     "realStockTooltip": "Stock disponible moins les impressions en attente",
-    "actions": "Actions",
+    "actions": {
+      "view": "Voir",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "acquire": "Acquérir",
+      "addToShoppingList": "Ajouter à la Liste d'Achats"
+    },
     "noMaterialsFound": "Aucun matériau trouvé avec les filtres appliqués",
     "lowStockWarning": "Il y a des matériaux avec un stock faible (marqués en jaune)",
     "onlyLowStock": "Stock faible",
@@ -1170,6 +1176,9 @@
       "insufficientStock": "Stock insuffisant disponible",
       "acquisitionRegistered": "Acquisition enregistrée avec succès",
       "errorRegisteringAcquisition": "Erreur lors de l'enregistrement de l'acquisition",
+      "invalidQuantity": "Quantité invalide",
+      "rectifySuccess": "Quantité ajustée avec succès",
+      "rectifyError": "Erreur lors de l'ajustement de la quantité",
       "wasteRegistered": "Déchet enregistré avec succès",
       "errorRegisteringWaste": "Erreur lors de l'enregistrement du déchet",
       "acquisitionDeleted": "Acquisition supprimée",
@@ -1244,7 +1253,20 @@
       "quantityWithUnits": "Quantité /(kg, L, unités, etc.)",
       "unitPrice": "Prix /(par kg, L, unité, etc.) (€)",
       "supplier": "Fournisseur",
-      "purchaseDate": "Date d'Achat"
+      "supplierPlaceholder": "Nom du fournisseur",
+      "purchaseDate": "Date d'Achat",
+      "minStockAlert": "Alerte de Stock Faible",
+      "quantityToReduce": "Quantité à réduire (grammes)",
+      "rectifyNotes": "Notes",
+      "rectifyNotesPlaceholder": "Raison de l'ajustement..."
+    },
+    "rectify": {
+      "title": "Ajuster la Quantité",
+      "description": "Réduire la quantité de matériau dans l'inventaire",
+      "button": "Ajuster",
+      "success": "Quantité ajustée avec succès",
+      "error": "Erreur lors de l'ajustement de la quantité",
+      "notesPlaceholder": "Raison de l'ajustement..."
     }
   },
   "prints": {
@@ -1560,6 +1582,7 @@
     }
   },
   "common": {
+    "saving": "Enregistrement...",
     "loading": "Chargement...",
     "error": "Une erreur s'est produite",
     "success": "Succès",

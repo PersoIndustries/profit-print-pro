@@ -915,6 +915,7 @@
       "viewPlans": "View Plans"
     },
     "common": {
+      "saving": "Saving...",
       "save": "Save",
       "actions": "Actions"
     }
@@ -1139,7 +1140,13 @@
     "pendingTooltip": "Material reserved for pending prints",
     "realStock": "Real Stock",
     "realStockTooltip": "Available stock minus pending prints",
-    "actions": "Actions",
+    "actions": {
+      "view": "View",
+      "edit": "Edit",
+      "delete": "Delete",
+      "acquire": "Acquire",
+      "addToShoppingList": "Add to Shopping List"
+    },
     "noMaterialsFound": "No materials found with applied filters",
     "lowStockWarning": "There are materials with low stock (marked in yellow)",
     "onlyLowStock": "Low stock",
@@ -1181,6 +1188,9 @@
       "insufficientStock": "Insufficient stock available",
       "acquisitionRegistered": "Acquisition registered successfully",
       "errorRegisteringAcquisition": "Error registering acquisition",
+      "invalidQuantity": "Invalid quantity",
+      "rectifySuccess": "Quantity adjusted successfully",
+      "rectifyError": "Error adjusting quantity",
       "wasteRegistered": "Waste registered successfully",
       "errorRegisteringWaste": "Error registering waste",
       "acquisitionDeleted": "Acquisition deleted",
@@ -1255,7 +1265,20 @@
       "quantityWithUnits": "Quantity /(kg, L, units, etc.)",
       "unitPrice": "Price /(per kg, L, unit, etc.) (€)",
       "supplier": "Supplier",
-      "purchaseDate": "Purchase Date"
+      "supplierPlaceholder": "Supplier name",
+      "purchaseDate": "Purchase Date",
+      "minStockAlert": "Low Stock Alert",
+      "quantityToReduce": "Quantity to reduce (grams)",
+      "rectifyNotes": "Notes",
+      "rectifyNotesPlaceholder": "Reason for adjustment..."
+    },
+    "rectify": {
+      "title": "Adjust Quantity",
+      "description": "Reduce the quantity of material in inventory",
+      "button": "Adjust",
+      "success": "Quantity adjusted successfully",
+      "error": "Error adjusting quantity",
+      "notesPlaceholder": "Reason for adjustment..."
     }
   },
   "prints": {

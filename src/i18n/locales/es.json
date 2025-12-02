@@ -94,6 +94,7 @@
     }
   },
   "common": {
+    "saving": "Guardando...",
     "delete": "Eliminar",
     "cancel": "Cancelar",
     "comingSoon": "Próximamente"
@@ -627,7 +628,13 @@
     "pendingTooltip": "Material reservado para impresiones pendientes",
     "realStock": "Stock Real",
     "realStockTooltip": "Stock disponible menos impresiones pendientes",
-    "actions": "Acciones",
+    "actions": {
+      "view": "Ver",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "acquire": "Adquirir",
+      "addToShoppingList": "Agregar a Lista de Compras"
+    },
     "noMaterialsFound": "No se encontraron materiales con los filtros aplicados",
     "lowStockWarning": "Hay materiales con stock bajo (marcados en amarillo)",
     "onlyLowStock": "Stock bajo",
@@ -677,6 +684,9 @@
       "insufficientStock": "Stock insuficiente disponible",
       "acquisitionRegistered": "Adquisición registrada correctamente",
       "errorRegisteringAcquisition": "Error al registrar adquisición",
+      "invalidQuantity": "Cantidad inválida",
+      "rectifySuccess": "Cantidad rectificada correctamente",
+      "rectifyError": "Error al rectificar la cantidad",
       "wasteRegistered": "Desperdicio registrado correctamente",
       "errorRegisteringWaste": "Error al registrar desperdicio",
       "acquisitionDeleted": "Adquisición eliminada",
@@ -761,7 +771,20 @@
       "quantityWithUnits": "Cantidad /(kg, L, unidades, etc.)",
       "unitPrice": "Precio /(por kg, L, unidad, etc.) (€)",
       "supplier": "Proveedor",
-      "purchaseDate": "Fecha de Compra"
+      "supplierPlaceholder": "Nombre del proveedor",
+      "purchaseDate": "Fecha de Compra",
+      "minStockAlert": "Alerta de Stock Bajo",
+      "quantityToReduce": "Cantidad a reducir (gramos)",
+      "rectifyNotes": "Notas",
+      "rectifyNotesPlaceholder": "Motivo de la rectificación..."
+    },
+    "rectify": {
+      "title": "Rectificar Cantidad",
+      "description": "Reduce la cantidad de material en el inventario",
+      "button": "Rectificar",
+      "success": "Cantidad rectificada correctamente",
+      "error": "Error al rectificar la cantidad",
+      "notesPlaceholder": "Motivo de la rectificación..."
     }
   }
 }
