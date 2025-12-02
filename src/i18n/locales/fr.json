@@ -1235,7 +1235,14 @@
       "total": "Total",
       "supplier": "Fournisseur",
       "dateAndTime": "Date et Heure",
-      "notes": "Notes"
+      "notes": "Notes",
+      "brand": "Marque",
+      "model": "Modèle",
+      "usageHours": "Heures d'Utilisation",
+      "maintenance": "Maintenance",
+      "available": "Disponible",
+      "location": "Emplacement",
+      "order": "Commande"
     },
     "formLabels": {
       "name": "Nom",
@@ -1267,6 +1274,43 @@
       "success": "Quantité ajustée avec succès",
       "error": "Erreur lors de l'ajustement de la quantité",
       "notesPlaceholder": "Raison de l'ajustement..."
+    },
+    "maintenance": {
+      "title": "Pièces de Maintenance",
+      "addPart": "Ajouter une Pièce",
+      "noParts": "Aucune pièce de maintenance configurée",
+      "partName": "Nom de la Pièce",
+      "partNamePlaceholder": "Ex: Nozzle, Boquilla, Courroie, etc.",
+      "maintenanceHours": "Heures de Maintenance",
+      "currentHours": "Heures d'Utilisation Actuelles",
+      "notesPlaceholder": "Notes sur la maintenance de cette pièce...",
+      "parts": "Pièces de Maintenance"
+    },
+    "printers": {
+      "actions": {
+        "editParts": "Modifier les Pièces",
+        "performMaintenance": "Effectuer la Maintenance",
+        "viewHistory": "Voir l'Historique"
+      },
+      "dialogs": {
+        "performMaintenance": "Effectuer la Maintenance"
+      },
+      "selectParts": "Sélectionner les Pièces",
+      "noParts": "Aucune pièce configurée",
+      "materialsUsed": "Matériaux Utilisés",
+      "addMaterial": "Ajouter un Matériau",
+      "maintenanceNotesPlaceholder": "Notes sur la maintenance effectuée...",
+      "saveMaintenance": "Enregistrer la Maintenance",
+      "maintenanceHistory": "Historique de Maintenance",
+      "noMaintenanceHistory": "Aucun historique de maintenance",
+      "generalMaintenance": "Maintenance Générale",
+      "unknownMaterial": "Matériau inconnu",
+      "messages": {
+        "selectAtLeastOnePart": "Sélectionnez au moins une pièce",
+        "maintenanceSaved": "Maintenance enregistrée avec succès",
+        "errorSavingMaintenance": "Erreur lors de l'enregistrement de la maintenance",
+        "errorLoadingHistory": "Erreur lors du chargement de l'historique"
+      }
     }
   },
   "prints": {

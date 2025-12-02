@@ -701,7 +701,11 @@
       "printerUpdated": "Impresora actualizada",
       "errorUpdatingPrinter": "Error al actualizar impresora",
       "printerDeleted": "Impresora eliminada",
-      "errorDeletingPrinter": "Error al eliminar impresora"
+      "errorDeletingPrinter": "Error al eliminar impresora",
+      "selectAtLeastOnePart": "Selecciona al menos una pieza",
+      "maintenanceSaved": "Mantenimiento registrado correctamente",
+      "errorSavingMaintenance": "Error al guardar el mantenimiento",
+      "errorLoadingHistory": "Error al cargar el historial"
     },
     "tabs": {
       "materials": "Stock",
@@ -719,7 +723,28 @@
       "partNamePlaceholder": "Ej: Nozzle, Boquilla, Correa, etc.",
       "maintenanceHours": "Horas para Mantenimiento",
       "currentHours": "Horas de Uso Actuales",
-      "notesPlaceholder": "Notas sobre el mantenimiento de esta pieza..."
+      "notesPlaceholder": "Notas sobre el mantenimiento de esta pieza...",
+      "parts": "Piezas de Mantenimiento"
+    },
+    "printers": {
+      "actions": {
+        "editParts": "Editar Piezas",
+        "performMaintenance": "Realizar Mantenimiento",
+        "viewHistory": "Ver Historial"
+      },
+      "dialogs": {
+        "performMaintenance": "Realizar Mantenimiento"
+      },
+      "selectParts": "Seleccionar Piezas",
+      "noParts": "No hay piezas configuradas",
+      "materialsUsed": "Materiales Utilizados",
+      "addMaterial": "Agregar Material",
+      "maintenanceNotesPlaceholder": "Notas sobre el mantenimiento realizado...",
+      "saveMaintenance": "Guardar Mantenimiento",
+      "maintenanceHistory": "Historial de Mantenimiento",
+      "noMaintenanceHistory": "No hay historial de mantenimiento",
+      "generalMaintenance": "Mantenimiento General",
+      "unknownMaterial": "Material desconocido"
     },
     "movementTypes": {
       "acquisition": "Adquisición",
@@ -753,7 +778,14 @@
       "total": "Total",
       "supplier": "Proveedor",
       "dateAndTime": "Fecha y Hora",
-      "notes": "Notas"
+      "notes": "Notas",
+      "brand": "Marca",
+      "model": "Modelo",
+      "usageHours": "Horas de Uso",
+      "maintenance": "Mantenimiento",
+      "available": "Disponible",
+      "location": "Ubicación",
+      "order": "Pedido"
     },
     "formLabels": {
       "name": "Nombre",

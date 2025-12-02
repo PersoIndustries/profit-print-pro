@@ -1247,7 +1247,14 @@
       "total": "Total",
       "supplier": "Supplier",
       "dateAndTime": "Date and Time",
-      "notes": "Notes"
+      "notes": "Notes",
+      "brand": "Brand",
+      "model": "Model",
+      "usageHours": "Usage Hours",
+      "maintenance": "Maintenance",
+      "available": "Available",
+      "location": "Location",
+      "order": "Order"
     },
     "formLabels": {
       "name": "Name",
@@ -1279,6 +1286,43 @@
       "success": "Quantity adjusted successfully",
       "error": "Error adjusting quantity",
       "notesPlaceholder": "Reason for adjustment..."
+    },
+    "maintenance": {
+      "title": "Maintenance Parts",
+      "addPart": "Add Part",
+      "noParts": "No maintenance parts configured",
+      "partName": "Part Name",
+      "partNamePlaceholder": "E.g.: Nozzle, Boquilla, Belt, etc.",
+      "maintenanceHours": "Maintenance Hours",
+      "currentHours": "Current Usage Hours",
+      "notesPlaceholder": "Notes about this part's maintenance...",
+      "parts": "Maintenance Parts"
+    },
+    "printers": {
+      "actions": {
+        "editParts": "Edit Parts",
+        "performMaintenance": "Perform Maintenance",
+        "viewHistory": "View History"
+      },
+      "dialogs": {
+        "performMaintenance": "Perform Maintenance"
+      },
+      "selectParts": "Select Parts",
+      "noParts": "No parts configured",
+      "materialsUsed": "Materials Used",
+      "addMaterial": "Add Material",
+      "maintenanceNotesPlaceholder": "Notes about the maintenance performed...",
+      "saveMaintenance": "Save Maintenance",
+      "maintenanceHistory": "Maintenance History",
+      "noMaintenanceHistory": "No maintenance history",
+      "generalMaintenance": "General Maintenance",
+      "unknownMaterial": "Unknown material",
+      "messages": {
+        "selectAtLeastOnePart": "Select at least one part",
+        "maintenanceSaved": "Maintenance registered successfully",
+        "errorSavingMaintenance": "Error saving maintenance",
+        "errorLoadingHistory": "Error loading history"
+      }
     }
   },
   "prints": {

@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, ShoppingCart, History, Trash, Edit, Star, Info, Disc, Droplet, KeyRound, Wrench, Paintbrush, FileBox, Package, PackagePlus, Printer, ListPlus, ArrowUpDown, ArrowUp, ArrowDown, Search, Filter, X, PrinterIcon, Trash2, MinusCircle, TrendingUp, MoreVertical } from "lucide-react";
+import { Loader2, Plus, ShoppingCart, History, Trash, Edit, Star, Info, Disc, Droplet, KeyRound, Wrench, Paintbrush, FileBox, Package, PackagePlus, Printer, ListPlus, ArrowUpDown, ArrowUp, ArrowDown, Search, Filter, X, PrinterIcon, Trash2, MinusCircle, TrendingUp, MoreVertical, ChevronDown, Settings, Clock } from "lucide-react";
 import { HexColorPicker } from "react-colorful";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -41,6 +41,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Material {
   id: string;
@@ -174,6 +176,14 @@ const Inventory = () => {
     notes: ""
   });
   const [isSubmittingAcquisition, setIsSubmittingAcquisition] = useState(false);
+  const [expandedPrinters, setExpandedPrinters] = useState<Set<string>>(new Set());
+  const [isMaintenanceDialogOpen, setIsMaintenanceDialogOpen] = useState(false);
+  const [isMaintenanceHistoryDialogOpen, setIsMaintenanceHistoryDialogOpen] = useState(false);
+  const [selectedPrinterForMaintenance, setSelectedPrinterForMaintenance] = useState<Printer | null>(null);
+  const [selectedPartsForMaintenance, setSelectedPartsForMaintenance] = useState<Set<string>>(new Set());
+  const [maintenanceMaterials, setMaintenanceMaterials] = useState<Array<{ material_id: string; quantity_grams: string; notes: string }>>([]);
+  const [maintenanceNotes, setMaintenanceNotes] = useState("");
+  const [maintenanceHistory, setMaintenanceHistory] = useState<any[]>([]);
   const [selectedColor, setSelectedColor] = useState("#000000");
   const [stockPrints, setStockPrints] = useState<any[]>([]);
   const [printers, setPrinters] = useState<Printer[]>([]);
@@ -829,6 +839,176 @@ const Inventory = () => {
     }));
     setMaintenanceParts(parts);
     setIsPrinterDialogOpen(true);
+  };
+
+  const handleEditPrinterParts = (printer: Printer) => {
+    setEditingPrinter(printer);
+    setPrinterForm({
+      brand: printer.brand,
+      model: printer.model,
+      usage_hours: printer.usage_hours.toString(),
+      notes: printer.notes || "",
+    });
+    const parts = (printer.printer_maintenance_parts || []).map((part) => ({
+      tempId: part.id,
+      part_name: part.part_name,
+      maintenance_hours: part.maintenance_hours.toString(),
+      current_hours: part.current_hours.toString(),
+      notes: part.notes || "",
+    }));
+    setMaintenanceParts(parts);
+    setIsPrinterDialogOpen(true);
+  };
+
+  const handleOpenMaintenanceDialog = (printer: Printer) => {
+    setSelectedPrinterForMaintenance(printer);
+    setSelectedPartsForMaintenance(new Set());
+    setMaintenanceMaterials([]);
+    setMaintenanceNotes("");
+    setIsMaintenanceDialogOpen(true);
+  };
+
+  const handleOpenMaintenanceHistory = async (printer: Printer) => {
+    setSelectedPrinterForMaintenance(printer);
+    try {
+      const { data, error } = await supabase
+        .from("printer_maintenance_history")
+        .select(`
+          *,
+          printer_maintenance_parts(part_name),
+          printer_maintenance_materials(
+            quantity_grams,
+            materials(name, display_mode, color, type)
+          )
+        `)
+        .eq("printer_id", printer.id)
+        .order("maintenance_date", { ascending: false });
+
+      if (error) throw error;
+      setMaintenanceHistory(data || []);
+      setIsMaintenanceHistoryDialogOpen(true);
+    } catch (error: any) {
+      console.error("Error fetching maintenance history:", error);
+      toast.error(t('inventory.printers.messages.errorLoadingHistory') || 'Error al cargar el historial');
+    }
+  };
+
+  const handleSaveMaintenance = async () => {
+    if (!user || !selectedPrinterForMaintenance) return;
+
+    try {
+      if (selectedPartsForMaintenance.size === 0 && maintenanceMaterials.length === 0) {
+        toast.error(t('inventory.printers.messages.selectAtLeastOnePart') || 'Selecciona al menos una pieza o agrega materiales');
+        return;
+      }
+
+      // Create maintenance history entry for each selected part (or one general entry)
+      const maintenanceDate = new Date().toISOString();
+      const maintenanceEntries = [];
+
+      if (selectedPartsForMaintenance.size > 0) {
+        for (const partId of selectedPartsForMaintenance) {
+          const { data: maintenanceEntry, error: maintenanceError } = await supabase
+            .from("printer_maintenance_history")
+            .insert([
+              {
+                printer_id: selectedPrinterForMaintenance.id,
+                part_id: partId,
+                maintenance_date: maintenanceDate,
+                notes: maintenanceNotes || null
+              }
+            ])
+            .select()
+            .single();
+
+          if (maintenanceError) throw maintenanceError;
+          maintenanceEntries.push(maintenanceEntry);
+
+          // Reset current_hours for selected parts
+          await supabase
+            .from("printer_maintenance_parts")
+            .update({ current_hours: 0 })
+            .eq("id", partId);
+        }
+      } else {
+        // Create general maintenance entry if no parts selected but materials used
+        const { data, error } = await supabase
+          .from("printer_maintenance_history")
+          .insert([{
+            printer_id: selectedPrinterForMaintenance.id,
+            maintenance_date: maintenanceDate,
+            notes: maintenanceNotes || null
+          }])
+          .select()
+          .single();
+        if (error) throw error;
+        maintenanceEntries.push(data);
+      }
+
+      // Use first entry for materials
+      const mainMaintenanceEntry = maintenanceEntries[0];
+
+      // Add materials to movements
+      for (const material of maintenanceMaterials) {
+        if (material.material_id && material.quantity_grams) {
+          const quantityGrams = parseFloat(material.quantity_grams);
+          if (!isNaN(quantityGrams) && quantityGrams > 0) {
+            // Add to maintenance materials
+            await supabase
+              .from("printer_maintenance_materials")
+              .insert([
+                {
+                  maintenance_id: mainMaintenanceEntry.id,
+                  material_id: material.material_id,
+                  quantity_grams: quantityGrams,
+                  notes: material.notes || null
+                }
+              ]);
+
+            // Add to inventory movements
+            await supabase
+              .from("inventory_movements")
+              .insert([
+                {
+                  user_id: user.id,
+                  material_id: material.material_id,
+                  movement_type: "consumption",
+                  quantity_grams: quantityGrams,
+                  notes: `Mantenimiento de impresora ${selectedPrinterForMaintenance.brand} ${selectedPrinterForMaintenance.model}. ${material.notes || ''}`
+                }
+              ]);
+
+            // Update inventory
+            const { data: inventoryData } = await supabase
+              .from("inventory_items")
+              .select("*")
+              .eq("material_id", material.material_id)
+              .eq("user_id", user.id)
+              .maybeSingle();
+
+            if (inventoryData) {
+              await supabase
+                .from("inventory_items")
+                .update({
+                  quantity_grams: Math.max(0, inventoryData.quantity_grams - quantityGrams)
+                })
+                .eq("id", inventoryData.id);
+            }
+          }
+        }
+      }
+
+      toast.success(t('inventory.printers.messages.maintenanceSaved') || 'Mantenimiento registrado correctamente');
+      setIsMaintenanceDialogOpen(false);
+      setSelectedPrinterForMaintenance(null);
+      setSelectedPartsForMaintenance(new Set());
+      setMaintenanceMaterials([]);
+      setMaintenanceNotes("");
+      fetchData();
+    } catch (error: any) {
+      console.error("Error saving maintenance:", error);
+      toast.error(t('inventory.printers.messages.errorSavingMaintenance') || 'Error al guardar el mantenimiento');
+    }
   };
 
   const handleDeletePrinter = async (printerId: string) => {
@@ -1676,93 +1856,149 @@ const Inventory = () => {
                 ) : null}
               </div>
 
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>
-                      <Button
-                        variant="ghost"
-                        onClick={() => togglePrinterSort("brand")}
-                        className="flex items-center p-0 h-auto font-semibold hover:bg-transparent"
-                      >
-                        {t('inventory.tables.brand')}
-                        {getSortIcon("brand", printerSortField, printerSortDirection)}
-                      </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button
-                        variant="ghost"
-                        onClick={() => togglePrinterSort("model")}
-                        className="flex items-center p-0 h-auto font-semibold hover:bg-transparent"
-                      >
-                        {t('inventory.tables.model')}
-                        {getSortIcon("model", printerSortField, printerSortDirection)}
-                      </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button
-                        variant="ghost"
-                        onClick={() => togglePrinterSort("usage_hours")}
-                        className="flex items-center p-0 h-auto font-semibold hover:bg-transparent"
-                      >
-                        {t('inventory.tables.usageHours')}
-                        {getSortIcon("usage_hours", printerSortField, printerSortDirection)}
-                      </Button>
-                    </TableHead>
-                    <TableHead>{t('inventory.tables.maintenance')}</TableHead>
-                    <TableHead>{t('inventory.actions')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPrinters.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        {t('inventory.noPrinters')}
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    getPaginatedItems(filteredPrinters).map((printer) => {
-                      const maintenanceParts = printer.printer_maintenance_parts || [];
-                      const needsMaintenance = maintenanceParts.some(
-                        (part) => part.current_hours >= part.maintenance_hours
-                      );
+              <div className="space-y-2">
+                {filteredPrinters.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    {t('inventory.noPrinters')}
+                  </div>
+                ) : (
+                  getPaginatedItems(filteredPrinters).map((printer) => {
+                    const maintenanceParts = printer.printer_maintenance_parts || [];
+                    const needsMaintenance = maintenanceParts.some(
+                      (part) => part.current_hours >= part.maintenance_hours
+                    );
+                    const isExpanded = expandedPrinters.has(printer.id);
 
-                      return (
-                        <TableRow key={printer.id}>
-                          <TableCell>{printer.brand}</TableCell>
-                          <TableCell>{printer.model}</TableCell>
-                          <TableCell>{printer.usage_hours}h</TableCell>
-                          <TableCell>
-                            {needsMaintenance ? (
-                              <Badge variant="destructive">{t('inventory.maintenanceRequired')}</Badge>
-                            ) : (
-                              <Badge variant="outline">{t('inventory.ok')}</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEditPrinter(printer)}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="icon"
-                                onClick={() => handleDeletePrinter(printer.id)}
-                              >
-                                <Trash className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
+                    return (
+                      <Collapsible
+                        key={printer.id}
+                        open={isExpanded}
+                        onOpenChange={(open) => {
+                          const newExpanded = new Set(expandedPrinters);
+                          if (open) {
+                            newExpanded.add(printer.id);
+                          } else {
+                            newExpanded.delete(printer.id);
+                          }
+                          setExpandedPrinters(newExpanded);
+                        }}
+                      >
+                        <Card>
+                          <CollapsibleTrigger asChild>
+                            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4 flex-1">
+                                  <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`} />
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-3">
+                                      <CardTitle className="text-lg">
+                                        {printer.brand} {printer.model}
+                                      </CardTitle>
+                                      {needsMaintenance ? (
+                                        <Badge variant="destructive">{t('inventory.maintenanceRequired')}</Badge>
+                                      ) : (
+                                        <Badge variant="outline">{t('inventory.ok')}</Badge>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                                      <span>{t('inventory.tables.usageHours')}: {printer.usage_hours}h</span>
+                                      <span>{t('inventory.maintenance.parts')}: {maintenanceParts.length}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                    <Button variant="ghost" size="icon">
+                                      <MoreVertical className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditPrinter(printer); }}>
+                                      <Edit className="w-4 h-4 mr-2" />
+                                      {t('inventory.actions.edit')}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditPrinterParts(printer); }}>
+                                      <Settings className="w-4 h-4 mr-2" />
+                                      {t('inventory.printers.actions.editParts')}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenMaintenanceDialog(printer); }}>
+                                      <Wrench className="w-4 h-4 mr-2" />
+                                      {t('inventory.printers.actions.performMaintenance')}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenMaintenanceHistory(printer); }}>
+                                      <Clock className="w-4 h-4 mr-2" />
+                                      {t('inventory.printers.actions.viewHistory')}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem 
+                                      onClick={(e) => { e.stopPropagation(); handleDeletePrinter(printer.id); }}
+                                      className="text-destructive focus:text-destructive"
+                                    >
+                                      <Trash className="w-4 h-4 mr-2" />
+                                      {t('inventory.actions.delete')}
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </CardHeader>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <CardContent className="pt-0">
+                              <div className="space-y-4">
+                                {printer.notes && (
+                                  <div>
+                                    <Label className="text-sm font-semibold">{t('inventory.formLabels.notes')}</Label>
+                                    <p className="text-sm text-muted-foreground mt-1">{printer.notes}</p>
+                                  </div>
+                                )}
+                                {maintenanceParts.length > 0 && (
+                                  <div>
+                                    <Label className="text-sm font-semibold mb-2 block">{t('inventory.maintenance.parts')}</Label>
+                                    <div className="space-y-2">
+                                      {maintenanceParts.map((part) => {
+                                        const progress = part.maintenance_hours > 0 
+                                          ? (part.current_hours / part.maintenance_hours) * 100 
+                                          : 0;
+                                        const isOverdue = part.current_hours >= part.maintenance_hours;
+                                        
+                                        return (
+                                          <div key={part.id} className="border rounded-lg p-3">
+                                            <div className="flex items-center justify-between mb-2">
+                                              <span className="font-medium">{part.part_name}</span>
+                                              <Badge variant={isOverdue ? "destructive" : "outline"}>
+                                                {part.current_hours}h / {part.maintenance_hours}h
+                                              </Badge>
+                                            </div>
+                                            <div className="space-y-1">
+                                              <div className="flex justify-between text-xs text-muted-foreground">
+                                                <span>{t('inventory.maintenance.currentHours')}</span>
+                                                <span>{t('inventory.maintenance.maintenanceHours')}</span>
+                                              </div>
+                                              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                                <div 
+                                                  className={`h-full transition-all ${isOverdue ? 'bg-destructive' : 'bg-primary'}`}
+                                                  style={{ width: `${Math.min(progress, 100)}%` }}
+                                                />
+                                              </div>
+                                            </div>
+                                            {part.notes && (
+                                              <p className="text-xs text-muted-foreground mt-2">{part.notes}</p>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </CollapsibleContent>
+                        </Card>
+                      </Collapsible>
+                    );
+                  })
+                )}
+              </div>
 
               {/* Paginación */}
               {filteredPrinters.length > itemsPerPage && (
@@ -2435,6 +2671,213 @@ const Inventory = () => {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Maintenance Dialog */}
+      <Dialog open={isMaintenanceDialogOpen} onOpenChange={setIsMaintenanceDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t('inventory.printers.dialogs.performMaintenance')}</DialogTitle>
+            <DialogDescription>
+              {selectedPrinterForMaintenance && `${selectedPrinterForMaintenance.brand} ${selectedPrinterForMaintenance.model}`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="mb-2 block">{t('inventory.printers.selectParts')}</Label>
+              <div className="space-y-2 border rounded-lg p-4">
+                {(selectedPrinterForMaintenance?.printer_maintenance_parts || []).map((part) => (
+                  <div key={part.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`part-${part.id}`}
+                      checked={selectedPartsForMaintenance.has(part.id)}
+                      onCheckedChange={(checked) => {
+                        const newSet = new Set(selectedPartsForMaintenance);
+                        if (checked) {
+                          newSet.add(part.id);
+                        } else {
+                          newSet.delete(part.id);
+                        }
+                        setSelectedPartsForMaintenance(newSet);
+                      }}
+                    />
+                    <Label htmlFor={`part-${part.id}`} className="flex-1 cursor-pointer">
+                      <div className="flex justify-between">
+                        <span>{part.part_name}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {part.current_hours}h / {part.maintenance_hours}h
+                        </span>
+                      </div>
+                    </Label>
+                  </div>
+                ))}
+                {(!selectedPrinterForMaintenance?.printer_maintenance_parts || selectedPrinterForMaintenance.printer_maintenance_parts.length === 0) && (
+                  <p className="text-sm text-muted-foreground">{t('inventory.printers.noParts')}</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <Label>{t('inventory.printers.materialsUsed')}</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setMaintenanceMaterials([...maintenanceMaterials, { material_id: "", quantity_grams: "", notes: "" }]);
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t('inventory.printers.addMaterial')}
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {maintenanceMaterials.map((material, index) => (
+                  <Card key={index} className="p-3">
+                    <div className="grid grid-cols-12 gap-2">
+                      <div className="col-span-5">
+                        <Select
+                          value={material.material_id}
+                          onValueChange={(value) => {
+                            const newMaterials = [...maintenanceMaterials];
+                            newMaterials[index].material_id = value;
+                            setMaintenanceMaterials(newMaterials);
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={t('inventory.material')} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {materials.map((mat) => (
+                              <SelectItem key={mat.id} value={mat.id}>
+                                {mat.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-3">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder={t('inventory.formLabels.quantity')}
+                          value={material.quantity_grams}
+                          onChange={(e) => {
+                            const newMaterials = [...maintenanceMaterials];
+                            newMaterials[index].quantity_grams = e.target.value;
+                            setMaintenanceMaterials(newMaterials);
+                          }}
+                        />
+                      </div>
+                      <div className="col-span-3">
+                        <Input
+                          placeholder={t('inventory.formLabels.notes')}
+                          value={material.notes}
+                          onChange={(e) => {
+                            const newMaterials = [...maintenanceMaterials];
+                            newMaterials[index].notes = e.target.value;
+                            setMaintenanceMaterials(newMaterials);
+                          }}
+                        />
+                      </div>
+                      <div className="col-span-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setMaintenanceMaterials(maintenanceMaterials.filter((_, i) => i !== index));
+                          }}
+                        >
+                          <Trash className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="maintenance_notes">{t('inventory.formLabels.notes')}</Label>
+              <Textarea
+                id="maintenance_notes"
+                value={maintenanceNotes}
+                onChange={(e) => setMaintenanceNotes(e.target.value)}
+                rows={3}
+                placeholder={t('inventory.printers.maintenanceNotesPlaceholder')}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsMaintenanceDialogOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={handleSaveMaintenance}>
+              {t('inventory.printers.saveMaintenance')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Maintenance History Dialog */}
+      <Dialog open={isMaintenanceHistoryDialogOpen} onOpenChange={setIsMaintenanceHistoryDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t('inventory.printers.maintenanceHistory')}</DialogTitle>
+            <DialogDescription>
+              {selectedPrinterForMaintenance && `${selectedPrinterForMaintenance.brand} ${selectedPrinterForMaintenance.model}`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {maintenanceHistory.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                {t('inventory.printers.noMaintenanceHistory')}
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {maintenanceHistory.map((maintenance) => (
+                  <Card key={maintenance.id} className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="font-semibold">
+                          {maintenance.printer_maintenance_parts?.part_name || t('inventory.printers.generalMaintenance')}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {format(new Date(maintenance.maintenance_date), "dd/MM/yyyy HH:mm", { locale: es })}
+                        </div>
+                      </div>
+                    </div>
+                    {maintenance.notes && (
+                      <p className="text-sm mb-2">{maintenance.notes}</p>
+                    )}
+                    {maintenance.printer_maintenance_materials && maintenance.printer_maintenance_materials.length > 0 && (
+                      <div className="mt-2 pt-2 border-t">
+                        <Label className="text-sm font-semibold mb-1 block">{t('inventory.printers.materialsUsed')}</Label>
+                        <div className="space-y-1">
+                          {maintenance.printer_maintenance_materials.map((mat: any, idx: number) => (
+                            <div key={idx} className="text-sm flex justify-between">
+                              <span>{mat.materials?.name || t('inventory.unknownMaterial')}</span>
+                              <span className="text-muted-foreground">
+                                {(mat.quantity_grams / 1000).toFixed(2)} kg
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsMaintenanceHistoryDialogOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
