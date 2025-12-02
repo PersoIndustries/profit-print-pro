@@ -762,6 +762,7 @@
       "dialogs": {
         "performMaintenance": "Realizar Mantenimiento"
       },
+      "editParts": "Editar Piezas",
       "selectParts": "Seleccionar Piezas",
       "noParts": "No hay piezas configuradas",
       "materialsUsed": "Materiales Utilizados",
@@ -771,7 +772,20 @@
       "maintenanceHistory": "Historial de Mantenimiento",
       "noMaintenanceHistory": "No hay historial de mantenimiento",
       "generalMaintenance": "Mantenimiento General",
-      "unknownMaterial": "Material desconocido"
+      "unknownMaterial": "Material desconocido",
+      "lastMaintenance": "Último Mantenimiento",
+      "alerts": {
+        "maintenanceRequired": "Mantenimiento Requerido",
+        "maintenanceSoon": "Mantenimiento en {{hours}}h"
+      },
+      "messages": {
+        "selectAtLeastOnePart": "Selecciona al menos una pieza",
+        "maintenanceSaved": "Mantenimiento registrado correctamente",
+        "errorSavingMaintenance": "Error al guardar el mantenimiento",
+        "errorLoadingHistory": "Error al cargar el historial",
+        "partsUpdated": "Piezas actualizadas",
+        "errorSavingParts": "Error al guardar las piezas"
+      }
     },
     "movementTypes": {
       "acquisition": "Adquisición",

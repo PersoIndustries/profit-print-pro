@@ -1324,6 +1324,7 @@
       "dialogs": {
         "performMaintenance": "Effectuer la Maintenance"
       },
+      "editParts": "Modifier les Pièces",
       "selectParts": "Sélectionner les Pièces",
       "noParts": "Aucune pièce configurée",
       "materialsUsed": "Matériaux Utilisés",
@@ -1334,11 +1335,18 @@
       "noMaintenanceHistory": "Aucun historique de maintenance",
       "generalMaintenance": "Maintenance Générale",
       "unknownMaterial": "Matériau inconnu",
+      "lastMaintenance": "Dernière Maintenance",
+      "alerts": {
+        "maintenanceRequired": "Maintenance Requise",
+        "maintenanceSoon": "Maintenance dans {{hours}}h"
+      },
       "messages": {
         "selectAtLeastOnePart": "Sélectionnez au moins une pièce",
         "maintenanceSaved": "Maintenance enregistrée avec succès",
         "errorSavingMaintenance": "Erreur lors de l'enregistrement de la maintenance",
-        "errorLoadingHistory": "Erreur lors du chargement de l'historique"
+        "errorLoadingHistory": "Erreur lors du chargement de l'historique",
+        "partsUpdated": "Pièces mises à jour",
+        "errorSavingParts": "Erreur lors de l'enregistrement des pièces"
       }
     }
   },

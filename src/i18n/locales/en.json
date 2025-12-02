@@ -1336,6 +1336,7 @@
       "dialogs": {
         "performMaintenance": "Perform Maintenance"
       },
+      "editParts": "Edit Parts",
       "selectParts": "Select Parts",
       "noParts": "No parts configured",
       "materialsUsed": "Materials Used",
@@ -1346,11 +1347,18 @@
       "noMaintenanceHistory": "No maintenance history",
       "generalMaintenance": "General Maintenance",
       "unknownMaterial": "Unknown material",
+      "lastMaintenance": "Last Maintenance",
+      "alerts": {
+        "maintenanceRequired": "Maintenance Required",
+        "maintenanceSoon": "Maintenance in {{hours}}h"
+      },
       "messages": {
         "selectAtLeastOnePart": "Select at least one part",
         "maintenanceSaved": "Maintenance registered successfully",
         "errorSavingMaintenance": "Error saving maintenance",
-        "errorLoadingHistory": "Error loading history"
+        "errorLoadingHistory": "Error loading history",
+        "partsUpdated": "Parts updated",
+        "errorSavingParts": "Error saving parts"
       }
     }
   },

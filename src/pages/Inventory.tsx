@@ -71,6 +71,7 @@ interface MaintenancePart {
   maintenance_hours: number;
   current_hours: number;
   notes: string | null;
+  last_maintenance?: Array<{ maintenance_date: string }>;
 }
 
 interface Printer {
@@ -188,6 +189,7 @@ const Inventory = () => {
   const [stockPrints, setStockPrints] = useState<any[]>([]);
   const [printers, setPrinters] = useState<Printer[]>([]);
   const [isPrinterDialogOpen, setIsPrinterDialogOpen] = useState(false);
+  const [isPrinterPartsDialogOpen, setIsPrinterPartsDialogOpen] = useState(false);
   const [editingPrinter, setEditingPrinter] = useState<Printer | null>(null);
   const [isAddToShoppingListDialogOpen, setIsAddToShoppingListDialogOpen] = useState(false);
   const [selectedMaterialForShoppingList, setSelectedMaterialForShoppingList] = useState<Material | null>(null);
@@ -323,7 +325,7 @@ const Inventory = () => {
       if (stockPrintsError) throw stockPrintsError;
       setStockPrints(stockPrintsData || []);
 
-      // Fetch printers
+      // Fetch printers with maintenance parts and last maintenance date
       const { data: printersData, error: printersError } = await supabase
         .from("printers")
         .select(`
@@ -332,6 +334,27 @@ const Inventory = () => {
         `)
         .eq("user_id", user.id)
         .order("brand", { ascending: true });
+
+      // Fetch last maintenance for each part
+      if (printersData) {
+        for (const printer of printersData) {
+          if (printer.printer_maintenance_parts && printer.printer_maintenance_parts.length > 0) {
+            for (const part of printer.printer_maintenance_parts) {
+              const { data: lastMaintenance } = await supabase
+                .from("printer_maintenance_history")
+                .select("maintenance_date")
+                .eq("part_id", part.id)
+                .order("maintenance_date", { ascending: false })
+                .limit(1)
+                .maybeSingle();
+              
+              if (lastMaintenance) {
+                (part as any).last_maintenance_date = lastMaintenance.maintenance_date;
+              }
+            }
+          }
+        }
+      }
 
       if (printersError) throw printersError;
       setPrinters(printersData || []);
@@ -758,28 +781,7 @@ const Inventory = () => {
           .eq("id", editingPrinter.id);
 
         if (error) throw error;
-
-        // Update maintenance parts
-        for (const part of maintenanceParts) {
-          const partData = {
-            printer_id: editingPrinter.id,
-            part_name: part.part_name,
-            maintenance_hours: parseFloat(part.maintenance_hours),
-            current_hours: parseFloat(part.current_hours),
-            notes: part.notes || null,
-          };
-
-          if (part.tempId.startsWith("new-")) {
-            await supabase.from("printer_maintenance_parts").insert([partData]);
-          } else {
-            await supabase
-              .from("printer_maintenance_parts")
-              .update(partData)
-              .eq("id", part.tempId);
-          }
-        }
-
-        toast.success("Impresora actualizada");
+        toast.success(t('inventory.messages.printerUpdated') || "Impresora actualizada");
       } else {
         const { data: newPrinter, error } = await supabase
           .from("printers")
@@ -788,21 +790,7 @@ const Inventory = () => {
           .single();
 
         if (error) throw error;
-
-        // Insert maintenance parts
-        for (const part of maintenanceParts) {
-          await supabase.from("printer_maintenance_parts").insert([
-            {
-              printer_id: newPrinter.id,
-              part_name: part.part_name,
-              maintenance_hours: parseFloat(part.maintenance_hours),
-              current_hours: parseFloat(part.current_hours),
-              notes: part.notes || null,
-            },
-          ]);
-        }
-
-        toast.success("Impresora creada");
+        toast.success(t('inventory.messages.printerAdded') || "Impresora creada");
       }
 
       setIsPrinterDialogOpen(false);
@@ -813,7 +801,6 @@ const Inventory = () => {
         usage_hours: "",
         notes: "",
       });
-      setMaintenanceParts([]);
       fetchData();
     } catch (error: any) {
       console.error("Error saving printer:", error);
@@ -829,26 +816,11 @@ const Inventory = () => {
       usage_hours: printer.usage_hours.toString(),
       notes: printer.notes || "",
     });
-
-    const parts = (printer.printer_maintenance_parts || []).map((part) => ({
-      tempId: part.id,
-      part_name: part.part_name,
-      maintenance_hours: part.maintenance_hours.toString(),
-      current_hours: part.current_hours.toString(),
-      notes: part.notes || "",
-    }));
-    setMaintenanceParts(parts);
     setIsPrinterDialogOpen(true);
   };
 
   const handleEditPrinterParts = (printer: Printer) => {
     setEditingPrinter(printer);
-    setPrinterForm({
-      brand: printer.brand,
-      model: printer.model,
-      usage_hours: printer.usage_hours.toString(),
-      notes: printer.notes || "",
-    });
     const parts = (printer.printer_maintenance_parts || []).map((part) => ({
       tempId: part.id,
       part_name: part.part_name,
@@ -857,7 +829,40 @@ const Inventory = () => {
       notes: part.notes || "",
     }));
     setMaintenanceParts(parts);
-    setIsPrinterDialogOpen(true);
+    setIsPrinterPartsDialogOpen(true);
+  };
+
+  const handleSavePrinterParts = async () => {
+    if (!editingPrinter || !user) return;
+
+    try {
+      for (const part of maintenanceParts) {
+        const partData = {
+          printer_id: editingPrinter.id,
+          part_name: part.part_name,
+          maintenance_hours: parseFloat(part.maintenance_hours),
+          current_hours: parseFloat(part.current_hours),
+          notes: part.notes || null,
+        };
+
+        if (part.tempId.startsWith("new-")) {
+          await supabase.from("printer_maintenance_parts").insert([partData]);
+        } else {
+          await supabase
+            .from("printer_maintenance_parts")
+            .update(partData)
+            .eq("id", part.tempId);
+        }
+      }
+
+      toast.success(t('inventory.printers.messages.partsUpdated') || 'Piezas actualizadas');
+      setIsPrinterPartsDialogOpen(false);
+      setMaintenanceParts([]);
+      fetchData();
+    } catch (error: any) {
+      console.error("Error saving parts:", error);
+      toast.error(t('inventory.printers.messages.errorSavingParts') || 'Error al guardar las piezas');
+    }
   };
 
   const handleOpenMaintenanceDialog = (printer: Printer) => {
@@ -1951,23 +1956,38 @@ const Inventory = () => {
                                     <p className="text-sm text-muted-foreground mt-1">{printer.notes}</p>
                                   </div>
                                 )}
-                                {maintenanceParts.length > 0 && (
+                                {(printer.printer_maintenance_parts || []).length > 0 && (
                                   <div>
                                     <Label className="text-sm font-semibold mb-2 block">{t('inventory.maintenance.parts')}</Label>
                                     <div className="space-y-2">
-                                      {maintenanceParts.map((part) => {
+                                      {printer.printer_maintenance_parts?.map((part) => {
                                         const progress = part.maintenance_hours > 0 
                                           ? (part.current_hours / part.maintenance_hours) * 100 
                                           : 0;
                                         const isOverdue = part.current_hours >= part.maintenance_hours;
+                                        const hoursRemaining = part.maintenance_hours - part.current_hours;
+                                        const isWarning = hoursRemaining <= (part.maintenance_hours * 0.2) && hoursRemaining > 0; // 20% restante
+                                        const lastMaintenanceDate = (part as any).last_maintenance_date;
                                         
                                         return (
-                                          <div key={part.id} className="border rounded-lg p-3">
+                                          <div key={part.id} className={`border rounded-lg p-3 ${isOverdue ? 'border-destructive bg-destructive/5' : isWarning ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-950' : ''}`}>
                                             <div className="flex items-center justify-between mb-2">
                                               <span className="font-medium">{part.part_name}</span>
-                                              <Badge variant={isOverdue ? "destructive" : "outline"}>
-                                                {part.current_hours}h / {part.maintenance_hours}h
-                                              </Badge>
+                                              <div className="flex items-center gap-2">
+                                                {isOverdue && (
+                                                  <Badge variant="destructive" className="text-xs">
+                                                    {t('inventory.printers.alerts.maintenanceRequired')}
+                                                  </Badge>
+                                                )}
+                                                {isWarning && !isOverdue && (
+                                                  <Badge variant="outline" className="text-xs border-yellow-500 text-yellow-700 dark:text-yellow-400">
+                                                    {t('inventory.printers.alerts.maintenanceSoon', { hours: Math.round(hoursRemaining) })}
+                                                  </Badge>
+                                                )}
+                                                <Badge variant={isOverdue ? "destructive" : "outline"}>
+                                                  {part.current_hours}h / {part.maintenance_hours}h
+                                                </Badge>
+                                              </div>
                                             </div>
                                             <div className="space-y-1">
                                               <div className="flex justify-between text-xs text-muted-foreground">
@@ -1976,13 +1996,18 @@ const Inventory = () => {
                                               </div>
                                               <div className="h-2 bg-muted rounded-full overflow-hidden">
                                                 <div 
-                                                  className={`h-full transition-all ${isOverdue ? 'bg-destructive' : 'bg-primary'}`}
+                                                  className={`h-full transition-all ${isOverdue ? 'bg-destructive' : isWarning ? 'bg-yellow-500' : 'bg-primary'}`}
                                                   style={{ width: `${Math.min(progress, 100)}%` }}
                                                 />
                                               </div>
                                             </div>
+                                            {lastMaintenanceDate && (
+                                              <p className="text-xs text-muted-foreground mt-2">
+                                                {t('inventory.printers.lastMaintenance')}: {format(new Date(lastMaintenanceDate), "dd/MM/yyyy HH:mm", { locale: es })}
+                                              </p>
+                                            )}
                                             {part.notes && (
-                                              <p className="text-xs text-muted-foreground mt-2">{part.notes}</p>
+                                              <p className="text-xs text-muted-foreground mt-1">{part.notes}</p>
                                             )}
                                           </div>
                                         );
@@ -2338,79 +2363,6 @@ const Inventory = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>{t('inventory.maintenanceParts')}</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addMaintenancePart}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  {t('inventory.buttons.addPart')}
-                </Button>
-              </div>
-
-              {maintenanceParts.map((part) => (
-                <Card key={part.tempId} className="p-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1 grid grid-cols-2 gap-2">
-                        <div>
-                          <Label>{t('inventory.formLabels.partName')}</Label>
-                          <Input
-                            value={part.part_name}
-                            onChange={(e) =>
-                              updateMaintenancePart(part.tempId, "part_name", e.target.value)
-                            }
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label>{t('inventory.formLabels.maintenanceHours')}</Label>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            value={part.maintenance_hours}
-                            onChange={(e) =>
-                              updateMaintenancePart(part.tempId, "maintenance_hours", e.target.value)
-                            }
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label>{t('inventory.formLabels.currentHours')}</Label>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            value={part.current_hours}
-                            onChange={(e) =>
-                              updateMaintenancePart(part.tempId, "current_hours", e.target.value)
-                            }
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label>{t('inventory.formLabels.notes')}</Label>
-                          <Input
-                            value={part.notes}
-                            onChange={(e) =>
-                              updateMaintenancePart(part.tempId, "notes", e.target.value)
-                            }
-                          />
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeMaintenancePart(part.tempId)}
-                        className="ml-2"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setIsPrinterDialogOpen(false)}>
                 {t('common.cancel')}
@@ -2420,6 +2372,105 @@ const Inventory = () => {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Printer Parts Dialog */}
+      <Dialog open={isPrinterPartsDialogOpen} onOpenChange={setIsPrinterPartsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingPrinter && `${t('inventory.printers.editParts')} - ${editingPrinter.brand} ${editingPrinter.model}`}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <Label className="text-lg font-semibold">{t('inventory.maintenanceParts')}</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addMaintenancePart}>
+                <Plus className="w-4 h-4 mr-2" />
+                {t('inventory.buttons.addPart')}
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              {maintenanceParts.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  {t('inventory.maintenance.noParts')}
+                </p>
+              ) : (
+                maintenanceParts.map((part) => (
+                  <Card key={part.tempId} className="p-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 grid grid-cols-2 gap-2">
+                          <div>
+                            <Label>{t('inventory.formLabels.partName')}</Label>
+                            <Input
+                              value={part.part_name}
+                              onChange={(e) =>
+                                updateMaintenancePart(part.tempId, "part_name", e.target.value)
+                              }
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label>{t('inventory.formLabels.maintenanceHours')}</Label>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              value={part.maintenance_hours}
+                              onChange={(e) =>
+                                updateMaintenancePart(part.tempId, "maintenance_hours", e.target.value)
+                              }
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label>{t('inventory.formLabels.currentHours')}</Label>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              value={part.current_hours}
+                              onChange={(e) =>
+                                updateMaintenancePart(part.tempId, "current_hours", e.target.value)
+                              }
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label>{t('inventory.formLabels.notes')}</Label>
+                            <Input
+                              value={part.notes}
+                              onChange={(e) =>
+                                updateMaintenancePart(part.tempId, "notes", e.target.value)
+                              }
+                            />
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeMaintenancePart(part.tempId)}
+                          className="ml-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsPrinterPartsDialogOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={handleSavePrinterParts}>
+              {t('common.save')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
