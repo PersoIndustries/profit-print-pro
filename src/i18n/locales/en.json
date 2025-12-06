@@ -1168,7 +1168,8 @@
       "addPart": "Add Part",
       "assign": "Assign",
       "add": "Add",
-      "customColor": "Custom Color"
+      "customColor": "Custom Color",
+      "newAcquisition": "New Acquisition"
     },
     "displayModes": {
       "color": "Color",
@@ -1283,7 +1284,8 @@
       "maintenance": "Maintenance",
       "available": "Available",
       "location": "Location",
-      "order": "Order"
+      "order": "Order",
+      "status": "Status"
     },
     "formLabels": {
       "name": "Name",
@@ -1315,6 +1317,15 @@
       "success": "Quantity adjusted successfully",
       "error": "Error adjusting quantity",
       "notesPlaceholder": "Reason for adjustment..."
+    },
+    "viewer": {
+      "info": "Information",
+      "projects": "Projects",
+      "prints": "Prints",
+      "realStock": "Real Stock",
+      "pendingStock": "Pending Stock",
+      "availableStock": "Available Stock",
+      "noPrints": "No prints with this material"
     },
     "maintenance": {
       "title": "Maintenance Parts",

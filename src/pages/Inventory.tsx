@@ -162,6 +162,13 @@ const Inventory = () => {
   const [viewingMaterial, setViewingMaterial] = useState<Material | null>(null);
   const [materialProjects, setMaterialProjects] = useState<Array<{ project_id: string; project_name: string; weight_grams: number }>>([]);
   const [loadingMaterialProjects, setLoadingMaterialProjects] = useState(false);
+  const [materialPrints, setMaterialPrints] = useState<Array<{ id: string; name: string; print_date: string; weight_grams: number; status: string }>>([]);
+  const [loadingMaterialPrints, setLoadingMaterialPrints] = useState(false);
+  const [materialViewerTab, setMaterialViewerTab] = useState("info");
+  const [projectsPage, setProjectsPage] = useState(1);
+  const [printsPage, setPrintsPage] = useState(1);
+  const projectsPerPage = 10;
+  const printsPerPage = 10;
   const [isRectifyDialogOpen, setIsRectifyDialogOpen] = useState(false);
   const [rectifyQuantity, setRectifyQuantity] = useState("");
   const [rectifyNotes, setRectifyNotes] = useState("");
@@ -558,10 +565,15 @@ const Inventory = () => {
   const handleViewMaterial = async (material: Material) => {
     setViewingMaterial(material);
     setMaterialViewerOpen(true);
+    setMaterialViewerTab("info");
+    setProjectsPage(1);
+    setPrintsPage(1);
     setLoadingMaterialProjects(true);
+    setLoadingMaterialPrints(true);
 
     try {
-      const { data, error } = await supabase
+      // Fetch projects using this material
+      const { data: projectsData, error: projectsError } = await supabase
         .from("project_materials")
         .select(`
           weight_grams,
@@ -572,9 +584,9 @@ const Inventory = () => {
         `)
         .eq("material_id", material.id);
 
-      if (error) throw error;
+      if (projectsError) throw projectsError;
 
-      const projects = (data || []).map((pm: any) => ({
+      const projects = (projectsData || []).map((pm: any) => ({
         project_id: pm.projects.id,
         project_name: pm.projects.name,
         weight_grams: pm.weight_grams,
@@ -586,6 +598,39 @@ const Inventory = () => {
       toast.error("Error al cargar los proyectos del material");
     } finally {
       setLoadingMaterialProjects(false);
+    }
+
+    try {
+      // Fetch prints using this material
+      const { data: printsData, error: printsError } = await supabase
+        .from("print_materials")
+        .select(`
+          weight_grams,
+          prints (
+            id,
+            name,
+            print_date,
+            status
+          )
+        `)
+        .eq("material_id", material.id);
+
+      if (printsError) throw printsError;
+
+      const prints = (printsData || []).map((pm: any) => ({
+        id: pm.prints.id,
+        name: pm.prints.name,
+        print_date: pm.prints.print_date,
+        weight_grams: pm.weight_grams,
+        status: pm.prints.status,
+      })).sort((a: any, b: any) => new Date(b.print_date).getTime() - new Date(a.print_date).getTime());
+
+      setMaterialPrints(prints);
+    } catch (error) {
+      console.error("Error loading material prints:", error);
+      toast.error("Error al cargar el historial de impresiones");
+    } finally {
+      setLoadingMaterialPrints(false);
     }
   };
 
@@ -2211,62 +2256,288 @@ const Inventory = () => {
 
       {/* Material Viewer Dialog */}
       <Dialog open={materialViewerOpen} onOpenChange={setMaterialViewerOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>{viewingMaterial?.name}</DialogTitle>
+            <DialogTitle className="flex items-center gap-3">
+              {viewingMaterial?.display_mode === 'color' && viewingMaterial?.color ? (
+                <div
+                  className="w-6 h-6 rounded-full border"
+                  style={{ backgroundColor: viewingMaterial.color }}
+                />
+              ) : viewingMaterial?.display_mode === 'icon' && viewingMaterial?.type ? (
+                (() => {
+                  const IconComp = getMaterialIcon(viewingMaterial.type, MATERIAL_TYPES);
+                  return <IconComp className="w-6 h-6" />;
+                })()
+              ) : null}
+              {viewingMaterial?.name}
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>{t('inventory.formLabels.pricePerKg')}</Label>
-                <p className="text-lg font-semibold">{viewingMaterial?.price_per_kg.toFixed(2)}€</p>
-              </div>
-              <div>
-                <Label>{t('inventory.formLabels.type')}</Label>
-                <p className="text-lg">
-                  {viewingMaterial?.type
-                    ? MATERIAL_TYPES.find((t) => t.value === viewingMaterial.type)?.label || viewingMaterial.type
-                    : "-"}
-                </p>
-              </div>
-            </div>
+          
+          <Tabs value={materialViewerTab} onValueChange={setMaterialViewerTab} className="flex-1 flex flex-col overflow-hidden">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="info">{t('inventory.viewer.info')}</TabsTrigger>
+              <TabsTrigger value="projects">
+                {t('inventory.viewer.projects')} ({materialProjects.length})
+              </TabsTrigger>
+              <TabsTrigger value="prints">
+                {t('inventory.viewer.prints')} ({materialPrints.length})
+              </TabsTrigger>
+            </TabsList>
+            
+            {/* Info Tab */}
+            <TabsContent value="info" className="flex-1 overflow-auto mt-4">
+              <div className="space-y-6">
+                {/* Stock Info Cards */}
+                {(() => {
+                  const inventoryItem = inventory.find(item => item.material_id === viewingMaterial?.id);
+                  const realStock = inventoryItem?.quantity_grams || 0;
+                  const pendingStock = pendingMaterials[viewingMaterial?.id || ''] || 0;
+                  const availableStock = realStock - pendingStock;
+                  
+                  return (
+                    <div className="grid grid-cols-3 gap-4">
+                      <Card>
+                        <CardContent className="pt-4">
+                          <div className="text-center">
+                            <Label className="text-muted-foreground text-xs">{t('inventory.viewer.realStock')}</Label>
+                            <p className="text-2xl font-bold text-primary">
+                              {(realStock / 1000).toFixed(2)} kg
+                            </p>
+                            <p className="text-xs text-muted-foreground">{realStock.toFixed(0)} g</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="pt-4">
+                          <div className="text-center">
+                            <Label className="text-muted-foreground text-xs">{t('inventory.viewer.pendingStock')}</Label>
+                            <p className="text-2xl font-bold text-yellow-600">
+                              {(pendingStock / 1000).toFixed(2)} kg
+                            </p>
+                            <p className="text-xs text-muted-foreground">{pendingStock.toFixed(0)} g</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="pt-4">
+                          <div className="text-center">
+                            <Label className="text-muted-foreground text-xs">{t('inventory.viewer.availableStock')}</Label>
+                            <p className={`text-2xl font-bold ${availableStock < 0 ? 'text-destructive' : 'text-green-600'}`}>
+                              {(availableStock / 1000).toFixed(2)} kg
+                            </p>
+                            <p className="text-xs text-muted-foreground">{availableStock.toFixed(0)} g</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  );
+                })()}
+                
+                {/* Material Details */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground text-sm">{t('inventory.formLabels.pricePerKg')}</Label>
+                    <p className="text-lg font-semibold">{viewingMaterial?.price_per_kg.toFixed(2)}€</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-sm">{t('inventory.formLabels.type')}</Label>
+                    <p className="text-lg">
+                      {viewingMaterial?.type
+                        ? MATERIAL_TYPES.find((mt) => mt.value === viewingMaterial.type)?.label || viewingMaterial.type
+                        : "-"}
+                    </p>
+                  </div>
+                  {(() => {
+                    const inventoryItem = inventory.find(item => item.material_id === viewingMaterial?.id);
+                    return (
+                      <>
+                        <div>
+                          <Label className="text-muted-foreground text-sm">{t('inventory.formLabels.minStockAlert')}</Label>
+                          <p className="text-lg">{inventoryItem?.min_stock_alert ? `${(inventoryItem.min_stock_alert / 1000).toFixed(2)} kg` : "-"}</p>
+                        </div>
+                        <div>
+                          <Label className="text-muted-foreground text-sm">{t('inventory.formLabels.location')}</Label>
+                          <p className="text-lg">{inventoryItem?.location || "-"}</p>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
 
-            <div>
-              <Label>{t('inventory.projectsUsing')}</Label>
+                {/* Actions */}
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsRectifyDialogOpen(true);
+                    }}
+                  >
+                    <MinusCircle className="w-4 h-4 mr-2" />
+                    {t('inventory.rectify.title')}
+                  </Button>
+                  {hasFeature('acquisition_history') && viewingMaterial && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setAcquisitionMaterial(viewingMaterial);
+                        setIsAcquisitionDialogOpen(true);
+                      }}
+                    >
+                      <PackagePlus className="w-4 h-4 mr-2" />
+                      {t('inventory.buttons.newAcquisition')}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+            
+            {/* Projects Tab */}
+            <TabsContent value="projects" className="flex-1 overflow-auto mt-4">
               {loadingMaterialProjects ? (
-                <div className="flex justify-center py-4">
+                <div className="flex justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin" />
                 </div>
               ) : materialProjects.length === 0 ? (
-                <p className="text-muted-foreground">{t('inventory.noProjectsUsing')}</p>
+                <div className="text-center py-8 text-muted-foreground">
+                  {t('inventory.noProjectsUsing')}
+                </div>
               ) : (
-                <ScrollArea className="h-[200px] border rounded-md p-4">
-                  <div className="space-y-2">
-                    {materialProjects.map((project) => (
-                      <div key={project.project_id} className="flex justify-between items-center">
-                        <span>{project.project_name}</span>
-                        <span className="text-muted-foreground">
-                          {(project.weight_grams / 1000).toFixed(2)} kg
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
+                <div className="space-y-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t('inventory.tables.name')}</TableHead>
+                        <TableHead className="text-right">{t('inventory.tables.quantity')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {materialProjects
+                        .slice((projectsPage - 1) * projectsPerPage, projectsPage * projectsPerPage)
+                        .map((project) => (
+                          <TableRow key={project.project_id}>
+                            <TableCell className="font-medium">{project.project_name}</TableCell>
+                            <TableCell className="text-right">
+                              {(project.weight_grams / 1000).toFixed(2)} kg
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                  
+                  {materialProjects.length > projectsPerPage && (
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => setProjectsPage(Math.max(1, projectsPage - 1))}
+                            className={projectsPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                        {Array.from({ length: Math.ceil(materialProjects.length / projectsPerPage) }, (_, i) => i + 1).map((page) => (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              onClick={() => setProjectsPage(page)}
+                              isActive={projectsPage === page}
+                              className="cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => setProjectsPage(Math.min(Math.ceil(materialProjects.length / projectsPerPage), projectsPage + 1))}
+                            className={projectsPage === Math.ceil(materialProjects.length / projectsPerPage) ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  )}
+                </div>
               )}
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsRectifyDialogOpen(true);
-                }}
-              >
-                <MinusCircle className="w-4 h-4 mr-2" />
-                {t('inventory.rectify.title')}
-              </Button>
-            </div>
-          </div>
+            </TabsContent>
+            
+            {/* Prints History Tab */}
+            <TabsContent value="prints" className="flex-1 overflow-auto mt-4">
+              {loadingMaterialPrints ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                </div>
+              ) : materialPrints.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  {t('inventory.viewer.noPrints')}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t('inventory.tables.name')}</TableHead>
+                        <TableHead>{t('inventory.tables.date')}</TableHead>
+                        <TableHead>{t('inventory.tables.status')}</TableHead>
+                        <TableHead className="text-right">{t('inventory.tables.quantity')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {materialPrints
+                        .slice((printsPage - 1) * printsPerPage, printsPage * printsPerPage)
+                        .map((print) => (
+                          <TableRow key={print.id}>
+                            <TableCell className="font-medium">{print.name}</TableCell>
+                            <TableCell>
+                              {format(new Date(print.print_date), "dd/MM/yyyy", { locale: es })}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={
+                                print.status === 'completed' ? 'default' :
+                                print.status === 'failed' ? 'destructive' :
+                                'secondary'
+                              }>
+                                {t(`prints.status.${print.status}`) || print.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {(print.weight_grams / 1000).toFixed(2)} kg
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                  
+                  {materialPrints.length > printsPerPage && (
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => setPrintsPage(Math.max(1, printsPage - 1))}
+                            className={printsPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                        {Array.from({ length: Math.ceil(materialPrints.length / printsPerPage) }, (_, i) => i + 1).map((page) => (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              onClick={() => setPrintsPage(page)}
+                              isActive={printsPage === page}
+                              className="cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => setPrintsPage(Math.min(Math.ceil(materialPrints.length / printsPerPage), printsPage + 1))}
+                            className={printsPage === Math.ceil(materialPrints.length / printsPerPage) ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  )}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 

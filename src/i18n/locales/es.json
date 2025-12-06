@@ -656,7 +656,8 @@
       "addPart": "Agregar Pieza",
       "assign": "Asignar",
       "add": "Agregar",
-      "customColor": "Color Personalizado"
+      "customColor": "Color Personalizado",
+      "newAcquisition": "Nueva Adquisición"
     },
     "displayModes": {
       "color": "Color",
@@ -828,7 +829,8 @@
       "maintenance": "Mantenimiento",
       "available": "Disponible",
       "location": "Ubicación",
-      "order": "Pedido"
+      "order": "Pedido",
+      "status": "Estado"
     },
     "formLabels": {
       "name": "Nombre",
@@ -860,6 +862,24 @@
       "success": "Cantidad rectificada correctamente",
       "error": "Error al rectificar la cantidad",
       "notesPlaceholder": "Motivo de la rectificación..."
+    },
+    "viewer": {
+      "info": "Información",
+      "projects": "Proyectos",
+      "prints": "Impresiones",
+      "realStock": "Stock Real",
+      "pendingStock": "Stock Pendiente",
+      "availableStock": "Stock Disponible",
+      "noPrints": "No hay impresiones con este material"
+    }
+  },
+  "prints": {
+    "status": {
+      "pending": "Pendiente",
+      "pending_print": "Pendiente",
+      "printing": "Imprimiendo",
+      "completed": "Completado",
+      "failed": "Fallido"
     }
   }
 }
