@@ -340,9 +340,9 @@ const Inventory = () => {
         for (const printer of printersData) {
           if (printer.printer_maintenance_parts && printer.printer_maintenance_parts.length > 0) {
             for (const part of printer.printer_maintenance_parts) {
-              const { data: lastMaintenance } = await supabase
-                .from("printer_maintenance_history")
-                .select("maintenance_date")
+              const { data: lastMaintenance } = await (supabase
+                .from("printer_maintenance_history" as any)
+                .select("maintenance_date") as any)
                 .eq("part_id", part.id)
                 .order("maintenance_date", { ascending: false })
                 .limit(1)
@@ -876,8 +876,8 @@ const Inventory = () => {
   const handleOpenMaintenanceHistory = async (printer: Printer) => {
     setSelectedPrinterForMaintenance(printer);
     try {
-      const { data, error } = await supabase
-        .from("printer_maintenance_history")
+      const { data, error } = await (supabase
+        .from("printer_maintenance_history" as any)
         .select(`
           *,
           printer_maintenance_parts(part_name),
@@ -885,7 +885,7 @@ const Inventory = () => {
             quantity_grams,
             materials(name, display_mode, color, type)
           )
-        `)
+        `) as any)
         .eq("printer_id", printer.id)
         .order("maintenance_date", { ascending: false });
 
@@ -913,8 +913,8 @@ const Inventory = () => {
 
       if (selectedPartsForMaintenance.size > 0) {
         for (const partId of selectedPartsForMaintenance) {
-          const { data: maintenanceEntry, error: maintenanceError } = await supabase
-            .from("printer_maintenance_history")
+          const { data: maintenanceEntry, error: maintenanceError } = await (supabase
+            .from("printer_maintenance_history" as any)
             .insert([
               {
                 printer_id: selectedPrinterForMaintenance.id,
@@ -922,7 +922,7 @@ const Inventory = () => {
                 maintenance_date: maintenanceDate,
                 notes: maintenanceNotes || null
               }
-            ])
+            ]) as any)
             .select()
             .single();
 
@@ -937,13 +937,13 @@ const Inventory = () => {
         }
       } else {
         // Create general maintenance entry if no parts selected but materials used
-        const { data, error } = await supabase
-          .from("printer_maintenance_history")
+        const { data, error } = await (supabase
+          .from("printer_maintenance_history" as any)
           .insert([{
             printer_id: selectedPrinterForMaintenance.id,
             maintenance_date: maintenanceDate,
             notes: maintenanceNotes || null
-          }])
+          }]) as any)
           .select()
           .single();
         if (error) throw error;
@@ -959,8 +959,8 @@ const Inventory = () => {
           const quantityGrams = parseFloat(material.quantity_grams);
           if (!isNaN(quantityGrams) && quantityGrams > 0) {
             // Add to maintenance materials
-            await supabase
-              .from("printer_maintenance_materials")
+            await (supabase
+              .from("printer_maintenance_materials" as any) as any)
               .insert([
                 {
                   maintenance_id: mainMaintenanceEntry.id,

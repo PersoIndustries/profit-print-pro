@@ -446,20 +446,37 @@ async function handleChargeRefunded(supabase: any, charge: Stripe.Charge) {
   const invoice = invoices[0];
   const refundAmount = (charge.amount_refunded || 0) / 100; // Convert from cents
 
-  // Check if refund invoice already exists for this specific charge
+  // Check if ANY refund invoice already exists for this user with the same amount recently
+  // This prevents duplicates when admin-process-refund-request already created one
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
   const { data: existingRefundInvoice } = await supabase
     .from('invoices')
-    .select('id')
+    .select('id, notes')
     .eq('user_id', userId)
     .eq('status', 'refunded')
+    .eq('amount', -refundAmount)
     .like('invoice_number', 'REF-%')
-    .ilike('notes', `%Charge ID: ${charge.id}%`)
+    .gte('created_at', fiveMinutesAgo)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  // If no refund invoice exists, update original invoice and create refund invoice
+  // Also check by charge ID specifically (for older entries)
+  let existingByChargeId = null;
   if (!existingRefundInvoice) {
+    const { data: chargeRefund } = await supabase
+      .from('invoices')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('status', 'refunded')
+      .like('invoice_number', 'REF-%')
+      .ilike('notes', `%Charge ID: ${charge.id}%`)
+      .maybeSingle();
+    existingByChargeId = chargeRefund;
+  }
+
+  // If no refund invoice exists, update original invoice and create refund invoice
+  if (!existingRefundInvoice && !existingByChargeId) {
     // Update original invoice status
     await supabase
       .from('invoices')
@@ -491,7 +508,7 @@ async function handleChargeRefunded(supabase: any, charge: Stripe.Charge) {
       console.error('Error creating refund invoice:', refundInvoiceError);
     }
   } else {
-    console.log(`Refund invoice already exists for charge ${charge.id}, skipping duplicate creation`);
+    console.log(`Refund invoice already exists for charge ${charge.id} (amount: ${refundAmount}), skipping duplicate creation`);
     // Still update the original invoice status if not already refunded
     await supabase
       .from('invoices')
@@ -563,7 +580,9 @@ async function handleRefundCreated(supabase: any, refund: Stripe.Refund) {
   const invoice = invoices[0];
   const originalInvoiceRef = invoice.invoice_number || invoice.id;
 
-  // Check if refund invoice already exists for this specific original invoice
+  // Check if ANY refund invoice already exists for this user with the same amount recently
+  // This prevents duplicates when admin-process-refund-request already created one
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
   const { data: existingRefundInvoice } = await supabase
     .from('invoices')
     .select('id')
@@ -571,7 +590,7 @@ async function handleRefundCreated(supabase: any, refund: Stripe.Refund) {
     .eq('amount', -refundAmount)
     .eq('status', 'refunded')
     .like('invoice_number', 'REF-%')
-    .or(`notes.ilike.%Original Invoice: ${originalInvoiceRef}%,notes.ilike.%Original invoice: ${originalInvoiceRef}%`)
+    .gte('created_at', fiveMinutesAgo)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
