@@ -1025,6 +1025,90 @@ export type Database = {
           },
         ]
       }
+      printer_maintenance_history: {
+        Row: {
+          created_at: string | null
+          id: string
+          maintenance_date: string
+          notes: string | null
+          part_id: string | null
+          printer_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          maintenance_date?: string
+          notes?: string | null
+          part_id?: string | null
+          printer_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          maintenance_date?: string
+          notes?: string | null
+          part_id?: string | null
+          printer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "printer_maintenance_history_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "printer_maintenance_parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "printer_maintenance_history_printer_id_fkey"
+            columns: ["printer_id"]
+            isOneToOne: false
+            referencedRelation: "printers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      printer_maintenance_materials: {
+        Row: {
+          created_at: string | null
+          id: string
+          maintenance_id: string
+          material_id: string
+          notes: string | null
+          quantity_grams: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          maintenance_id: string
+          material_id: string
+          notes?: string | null
+          quantity_grams?: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          maintenance_id?: string
+          material_id?: string
+          notes?: string | null
+          quantity_grams?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "printer_maintenance_materials_maintenance_id_fkey"
+            columns: ["maintenance_id"]
+            isOneToOne: false
+            referencedRelation: "printer_maintenance_history"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "printer_maintenance_materials_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       printer_maintenance_parts: {
         Row: {
           created_at: string | null
