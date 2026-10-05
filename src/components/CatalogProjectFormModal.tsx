@@ -1,3 +1,4 @@
+import { convertToSquareJpg } from "@/utils/imageConvert";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
