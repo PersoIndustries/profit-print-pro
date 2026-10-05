@@ -506,43 +506,23 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
       )
     : allExistingTags.filter(tag => !tags.includes(tag));
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') {
-      toast.error("Solo se permiten imágenes JPG/JPEG");
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const original = e.target.files?.[0];
+    if (!original) return;
+    if (!original.type.startsWith("image/")) {
+      toast.error("El archivo debe ser una imagen");
       return;
     }
-
-    // Validate dimensions
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
-    
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      
-      if (img.width !== 500 || img.height !== 500) {
-        toast.error("La imagen debe ser de 500x500 píxeles");
-        return;
-      }
-
+    try {
+      const file = await convertToSquareJpg(original, 500);
       setImageFile(file);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
+      reader.onloadend = () => setImagePreview(reader.result as string);
       reader.readAsDataURL(file);
       setHasUnsavedChanges(true);
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
+    } catch {
       toast.error("Error al cargar la imagen");
-    };
-
-    img.src = objectUrl;
+    }
   };
 
   const handleRemoveImage = () => {
