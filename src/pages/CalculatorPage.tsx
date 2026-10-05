@@ -1,3 +1,4 @@
+import { mergeProjectMaterials } from "@/utils/mergeProjectMaterials";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
@@ -452,7 +453,7 @@ const CalculatorPage = () => {
           if (projectMaterialsData.length > 0) {
             const { error: materialsError } = await supabase
               .from("project_materials")
-              .insert(projectMaterialsData);
+              .insert(mergeProjectMaterials(projectMaterialsData as any));
 
             if (materialsError) throw materialsError;
           }
@@ -496,7 +497,7 @@ const CalculatorPage = () => {
           if (projectMaterialsData.length > 0) {
             const { error: materialsError } = await supabase
               .from("project_materials")
-              .insert(projectMaterialsData);
+              .insert(mergeProjectMaterials(projectMaterialsData as any));
 
             if (materialsError) throw materialsError;
           }
