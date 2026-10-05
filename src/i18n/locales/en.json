@@ -497,7 +497,7 @@
       "creator": "Creator",
       "creatorPlaceholder": "E.g: John Doe",
       "image": "Image (500x500 JPG)",
-      "imageHelpText": "Image must be JPG and exactly 500x500 pixels",
+      "imageHelpText": "Any format; it will be converted to a 500x500 JPG automatically",
       "uploadImage": "Upload Image",
       "colors": "Available colors",
       "addColor": "Add Color",

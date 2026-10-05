@@ -486,7 +486,7 @@
       "creator": "Créateur",
       "creatorPlaceholder": "Ex: Jean Dupont",
       "image": "Image (500x500 JPG)",
-      "imageHelpText": "L'image doit être JPG et exactement 500x500 pixels",
+      "imageHelpText": "Tout format ; elle sera convertie automatiquement en JPG 500x500",
       "uploadImage": "Télécharger une Image",
       "colors": "Couleurs disponibles",
       "addColor": "Ajouter une Couleur",

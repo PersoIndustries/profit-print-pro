@@ -1,3 +1,4 @@
+import { convertToSquareJpg } from "@/utils/imageConvert";
 import { mergeProjectMaterials } from "@/utils/mergeProjectMaterials";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -506,43 +507,23 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
       )
     : allExistingTags.filter(tag => !tags.includes(tag));
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') {
-      toast.error("Solo se permiten imágenes JPG/JPEG");
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const original = e.target.files?.[0];
+    if (!original) return;
+    if (!original.type.startsWith("image/")) {
+      toast.error("El archivo debe ser una imagen");
       return;
     }
-
-    // Validate dimensions
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
-    
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      
-      if (img.width !== 500 || img.height !== 500) {
-        toast.error("La imagen debe ser de 500x500 píxeles");
-        return;
-      }
-
+    try {
+      const file = await convertToSquareJpg(original, 500);
       setImageFile(file);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
+      reader.onloadend = () => setImagePreview(reader.result as string);
       reader.readAsDataURL(file);
       setHasUnsavedChanges(true);
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
+    } catch {
       toast.error("Error al cargar la imagen");
-    };
-
-    img.src = objectUrl;
+    }
   };
 
   const handleRemoveImage = () => {
@@ -937,7 +918,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
                 <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
                   <Input
                     type="file"
-                    accept="image/jpeg,image/jpg"
+                    accept="image/*"
                     onChange={handleImageChange}
                     className="hidden"
                     id="image-upload"
@@ -945,7 +926,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
                   <Label htmlFor="image-upload" className="cursor-pointer flex flex-col items-center gap-2">
                     <Upload className="w-8 h-8 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">
-                      Click para subir imagen (500x500 JPG)
+                      Click para subir imagen
                     </span>
                   </Label>
                 </div>

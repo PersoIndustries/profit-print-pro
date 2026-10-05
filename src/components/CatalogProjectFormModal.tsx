@@ -1,3 +1,4 @@
+import { convertToSquareJpg } from "@/utils/imageConvert";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
@@ -120,39 +121,21 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
       return;
     }
 
-    // Validate file type - más flexible para diferentes navegadores
-    const validTypes = ['image/jpeg', 'image/jpg'];
-    const fileExtension = file.name.toLowerCase().split('.').pop();
-    const isValidType = validTypes.includes(file.type) || fileExtension === 'jpg' || fileExtension === 'jpeg';
-    
-    if (!isValidType) {
-      toast.error(t('catalog.projectForm.messages.onlyJpgJpeg'));
+    if (!file.type.startsWith("image/")) {
+      toast.error(t('catalog.projectForm.messages.imageLoadError'));
       return;
     }
 
-    // Validate dimensions
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
-    
-    img.onload = async () => {
-      URL.revokeObjectURL(objectUrl);
-      
-      if (img.width !== 500 || img.height !== 500) {
-        toast.error(t('catalog.projectForm.messages.imageDimensions'));
-        return;
-      }
-
+    {
       try {
         setUploading(true);
-        
-        // El path debe incluir el user_id como primer elemento para cumplir con las políticas RLS
-        const fileExt = file.name.split(".").pop()?.toLowerCase() || 'jpg';
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const jpg = await convertToSquareJpg(file, 500);
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
         const filePath = `${user.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from("catalog-images")
-          .upload(filePath, file, {
+          .upload(filePath, jpg, {
             cacheControl: '3600',
             upsert: false
           });
@@ -183,14 +166,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
       } finally {
         setUploading(false);
       }
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      toast.error(t('catalog.projectForm.messages.imageLoadError'));
-    };
-
-    img.src = objectUrl;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
