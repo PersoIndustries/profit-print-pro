@@ -1,3 +1,4 @@
+import { convertToSquareJpg } from "@/utils/imageConvert";
 import { mergeProjectMaterials } from "@/utils/mergeProjectMaterials";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -917,7 +918,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
                 <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
                   <Input
                     type="file"
-                    accept="image/jpeg,image/jpg"
+                    accept="image/*"
                     onChange={handleImageChange}
                     className="hidden"
                     id="image-upload"
@@ -925,7 +926,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
                   <Label htmlFor="image-upload" className="cursor-pointer flex flex-col items-center gap-2">
                     <Upload className="w-8 h-8 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">
-                      Click para subir imagen (500x500 JPG)
+                      Click para subir imagen
                     </span>
                   </Label>
                 </div>

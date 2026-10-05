@@ -134,7 +134,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
 
         const { error: uploadError } = await supabase.storage
           .from("catalog-images")
-          .upload(filePath, file, {
+          .upload(filePath, jpg, {
             cacheControl: '3600',
             upsert: false
           });
@@ -165,14 +165,7 @@ export function CatalogProjectFormModal({ open, onOpenChange, catalogId, project
       } finally {
         setUploading(false);
       }
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      toast.error(t('catalog.projectForm.messages.imageLoadError'));
-    };
-
-    img.src = objectUrl;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
