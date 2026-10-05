@@ -1,3 +1,4 @@
+import { mergeProjectMaterials } from "@/utils/mergeProjectMaterials";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -687,7 +688,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
           if (projectMaterialsData.length > 0) {
             const { error: materialsError } = await supabase
               .from("project_materials")
-              .insert(projectMaterialsData);
+              .insert(mergeProjectMaterials(projectMaterialsData as any));
 
             if (materialsError) throw materialsError;
           }
@@ -741,7 +742,7 @@ export function ProjectFormModal({ open, onOpenChange, projectId, onSuccess }: P
           if (projectMaterialsData.length > 0) {
             const { error: materialsError } = await supabase
               .from("project_materials")
-              .insert(projectMaterialsData);
+              .insert(mergeProjectMaterials(projectMaterialsData as any));
 
             if (materialsError) throw materialsError;
           }
