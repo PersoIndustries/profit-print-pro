@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
+import { brokeredPreviewStorage } from './previewAuthStorage';
 
 // Obtener variables de entorno
 // En Vite, las variables de entorno deben comenzar con VITE_ para ser expuestas al cliente
@@ -43,7 +44,7 @@ if (SUPABASE_PUBLISHABLE_KEY.includes('your_supabase') || SUPABASE_PUBLISHABLE_K
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: brokeredPreviewStorage(),
     persistSession: true,
     autoRefreshToken: true,
   }
