@@ -197,57 +197,118 @@
     }
   },
   "pricing": {
-    "title": "Simple, Transparent Pricing",
-    "subtitle": "Choose the plan that fits your business needs",
+    "title": "Pricing",
+    "subtitle": "Choose the perfect plan for your business",
     "monthly": "/month",
+    "annual": "Annual",
+    "freeTrial": "Free 15-day trial",
+    "currency": "Currency",
+    "save20": "Save 20%",
+    "popular": "Popular",
+    "currentPlan": "Your current plan",
     "billedAnnually": "billed annually",
+    "save": "Save",
+    "perYear": "year",
+    "or": "or",
+    "alreadySubscribed": "You are already subscribed to this plan",
+    "reactivateSubscription": "Reactivate Subscription",
+    "renewNow": "Renew Now",
+    "comparison": {
+      "title": "Plan Comparison",
+      "feature": "Feature",
+      "free": "Free",
+      "pro": "Professional",
+      "enterprise": "Business",
+      "unlimited": "Unlimited",
+      "no": "No",
+      "days60": "60 days",
+      "years2": "2 years",
+      "comingSoon": "Coming soon",
+      "categories": {
+        "materials": "Materials Management",
+        "orders": "Orders",
+        "analysis": "Analysis",
+        "tools": "Tools",
+        "catalogs": "Catalogs",
+        "support": "Support",
+        "enterprise": "Enterprise",
+        "inventory": "Inventory",
+        "security": "Security"
+      },
+      "features": {
+        "materials": "Materials",
+        "projects": "Projects",
+        "ordersPerMonth": "Orders per month",
+        "listView": "List view",
+        "kanbanView": "Kanban view",
+        "calendarView": "Calendar view",
+        "basicDashboard": "Basic dashboard",
+        "advancedDashboard": "Advanced dashboard",
+        "metricsHistory": "Metrics history",
+        "detailedFinancial": "Detailed financial analysis",
+        "calculator": "Calculator",
+        "advancedFilters": "Advanced filters",
+        "exportData": "Export data",
+        "customCatalogs": "Custom catalogs",
+        "templates": "Templates",
+        "premiumTemplates": "Premium templates",
+        "sectionsOrganization": "Sections and organization",
+        "basicSupport": "Basic support",
+        "prioritySupport": "Priority support",
+        "dedicatedSupport": "Dedicated support",
+        "customBranding": "Custom branding",
+        "teamCollaboration": "Team collaboration",
+        "apiAccess": "API access",
+        "inventoryHistory": "Inventory history",
+        "autoStockCalculation": "Automatic stock and consumption calculation",
+        "machineStockMaintenance": "Machine stock and maintenance alerts",
+        "dataEncryption": "Data encryption",
+        "gdprCompliance": "GDPR compliance",
+        "autoBackup": "Automatic backup",
+        "twoFactorAuth": "Two-factor authentication"
+      }
+    },
+    "roadmap": {
+      "title": "Living roadmap for all plans",
+      "description": "We will continue building new features (such as API access planned for 2026) based on Layer Suite's success and community feedback. All key improvements will be progressively deployed to each plan so you can grow with us."
+    },
     "free": {
       "name": "Free",
-      "cta": "Get Started",
+      "cta": "Start Free",
       "features": [
-        "Up to 10 materials",
-        "Up to 15 projects",
-        "Basic calculator",
-        "15 orders per month",
-        "Orders list view",
-        "Basic dashboard"
+        "10 materials",
+        "15 projects",
+        "15 orders/month",
+        "Cost calculator",
+        "Basic support"
       ]
     },
     "tier1": {
       "name": "Professional",
-      "cta": "Start Professional",
+      "cta": "Start Free Trial",
       "features": [
-        "Up to 50 materials",
-        "Up to 100 projects",
-        "Advanced calculator",
-        "50 orders per month",
-        "Kanban board view",
-        "Calendar view",
-        "Dashboard with stats (60 days)",
-        "Advanced filters",
-        "Email support",
-        "Export data"
+        "50 materials",
+        "100 projects",
+        "50 orders/month",
+        "60-day history",
+        "Custom catalogs",
+        "Priority support"
       ]
     },
     "tier2": {
       "name": "Business",
-      "cta": "Start Business",
+      "cta": "Start Free Trial",
       "features": [
         "Unlimited materials",
         "Unlimited projects",
-        "Advanced calculator",
         "Unlimited orders",
-        "Kanban board view",
-        "Calendar view",
-        "Full dashboard (2 years)",
-        "Advanced filters",
-        "Detailed financial analysis",
-        "Priority support",
-        "Export data",
-        "Custom branding",
-        "Team collaboration"
+        "2-year history",
+        "Custom catalogs",
+        "Dedicated 24/7 support",
+        "Enhanced developer support"
       ]
-    }
+    },
+    "earlyBirdNotice": "The prices shown are special Early Bird prices. In Q1 2026 prices will be increased. If you get an Early Bird plan, you will continue paying Early Bird prices and will receive all improvements assigned to users."
   },
   "materials": {
     "title": "Materials Management",
@@ -663,261 +724,44 @@
     }
   },
   "settings": {
-    "title": "Settings",
-    "tabs": {
-      "profile": "Profile",
-      "security": "Security",
-      "subscription": "Subscription",
-      "invoices": "Invoices",
-      "notifications": "Notifications",
-      "support": "Support",
-      "advanced": "Advanced"
-    },
-    "profile": {
-      "title": "Profile Information",
-      "description": "Update your personal and billing information",
-      "fullName": "Full Name",
-      "email": "Email (Read-only)",
-      "billingAddress": "Billing Address",
-      "address": "Address",
-      "city": "City",
-      "postalCode": "Postal Code",
-      "country": "Country",
-      "brandLogo": "Brand Logo",
-      "uploadBrandLogo": "Upload Brand Logo",
-      "removeLogo": "Remove Logo",
-      "formats": "Formats: JPG, PNG, WEBP, SVG. Maximum 2MB.",
-      "altLogo": "Brand logo"
-    },
-    "security": {
-      "title": "Security",
-      "description": "Manage your account security",
-      "newPassword": "New Password",
-      "confirmPassword": "Confirm Password",
-      "newPasswordPlaceholder": "Enter your new password",
-      "confirmPasswordPlaceholder": "Confirm your new password",
-      "changePassword": "Change Password"
-    },
-    "subscription": {
-      "title": "Subscription Management",
-      "description": "Manage your subscription plan and usage",
-      "currentPlan": "Current Plan",
-      "status": "Status",
-      "unlockStats": "Unlock Advanced Statistics",
-      "unlockDescription": "Upgrade to a professional plan to access detailed business metrics",
-      "fullHistory": "Full History",
-      "fullHistoryDesc": "Access metrics for up to 2 years",
-      "detailedAnalysis": "Detailed Analysis",
-      "detailedAnalysisDesc": "Filter by day, week, month or quarter",
-      "projections": "Projections",
-      "projectionsDesc": "Revenue predictions and trends",
-      "viewPlans": "View Professional Plans",
-      "currentPlanTitle": "Current Plan: Free",
-      "currentPlanDesc": "Your plan includes basic features to get started",
-      "materials": "Materials",
-      "projects": "Projects",
-      "monthlyOrders": "Monthly Orders",
-      "metricsHistory": "Metrics History",
-      "upTo": "Up to",
-      "notAvailable": "Not available",
-      "currentUsage": "Current Usage",
-      "resetsFirstDay": "Resets on the first day of each month",
-      "billingPeriod": "Billing Period",
-      "nextBillingDate": "Next Billing Date",
-      "noBillingPeriod": "N/A",
-      "noBillingDate": "N/A (Permanent subscription)",
-      "appliedCode": "CODE APPLIED",
-      "activePromoCode": "Active Promo Code",
-      "applied": "Applied:",
-      "permanentSubscription": "✓ Permanent Subscription",
-      "expires": "Expires:",
-      "upgradePlan": "Upgrade Plan",
-      "changePlan": "Change Plan",
-      "cancelSubscription": "Cancel Subscription"
-    },
-    "invoices": {
-      "title": "Invoice History",
-      "description": "View and download your invoices",
-      "invoiceNumber": "Invoice #",
-      "date": "Date",
-      "plan": "Plan",
-      "period": "Period",
-      "amount": "Amount",
-      "status": "Status",
-      "actions": "Actions",
-      "download": "Download",
-      "downloading": "Downloading...",
-      "noStripeInvoice": "Stripe invoice not available yet",
-      "noInvoices": "No invoices yet",
-      "refunded": "Refunded"
-    },
-    "messages": {
-      "errorLoading": "Error loading settings",
-      "profileUpdated": "Profile updated successfully",
-      "errorUpdatingProfile": "Error updating profile",
-      "mustBeAuthenticated": "You must be authenticated to upload images",
-      "onlyImages": "Only images are allowed (JPG, PNG, WEBP, SVG)",
-      "maxSize": "Image cannot be larger than 2MB",
-      "errorUploading": "Error uploading logo:",
-      "logoUpdated": "Brand logo updated successfully",
-      "errorUploadingLogo": "Error uploading logo",
-      "logoRemoved": "Brand logo removed",
-      "errorRemovingLogo": "Error removing logo",
-      "errorRemoving": "Error removing logo from storage",
-      "subscriptionCancelled": "Subscription cancelled",
-      "errorCancelling": "Error cancelling subscription",
-      "passwordsDontMatch": "Passwords do not match",
-      "passwordMinLength": "Password must be at least 6 characters",
-      "passwordUpdated": "Password updated successfully",
-      "errorChangingPassword": "Error changing password",
-      "cannotCancelPermanent": "You cannot cancel a subscription obtained through a permanent promotional code. If you need help, contact support.",
-      "promoCodeWarning": "You have a promotional code applied ({{code}}). If you cancel, you will lose premium access. Are you sure?",
-      "cancelSubscriptionConfirm": "Are you sure you want to cancel your subscription? You will lose access to premium features.",
-      "errorApplying": "Error applying code. Try again.",
-      "errorApplyingCode": "Error applying promotional code",
-      "errorApplyingCreatorCode": "Error applying creator code",
-      "invoiceDownloadUnavailable": "This invoice is not available in Stripe yet",
-      "invoiceDownloadError": "Unable to download invoice. Please try again."
-    },
-    "redeemCode": {
-      "title": "Redeem Code",
-      "description": "Have a code? Redeem it here to unlock special benefits",
-      "placeholder": "ENTER-YOUR-CODE",
-      "apply": "Redeem",
-      "emptyCode": "Please enter a code",
-      "error": "Error redeeming code"
-    },
-    "promoCode": {
-      "title": "Promo Code",
-      "description": "Have a code? Redeem it here to unlock free subscriptions",
-      "placeholder": "ENTER-YOUR-CODE",
-      "apply": "Apply",
-      "emptyCode": "Please enter a code",
-      "error": "Error applying promo code"
-    },
-    "tierNames": {
-      "tier_1": "Professional",
-      "tier_2": "Business",
-      "free": "Free"
-    },
-    "support": {
-      "title": "Support",
-      "description": "Need help? We're here to assist you.",
-      "emailSupport": {
-        "title": "Email Support",
-        "description": "Send us an email with your inquiry and we'll respond as soon as possible.",
-        "email": "support@layersuite.com"
+    "advanced": {
+      "title": "Advanced Settings",
+      "description": "Advanced account options",
+      "currency": {
+        "title": "Display Currency",
+        "description": "Select the currency in which you want to see prices in the application",
+        "note": "Note: This setting is visual only. Prices will be displayed converted to the selected currency, but actual transactions will be processed in EUR (Euro)."
       },
-      "discord": {
-        "title": "Discord Community",
-        "description": "Join our Discord community to get help, share ideas and connect with other users.",
-        "join": "Join Discord"
-      },
-      "note": {
-        "title": "Note:",
-        "text": "For the best assistance, include details about your problem or inquiry. If it's a technical issue, mention your browser and operating system."
-      },
-      "history": {
-        "title": "Support History",
-        "description": "Check the status of your support requests",
-        "empty": "You don't have any support requests",
-        "developmentDisclaimer": {
-          "title": "System in Development",
-          "description": "We're working on new support features. If you experience any issues, please contact us directly."
-        }
-      },
-      "status": {
-        "pending": "Pending",
-        "approved": "Approved",
-        "processed": "Processed",
-        "rejected": "Rejected"
-      },
-      "request": {
-        "invoice": "Invoice",
-        "type": "Type:",
-        "reason": "Reason:",
-        "processedOn": "Processed on:",
-        "adminNote": "Admin note:",
-        "conversation": "Conversation",
-        "viewConversation": "View",
-        "hideConversation": "Hide",
-        "noMessages": "No messages yet",
-        "you": "You",
-        "admin": "Admin",
-        "writeResponse": "Write your response...",
-        "sending": "Sending...",
-        "send": "Send",
-        "messageSent": "Message sent",
-        "errorSending": "Error sending message",
-        "ticketNotFound": "Support ticket not found"
-      },
-      "refundTypes": {
-        "monthly_payment": "Monthly Payment",
-        "annual_payment_error": "Payment Error (Annual)",
-        "application_issue": "Application Issue",
-        "other": "Other"
-      },
-      "refundRequest": {
-        "title": "Request Refund",
-        "description": "Complete the form to request a refund. Your request will be reviewed by an administrator.",
-        "policy": {
-          "title": "Refund Policy",
-          "company": "Jardiper S.C. - Carretera A131, km 1.8 S/N, Fraga, 22520, Spain",
-          "rules": {
-            "rule1": "Maximum 1 week (7 days) from payment to request refund",
-            "rule2": "Maximum 15 days for payment errors (annual instead of monthly)",
-            "rule3": "Must not have used the maximum plan limits",
-            "rule4": "Refund can only be made for the current month (for monthly payments)",
-            "rule5": "There must be a serious demonstrable issue with the application",
-            "rule6": "Refund only applies to the current billing period. For more information, contact support@layersuite.com"
-          }
+      "deleteAccount": {
+        "sectionTitle": "Delete Account",
+        "sectionDescription": "If you no longer need your account, you can delete it permanently. This action cannot be undone.",
+        "button": "Delete My Account",
+        "title": "Are you sure you want to delete your account?",
+        "description": "This action will schedule your account for deletion. You will have 15 days to cancel this action by contacting support.",
+        "warning": {
+          "title": "Warning",
+          "description": "This action is irreversible after the 15-day grace period.",
+          "item1": "Your account will be permanently deleted after 15 days",
+          "item2": "All your data will be deleted (projects, materials, orders, etc.)",
+          "item3": "Your subscription will be cancelled immediately",
+          "item4": "You will not be able to recover your account after permanent deletion"
         },
-        "invoiceLabel": "Invoice to Refund *",
-        "invoicePlaceholder": "Select an invoice",
-        "typeLabel": "Refund Type *",
-        "reasonLabel": "Reason *",
-        "reasonPlaceholder": "Brief description of the reason",
-        "descriptionLabel": "Detailed Description",
-        "descriptionPlaceholder": "Describe the problem or situation in detail...",
-        "validate": "Validate Request",
-        "validating": "Validating...",
-        "cancel": "Cancel",
-        "submit": "Submit Request",
-        "submitting": "Submitting...",
-        "eligible": "✓ Request meets all requirements",
-        "notEligible": "✗ Request does not meet requirements:",
-        "daysSincePayment": "Days since payment:",
-        "usage": "Usage:",
-        "materials": "materials",
-        "projects": "projects",
-        "orders": "orders",
-        "success": "Refund request submitted successfully",
-        "error": "Error submitting request",
-        "invoiceNotFound": "Invoice not found",
-        "invalidCode": "Invalid code. Verify that the code is correct.",
-        "errorApplying": "Error applying code. Try again.",
-        "errorValidating": "Error validating request"
+        "reasonLabel": "Reason (optional)",
+        "reasonPlaceholder": "Why do you want to delete your account?",
+        "reasonRequired": "Please provide a reason",
+        "continue": "Continue",
+        "confirm": "Delete Account Permanently",
+        "confirmTextLabel": "Type 'DELETE' to confirm",
+        "confirmText": "DELETE",
+        "confirmTextError": "You must type 'DELETE' to confirm",
+        "finalConfirm": {
+          "title": "Final Confirmation",
+          "description": "This is your last chance to cancel. Are you absolutely sure?",
+          "warning": "This action cannot be undone after the grace period."
+        },
+        "success": "Your account has been scheduled for deletion. It will be permanently deleted in 15 days.",
+        "error": "Error deleting account"
       }
-    },
-    "subscriptionStatus": {
-      "cancelledActive": "CANCELLED - ACTIVE",
-      "active": "ACTIVE",
-      "accessUntil": "Access until",
-      "cancelledTitle": "Subscription Cancelled",
-      "cancelledDescription": "Your subscription has been cancelled, but you still have full access until",
-      "cancelledAfter": "After that date, your account will be downgraded to the free plan.",
-      "reactivate": "Reactivate Subscription",
-      "trialEndsToday": "Your free trial ends today",
-      "trialOneDayLeft": "You have 1 day of free trial left",
-      "trialDaysLeft": "You have {{days}} days of free trial left",
-      "trialExpires": "Your trial subscription expires on",
-      "trialUpgrade": "Upgrade now to continue enjoying all premium features.",
-      "viewPlans": "View Plans"
-    },
-    "common": {
-      "saving": "Saving...",
-      "save": "Save",
-      "actions": "Actions"
     }
   },
   "admin": {
@@ -943,122 +787,6 @@
     "cancelSubscription": "Cancel Subscription",
     "processRefund": "Process Refund",
     "viewDetails": "View Details"
-  },
-  "pricing": {
-    "title": "Pricing",
-    "subtitle": "Choose the perfect plan for your business",
-    "monthly": "/month",
-    "annual": "Annual",
-    "freeTrial": "Free 15-day trial",
-    "currency": "Currency",
-    "save20": "Save 20%",
-    "popular": "Popular",
-    "currentPlan": "Your current plan",
-    "billedAnnually": "billed annually",
-    "save": "Save",
-    "perYear": "year",
-    "or": "or",
-    "alreadySubscribed": "You are already subscribed to this plan",
-    "reactivateSubscription": "Reactivate Subscription",
-    "renewNow": "Renew Now",
-    "reactivateSubscription": "Reactivate Subscription",
-    "renewNow": "Renew Now",
-    "comparison": {
-      "title": "Plan Comparison",
-      "feature": "Feature",
-      "free": "Free",
-      "pro": "Professional",
-      "enterprise": "Business",
-      "unlimited": "Unlimited",
-      "no": "No",
-      "days60": "60 days",
-      "years2": "2 years",
-      "comingSoon": "Coming soon",
-      "categories": {
-        "materials": "Materials Management",
-        "orders": "Orders",
-        "analysis": "Analysis",
-        "tools": "Tools",
-        "catalogs": "Catalogs",
-        "support": "Support",
-        "enterprise": "Enterprise",
-        "inventory": "Inventory",
-        "security": "Security"
-      },
-      "features": {
-        "materials": "Materials",
-        "projects": "Projects",
-        "ordersPerMonth": "Orders per month",
-        "listView": "List view",
-        "kanbanView": "Kanban view",
-        "calendarView": "Calendar view",
-        "basicDashboard": "Basic dashboard",
-        "advancedDashboard": "Advanced dashboard",
-        "metricsHistory": "Metrics history",
-        "detailedFinancial": "Detailed financial analysis",
-        "calculator": "Calculator",
-        "advancedFilters": "Advanced filters",
-        "exportData": "Export data",
-        "customCatalogs": "Custom catalogs",
-        "templates": "Templates",
-        "premiumTemplates": "Premium templates",
-        "sectionsOrganization": "Sections and organization",
-        "basicSupport": "Basic support",
-        "prioritySupport": "Priority support",
-        "dedicatedSupport": "Dedicated support",
-        "customBranding": "Custom branding",
-        "teamCollaboration": "Team collaboration",
-        "apiAccess": "API access",
-        "inventoryHistory": "Inventory history",
-        "autoStockCalculation": "Automatic stock and consumption calculation",
-        "machineStockMaintenance": "Machine stock and maintenance alerts",
-        "dataEncryption": "Data encryption",
-        "gdprCompliance": "GDPR compliance",
-        "autoBackup": "Automatic backup",
-        "twoFactorAuth": "Two-factor authentication"
-      }
-    },
-    "roadmap": {
-      "title": "Living roadmap for all plans",
-      "description": "We will continue building new features (such as API access planned for 2026) based on Layer Suite's success and community feedback. All key improvements will be progressively deployed to each plan so you can grow with us."
-    },
-    "free": {
-      "name": "Free",
-      "cta": "Start Free",
-      "features": [
-        "10 materials",
-        "15 projects",
-        "15 orders/month",
-        "Cost calculator",
-        "Basic support"
-      ]
-    },
-    "tier1": {
-      "name": "Professional",
-      "cta": "Start Free Trial",
-      "features": [
-        "50 materials",
-        "100 projects",
-        "50 orders/month",
-        "60-day history",
-        "Custom catalogs",
-        "Priority support"
-      ]
-    },
-    "tier2": {
-      "name": "Business",
-      "cta": "Start Free Trial",
-      "features": [
-        "Unlimited materials",
-        "Unlimited projects",
-        "Unlimited orders",
-        "2-year history",
-        "Custom catalogs",
-        "Dedicated 24/7 support",
-        "Enhanced developer support"
-      ]
-    },
-    "earlyBirdNotice": "The prices shown are special Early Bird prices. In Q1 2026 prices will be increased. If you get an Early Bird plan, you will continue paying Early Bird prices and will receive all improvements assigned to users."
   },
   "trial": {
     "expiringToday": "Your free trial ends today",
@@ -1656,7 +1384,6 @@
       "errorDeletingItem": "Error deleting item",
       "errorUpdatingItem": "Error updating item",
       "nameRequired": "Name is required",
-      "listNameRequired": "List name is required",
       "selectListFirst": "You must select a list first"
     },
     "confirmDeleteList": "Are you sure you want to delete this list? All its items will be deleted.",
@@ -1712,45 +1439,17 @@
     "title": "Layer Suite | Manage Your 3D Printing Business",
     "description": "Complete SaaS platform to manage your 3D printing business. Calculate prices, manage materials, projects and maximize your profits."
   },
-  "settings": {
-    "advanced": {
-      "title": "Advanced Settings",
-      "description": "Advanced account options",
-      "currency": {
-        "title": "Display Currency",
-        "description": "Select the currency in which you want to see prices in the application",
-        "note": "Note: This setting is visual only. Prices will be displayed converted to the selected currency, but actual transactions will be processed in EUR (Euro)."
-      },
-      "deleteAccount": {
-        "sectionTitle": "Delete Account",
-        "sectionDescription": "If you no longer need your account, you can delete it permanently. This action cannot be undone.",
-        "button": "Delete My Account",
-        "title": "Are you sure you want to delete your account?",
-        "description": "This action will schedule your account for deletion. You will have 15 days to cancel this action by contacting support.",
-        "warning": {
-          "title": "Warning",
-          "description": "This action is irreversible after the 15-day grace period.",
-          "item1": "Your account will be permanently deleted after 15 days",
-          "item2": "All your data will be deleted (projects, materials, orders, etc.)",
-          "item3": "Your subscription will be cancelled immediately",
-          "item4": "You will not be able to recover your account after permanent deletion"
-        },
-        "reasonLabel": "Reason (optional)",
-        "reasonPlaceholder": "Why do you want to delete your account?",
-        "reasonRequired": "Please provide a reason",
-        "continue": "Continue",
-        "confirm": "Delete Account Permanently",
-        "confirmTextLabel": "Type 'DELETE' to confirm",
-        "confirmText": "DELETE",
-        "confirmTextError": "You must type 'DELETE' to confirm",
-        "finalConfirm": {
-          "title": "Final Confirmation",
-          "description": "This is your last chance to cancel. Are you absolutely sure?",
-          "warning": "This action cannot be undone after the grace period."
-        },
-        "success": "Your account has been scheduled for deletion. It will be permanently deleted in 15 days.",
-        "error": "Error deleting account"
-      }
-    }
+  "materialTypes": {
+    "label": "Material type",
+    "select": "Select type",
+    "none": "No type",
+    "new": "New type",
+    "manage": "Manage types",
+    "newPlaceholder": "E.g. PLA Silk",
+    "allTypes": "All",
+    "empty": "You have no types yet",
+    "inUse": "This type has materials assigned. Reassign them before deleting it.",
+    "errorCreate": "Could not save the type (duplicate name?)",
+    "errorDelete": "Could not delete the type"
   }
 }
