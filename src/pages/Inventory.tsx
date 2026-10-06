@@ -1,3 +1,5 @@
+import { MaterialTypeSelect } from "@/components/MaterialTypeSelect";
+import { useMaterialTypes } from "@/hooks/useMaterialTypes";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -13,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator } from "@/components/ui/select";
 import { Loader2, Plus, ShoppingCart, History, Trash, Edit, Star, Info, Disc, Droplet, KeyRound, Wrench, Paintbrush, FileBox, Package, PackagePlus, Printer, ListPlus, ArrowUpDown, ArrowUp, ArrowDown, Search, Filter, X, PrinterIcon, Trash2, MinusCircle, TrendingUp, MoreVertical, ChevronDown, Settings, Clock } from "lucide-react";
 import { HexColorPicker } from "react-colorful";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -50,6 +52,7 @@ interface Material {
   price_per_kg: number;
   color: string | null;
   type: string | null;
+  material_type_id?: string | null;
   is_favorite: boolean;
   display_mode: 'color' | 'icon';
 }
@@ -119,6 +122,12 @@ const getMaterialIcon = (type: string | null, materialTypes: ReturnType<typeof g
 const Inventory = () => {
   const { t } = useTranslation();
   const { user, loading } = useAuth();
+  const {
+    types: materialTypes,
+    createType: createMaterialType,
+    renameType: renameMaterialType,
+    deleteType: deleteMaterialType,
+  } = useMaterialTypes();
   const { isPro, isEnterprise, hasFeature } = useTierFeatures();
   const { subscription } = useSubscription();
   const [tooltipOpen, setTooltipOpen] = useState<{ [key: string]: boolean }>({});
@@ -219,6 +228,7 @@ const Inventory = () => {
     display_mode: "color" as 'color' | 'icon',
     unit_type: "g",
     min_stock_alert: "500",
+    material_type_id: null as string | null,
   });
 
   const [printerForm, setPrinterForm] = useState({
@@ -404,6 +414,7 @@ const Inventory = () => {
         type: materialForm.display_mode === 'icon' ? (materialForm.type || null) : null,
         display_mode: materialForm.display_mode,
         unit_type: materialForm.unit_type,
+        material_type_id: materialForm.material_type_id,
       };
 
       if (editingMaterial) {
@@ -450,6 +461,7 @@ const Inventory = () => {
         display_mode: "color",
         unit_type: "g",
         min_stock_alert: "500",
+        material_type_id: null,
       });
       fetchData();
     } catch (error: any) {
@@ -468,6 +480,7 @@ const Inventory = () => {
       display_mode: material.display_mode || "color",
       unit_type: "g",
       min_stock_alert: "500",
+      material_type_id: material.material_type_id || null,
     });
     setIsMaterialDialogOpen(true);
   };
@@ -1227,7 +1240,11 @@ const Inventory = () => {
   const getFilteredAndSortedMaterials = () => {
     let filtered = materials.filter((material) => {
       const matchesSearch = material.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesType = filterType === "all" || material.type === filterType;
+      const matchesType =
+        filterType === "all" ||
+        (filterType === "mt:none" ? !material.material_type_id
+          : filterType.startsWith("mt:") ? material.material_type_id === filterType.slice(3)
+          : material.type === filterType);
       
       // Filtro de stock bajo (solo Pro/Enterprise)
       if (showLowStock && (isPro || isEnterprise)) {
@@ -1471,6 +1488,15 @@ const Inventory = () => {
                         {type.label}
                       </SelectItem>
                     ))}
+                    {materialTypes.length > 0 && <SelectSeparator />}
+                    {materialTypes.map((mt) => (
+                      <SelectItem key={mt.id} value={`mt:${mt.id}`}>
+                        {mt.name}
+                      </SelectItem>
+                    ))}
+                    {materialTypes.length > 0 && (
+                      <SelectItem value="mt:none">{t('materialTypes.none')}</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
                 {(isPro || isEnterprise) && (
@@ -1594,9 +1620,10 @@ const Inventory = () => {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {material.type
-                              ? MATERIAL_TYPES.find((t) => t.value === material.type)?.label || material.type
-                              : "-"}
+                            {materialTypes.find((mt) => mt.id === material.material_type_id)?.name ||
+                              (material.type
+                                ? MATERIAL_TYPES.find((t) => t.value === material.type)?.label || material.type
+                                : "-")}
                           </TableCell>
                           <TableCell>{material.price_per_kg.toFixed(2)}€</TableCell>
                           {(isPro || isEnterprise) && (
@@ -2229,6 +2256,18 @@ const Inventory = () => {
                 </Select>
               </div>
             )}
+
+            <div>
+              <Label>{t('materialTypes.label')}</Label>
+              <MaterialTypeSelect
+                types={materialTypes}
+                value={materialForm.material_type_id}
+                onChange={(id) => setMaterialForm({ ...materialForm, material_type_id: id })}
+                createType={createMaterialType}
+                renameType={renameMaterialType}
+                deleteType={deleteMaterialType}
+              />
+            </div>
 
             {!editingMaterial && (
               <div>

@@ -1,3 +1,5 @@
+import { MaterialLinePicker } from "@/components/MaterialLinePicker";
+import { useMaterialTypes, type MaterialType } from "@/hooks/useMaterialTypes";
 import { mergeProjectMaterials } from "@/utils/mergeProjectMaterials";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -36,6 +38,7 @@ interface Material {
   id: string;
   name: string;
   price_per_kg: number;
+  material_type_id?: string | null;
 }
 
 interface ProjectMaterial {
@@ -62,9 +65,10 @@ interface SortableRowProps {
   updateInvoiceLine: (id: string, field: keyof InvoiceLine, value: string) => void;
   removeInvoiceLine: (id: string) => void;
   getLineTypeLabel: (type: LineType) => string;
+  types: MaterialType[];
 }
 
-function SortableRow({ line, materials, updateInvoiceLine, removeInvoiceLine, getLineTypeLabel }: SortableRowProps) {
+function SortableRow({ line, materials, updateInvoiceLine, removeInvoiceLine, getLineTypeLabel, types }: SortableRowProps) {
   const { t } = useTranslation();
   const {
     attributes,
@@ -97,27 +101,14 @@ function SortableRow({ line, materials, updateInvoiceLine, removeInvoiceLine, ge
       </TableCell>
       <TableCell>
         {line.type === 'material' ? (
-          <Select 
-            value={line.materialId || ''} 
-            onValueChange={(value) => updateInvoiceLine(line.id, 'materialId', value)}
-          >
-            <SelectTrigger className="h-8">
-              <SelectValue placeholder={t('calculator.selectMaterial')} />
-            </SelectTrigger>
-            <SelectContent>
-              {materials.length === 0 ? (
-                <div className="p-2 text-xs text-muted-foreground text-center">
-                  {t('calculator.noMaterials')}
-                </div>
-              ) : (
-                materials.map((material) => (
-                  <SelectItem key={material.id} value={material.id}>
-                    {material.name}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
+          <MaterialLinePicker
+            materials={materials}
+            types={types}
+            value={line.materialId}
+            onChange={(value) => updateInvoiceLine(line.id, 'materialId', value)}
+            placeholder={t('calculator.selectMaterial')}
+            emptyText={t('calculator.noMaterials')}
+          />
         ) : (
           <Input
             className="h-8"
@@ -167,6 +158,7 @@ function SortableRow({ line, materials, updateInvoiceLine, removeInvoiceLine, ge
 const CalculatorPage = () => {
   const { t } = useTranslation();
   const { user, loading } = useAuth();
+  const { types: materialTypes } = useMaterialTypes();
   const { formatPrice } = useCurrency();
   const navigate = useNavigate();
   const { projectId } = useParams();
@@ -289,7 +281,7 @@ const CalculatorPage = () => {
     try {
       const { data, error } = await supabase
         .from("materials")
-        .select("id, name, price_per_kg")
+        .select("id, name, price_per_kg, material_type_id")
         .eq("user_id", user.id)
         .order("is_favorite", { ascending: false })
         .order("name", { ascending: true });
@@ -605,6 +597,7 @@ const CalculatorPage = () => {
                             updateInvoiceLine={updateInvoiceLine}
                             removeInvoiceLine={removeInvoiceLine}
                             getLineTypeLabel={getLineTypeLabel}
+                            types={materialTypes}
                           />
                         ))}
                       </TableBody>
