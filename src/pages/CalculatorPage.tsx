@@ -158,6 +158,7 @@ function SortableRow({ line, materials, updateInvoiceLine, removeInvoiceLine, ge
 const CalculatorPage = () => {
   const { t } = useTranslation();
   const { user, loading } = useAuth();
+  const { types: materialTypes } = useMaterialTypes();
   const { formatPrice } = useCurrency();
   const navigate = useNavigate();
   const { projectId } = useParams();
