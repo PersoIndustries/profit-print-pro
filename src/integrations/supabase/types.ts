@@ -765,6 +765,33 @@ export type Database = {
           },
         ]
       }
+      material_types: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       materials: {
         Row: {
           color: string | null
@@ -772,6 +799,7 @@ export type Database = {
           display_mode: string | null
           id: string
           is_favorite: boolean | null
+          material_type_id: string | null
           name: string
           price_per_kg: number
           type: string | null
@@ -785,6 +813,7 @@ export type Database = {
           display_mode?: string | null
           id?: string
           is_favorite?: boolean | null
+          material_type_id?: string | null
           name: string
           price_per_kg: number
           type?: string | null
@@ -798,6 +827,7 @@ export type Database = {
           display_mode?: string | null
           id?: string
           is_favorite?: boolean | null
+          material_type_id?: string | null
           name?: string
           price_per_kg?: number
           type?: string | null
@@ -805,7 +835,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "materials_material_type_id_fkey"
+            columns: ["material_type_id"]
+            isOneToOne: false
+            referencedRelation: "material_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_preferences: {
         Row: {
