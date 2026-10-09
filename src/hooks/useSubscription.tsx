@@ -1,3 +1,4 @@
+import { cachedFetch } from "@/lib/queryCache";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
@@ -82,6 +83,8 @@ export const useSubscription = () => {
 
     const fetchSubscription = async () => {
       try {
+        const result = await cachedFetch(`sub:${user.id}`, 30_000, async () => {
+        let built: SubscriptionInfo | null = null;
         // Fetch subscription tier and status
         const { data: subData, error: subError } = await supabase
           .from('user_subscriptions')
@@ -156,7 +159,7 @@ export const useSubscription = () => {
           shoppingLists: shoppingListsRes.count || 0
         };
 
-        setSubscription({
+        built = ({
           tier,
           status,
           limits,
@@ -179,6 +182,9 @@ export const useSubscription = () => {
             isReadOnly: subData?.is_read_only || false
           }
         });
+        return built;
+        });
+        setSubscription(result);
       } catch (error) {
         console.error('Error fetching subscription:', error);
       } finally {

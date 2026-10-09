@@ -1,3 +1,4 @@
+import { cachedFetch } from "@/lib/queryCache";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "./useSubscription";
@@ -22,13 +23,15 @@ export const useTierFeatures = () => {
 
   const fetchFeatures = async () => {
     try {
-      const { data, error } = await supabase
-        .from("tier_features")
-        .select("*")
-        .order("feature_name");
-
-      if (error) throw error;
-      setFeatures(data || []);
+      const data = await cachedFetch("tier_features", 10 * 60_000, async () => {
+        const { data, error } = await supabase
+          .from("tier_features")
+          .select("*")
+          .order("feature_name");
+        if (error) throw error;
+        return data || [];
+      });
+      setFeatures(data);
     } catch (error) {
       console.error("Error fetching tier features:", error);
     } finally {

@@ -1,3 +1,6 @@
+import { Badge } from "@/components/ui/badge";
+import { MaterialTypeSelect } from "@/components/MaterialTypeSelect";
+import { useMaterialTypes } from "@/hooks/useMaterialTypes";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
@@ -23,6 +26,7 @@ interface ShoppingListItem {
   quantity: string | null;
   notes: string | null;
   estimated_price: number | null;
+  material_type_id?: string | null;
   is_completed: boolean;
   shopping_list_id: string;
   created_at: string;
@@ -50,6 +54,8 @@ export default function ShoppingListPage() {
   const [formQuantity, setFormQuantity] = useState("");
   const [formNotes, setFormNotes] = useState("");
   const [formEstimatedPrice, setFormEstimatedPrice] = useState("");
+  const [formTypeId, setFormTypeId] = useState<string | null>(null);
+  const { types: materialTypes, createType, renameType, deleteType } = useMaterialTypes();
   const [formListName, setFormListName] = useState("");
 
   useEffect(() => {
@@ -73,11 +79,13 @@ export default function ShoppingListPage() {
         setFormQuantity(editingItem.quantity || "");
         setFormNotes(editingItem.notes || "");
         setFormEstimatedPrice(editingItem.estimated_price?.toString() || "");
+        setFormTypeId(editingItem.material_type_id || null);
       } else {
         setFormName("");
         setFormQuantity("");
         setFormNotes("");
         setFormEstimatedPrice("");
+        setFormTypeId(null);
       }
     }
   }, [isFormOpen, editingItem]);
@@ -231,6 +239,7 @@ export default function ShoppingListPage() {
             quantity: formQuantity.trim() || null,
             notes: formNotes.trim() || null,
             estimated_price: estimatedPriceValue,
+            material_type_id: formTypeId,
           })
           .eq("id", editingItem.id);
 
@@ -244,6 +253,7 @@ export default function ShoppingListPage() {
             quantity: formQuantity.trim() || null,
             notes: formNotes.trim() || null,
             estimated_price: estimatedPriceValue,
+            material_type_id: formTypeId,
             shopping_list_id: selectedListId,
             is_completed: false,
             user_id: user!.id,
@@ -470,7 +480,12 @@ export default function ShoppingListPage() {
                             </div>
                           </Button>
                           <div className="flex-1">
-                            <h3 className="font-semibold text-lg">{item.name}</h3>
+                            <h3 className="font-semibold text-lg flex items-center gap-2">
+                              {item.name}
+                              {materialTypes.find((mt) => mt.id === item.material_type_id) && (
+                                <Badge variant="secondary">{materialTypes.find((mt) => mt.id === item.material_type_id)!.name}</Badge>
+                              )}
+                            </h3>
                             {item.quantity && (
                               <p className="text-sm text-muted-foreground mt-1">
                                 {t('shoppingList.quantity')}: {item.quantity}
@@ -600,6 +615,17 @@ export default function ShoppingListPage() {
                 value={formQuantity}
                 onChange={(e) => setFormQuantity(e.target.value)}
                 placeholder={t('shoppingList.quantityPlaceholder')}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{t('materialTypes.label')}</label>
+              <MaterialTypeSelect
+                types={materialTypes}
+                value={formTypeId}
+                onChange={setFormTypeId}
+                createType={createType}
+                renameType={renameType}
+                deleteType={deleteType}
               />
             </div>
             <div className="space-y-2">

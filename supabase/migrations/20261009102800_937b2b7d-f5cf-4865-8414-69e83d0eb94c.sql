@@ -1,0 +1,2 @@
+ALTER TABLE public.shopping_list ADD COLUMN material_type_id uuid REFERENCES public.material_types(id) ON DELETE SET NULL;
+CREATE INDEX idx_shopping_list_material_type_id ON public.shopping_list(material_type_id);
