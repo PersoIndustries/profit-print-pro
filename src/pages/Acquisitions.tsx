@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useMaterialTypes } from "@/hooks/useMaterialTypes";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -57,6 +58,8 @@ interface Acquisition {
 const Acquisitions = () => {
   const { t } = useTranslation();
   const { user, loading } = useAuth();
+  const { types: materialTypes } = useMaterialTypes();
+  const [acqTypeFilter, setAcqTypeFilter] = useState("all");
   const { hasFeature } = useTierFeatures();
   const navigate = useNavigate();
   const [materials, setMaterials] = useState<Material[]>([]);
