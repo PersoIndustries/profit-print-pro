@@ -1,3 +1,4 @@
+import { invalidateCache } from "@/lib/queryCache";
 import { useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -82,6 +83,7 @@ export const useAuth = () => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    invalidateCache();
     navigate("/");
   };
 
