@@ -32,7 +32,11 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useDocumentHead } from "@/hooks/useDocumentHead";
 import { useGoogleAnalytics } from "@/hooks/useGoogleAnalytics";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 60_000, refetchOnWindowFocus: false, retry: 1 },
+  },
+});
 
 // Get Google Analytics ID from environment variable (optional, since it's also in HTML)
 const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
