@@ -1659,6 +1659,7 @@ export type Database = {
           estimated_price: number | null
           id: string
           is_completed: boolean
+          material_type_id: string | null
           name: string
           notes: string | null
           quantity: string | null
@@ -1671,6 +1672,7 @@ export type Database = {
           estimated_price?: number | null
           id?: string
           is_completed?: boolean
+          material_type_id?: string | null
           name: string
           notes?: string | null
           quantity?: string | null
@@ -1683,6 +1685,7 @@ export type Database = {
           estimated_price?: number | null
           id?: string
           is_completed?: boolean
+          material_type_id?: string | null
           name?: string
           notes?: string | null
           quantity?: string | null
@@ -1691,6 +1694,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "shopping_list_material_type_id_fkey"
+            columns: ["material_type_id"]
+            isOneToOne: false
+            referencedRelation: "material_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "shopping_list_shopping_list_id_fkey"
             columns: ["shopping_list_id"]
