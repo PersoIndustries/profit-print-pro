@@ -96,6 +96,7 @@ const AdminDashboard = () => {
   // Promo codes management
   const [promoCodes, setPromoCodes] = useState<any[]>([]);
   const [loadingPromoCodes, setLoadingPromoCodes] = useState(false);
+  const [promoSearch, setPromoSearch] = useState("");
   const [promoCodeDialogOpen, setPromoCodeDialogOpen] = useState(false);
   const [editingPromoCode, setEditingPromoCode] = useState<any | null>(null);
   const [promoCodeForm, setPromoCodeForm] = useState({
@@ -282,6 +283,15 @@ const AdminDashboard = () => {
       setSavingLimits(false);
     }
   };
+
+  const promoQuery = promoSearch.trim().toLowerCase();
+  const filteredPromoCodes = promoQuery
+    ? promoCodes.filter((p) =>
+        [p.code, p.description, p.tier, p.is_active ? "active" : "inactive"]
+          .filter(Boolean)
+          .some((v: string) => String(v).toLowerCase().includes(promoQuery))
+      )
+    : promoCodes;
 
   const fetchPromoCodes = async () => {
     try {
@@ -2816,7 +2826,15 @@ const AdminDashboard = () => {
           
           <Card>
             <CardHeader>
-              <CardTitle>Promo Codes Management</CardTitle>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <CardTitle>Promo Codes Management</CardTitle>
+                <Input
+                  value={promoSearch}
+                  onChange={(e) => setPromoSearch(e.target.value)}
+                  placeholder="Buscar código, descripción o tier..."
+                  className="sm:max-w-xs"
+                />
+              </div>
             </CardHeader>
             <CardContent>
               {loadingPromoCodes ? (
@@ -2836,14 +2854,14 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {promoCodes.length === 0 ? (
+                    {filteredPromoCodes.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                           No promo codes found
                         </TableCell>
                       </TableRow>
                     ) : (
-                      promoCodes.map((promo) => (
+                      filteredPromoCodes.map((promo) => (
                         <TableRow key={promo.id}>
                           <TableCell className="font-mono font-semibold">{promo.code}</TableCell>
                           <TableCell>
@@ -2922,14 +2940,14 @@ const AdminDashboard = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {promoCodes.length === 0 ? (
+                  {filteredPromoCodes.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                         No promo codes found
                       </TableCell>
                     </TableRow>
                   ) : (
-                    promoCodes.map((promo) => (
+                    filteredPromoCodes.map((promo) => (
                       <TableRow key={promo.id}>
                         <TableCell className="font-mono font-semibold">{promo.code}</TableCell>
                         <TableCell>
