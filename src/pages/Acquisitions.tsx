@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useMaterialTypes } from "@/hooks/useMaterialTypes";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -57,6 +58,8 @@ interface Acquisition {
 const Acquisitions = () => {
   const { t } = useTranslation();
   const { user, loading } = useAuth();
+  const { types: materialTypes } = useMaterialTypes();
+  const [acqTypeFilter, setAcqTypeFilter] = useState("all");
   const { hasFeature } = useTierFeatures();
   const navigate = useNavigate();
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -104,7 +107,7 @@ const Acquisitions = () => {
     try {
       const { data, error } = await supabase
         .from("materials")
-        .select("id, name, type, color, display_mode")
+        .select("id, name, type, color, display_mode, material_type_id")
         .eq("user_id", user.id)
         .order("name", { ascending: true });
 
@@ -531,6 +534,19 @@ const Acquisitions = () => {
           <form onSubmit={handleSaveAcquisition} className="space-y-4">
             <div>
               <Label htmlFor="acq_material">{t('inventory.material')} *</Label>
+              {materialTypes.length > 0 && (
+                <Select value={acqTypeFilter} onValueChange={setAcqTypeFilter}>
+                  <SelectTrigger className="mb-2">
+                    <SelectValue placeholder={t('materialTypes.label')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('materialTypes.allTypes')}</SelectItem>
+                    {materialTypes.map((mt) => (
+                      <SelectItem key={mt.id} value={mt.id}>{mt.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <Popover open={materialComboboxOpen} onOpenChange={setMaterialComboboxOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -551,7 +567,7 @@ const Acquisitions = () => {
                     <CommandList>
                       <CommandEmpty>No se encontró material.</CommandEmpty>
                       <CommandGroup>
-                        {materials.map((mat) => {
+                        {materials.filter((m: any) => acqTypeFilter === 'all' || m.material_type_id === acqTypeFilter || m.id === acquisitionForm.material_id).map((mat) => {
                           const materialIcon = mat.display_mode === 'icon' && mat.type
                             ? getMaterialIcon(mat.type)
                             : null;
