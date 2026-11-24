@@ -477,7 +477,7 @@ const Prints = () => {
       if (editingPrint) {
         const { error: printError } = await supabase
           .from("prints")
-          .update(printData)
+          .update({ ...printData, status: editingPrint.status })
           .eq("id", editingPrint.id);
 
         if (printError) throw printError;
@@ -508,11 +508,18 @@ const Prints = () => {
 
         if (materialsError) throw materialsError;
 
+        // Cambiar el estado al final para que el trigger descuente stock con los materiales ya guardados
+        if (formData.status !== editingPrint.status) {
+          const { error: statusError } = await supabase
+            .from("prints").update({ status: formData.status }).eq("id", editingPrint.id);
+          if (statusError) throw statusError;
+        }
+
         toast.success(t('prints.messages.printUpdated'));
       } else {
         const { data: print, error: printError } = await supabase
           .from("prints")
-          .insert(printData)
+          .insert({ ...printData, status: 'pending_print' })
           .select()
           .single();
 
@@ -537,6 +544,13 @@ const Prints = () => {
           .insert(materialsData);
 
         if (materialsError) throw materialsError;
+
+        // Aplicar el estado final después de guardar materiales (dispara descuento de stock y horas de impresora)
+        if (formData.status !== 'pending_print') {
+          const { error: statusError } = await supabase
+            .from("prints").update({ status: formData.status }).eq("id", print.id);
+          if (statusError) throw statusError;
+        }
 
         toast.success(t('prints.messages.printRegistered'));
       }

@@ -779,19 +779,7 @@ const Inventory = () => {
         if (insertError) throw insertError;
       }
 
-      const { error: movementError } = await supabase
-        .from("inventory_movements")
-        .insert([
-          {
-            user_id: user.id,
-            material_id: acquisitionMaterial.id,
-            movement_type: "acquisition",
-            quantity_grams: quantityGrams,
-            notes: acquisitionForm.notes || null
-          }
-        ]);
-
-      if (movementError) throw movementError;
+      // El movimiento lo registra el trigger trigger_log_acquisition
 
       toast.success(t('inventory.messages.acquisitionRegistered'));
       setIsAcquisitionDialogOpen(false);

@@ -159,109 +159,44 @@ const Acquisitions = () => {
       const unitPrice = parseFloat(acquisitionForm.unit_price);
       const totalPrice = quantityKg * unitPrice;
 
-      const { error: acquisitionError } = await supabase
-        .from("material_acquisitions")
-        .insert([
-          {
-            user_id: user.id,
-            material_id: acquisitionForm.material_id,
-            quantity_grams: quantityGrams,
-            unit_price: unitPrice,
-            total_price: totalPrice,
-            supplier: acquisitionForm.supplier || null,
-            purchase_date: acquisitionForm.purchase_date,
-            notes: acquisitionForm.notes || null
-          }
-        ]);
-
-      if (acquisitionError) throw acquisitionError;
-
-      const { data: inventoryData } = await supabase
-        .from("inventory_items")
-        .select("*")
-        .eq("material_id", acquisitionForm.material_id)
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (inventoryData) {
-        const { error: updateError } = await supabase
+      const adjustStock = async (materialId: string, delta: number) => {
+        if (!delta) return;
+        const { data: inv } = await supabase
           .from("inventory_items")
-          .update({
-            quantity_grams: inventoryData.quantity_grams + quantityGrams
-          })
-          .eq("id", inventoryData.id);
+          .select("*")
+          .eq("material_id", materialId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (inv) {
+          const { error } = await supabase
+            .from("inventory_items")
+            .update({ quantity_grams: inv.quantity_grams + delta })
+            .eq("id", inv.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from("inventory_items")
+            .insert([{ user_id: user.id, material_id: materialId, quantity_grams: delta }]);
+          if (error) throw error;
+        }
+      };
 
-        if (updateError) throw updateError;
-      } else {
-        const { error: insertError } = await supabase
-          .from("inventory_items")
-          .insert([
-            {
-              user_id: user.id,
-              material_id: acquisitionForm.material_id,
-              quantity_grams: quantityGrams
-            }
-          ]);
-
-        if (insertError) throw insertError;
-      }
-
-      const { error: movementError } = await supabase
-        .from("inventory_movements")
-        .insert([
-          {
-            user_id: user.id,
-            material_id: acquisitionForm.material_id,
-            movement_type: "acquisition",
-            quantity_grams: quantityGrams,
-            notes: acquisitionForm.notes || null
-          }
-        ]);
-
-      if (movementError) throw movementError;
+      const logAdjustment = async (materialId: string, delta: number, note: string) => {
+        if (!delta) return;
+        const { error } = await supabase.from("inventory_movements").insert([{
+          user_id: user.id,
+          material_id: materialId,
+          movement_type: "adjustment",
+          quantity_grams: delta,
+          reference_id: editingAcquisition?.id ?? null,
+          notes: note,
+        }]);
+        if (error) throw error;
+      };
 
       if (editingAcquisition) {
-        // Update existing acquisition
-        const oldAcquisition = acquisitions.find(a => a.id === editingAcquisition.id);
-        if (oldAcquisition) {
-          const quantityDiff = quantityGrams - oldAcquisition.quantity_grams;
-          
-          // Update inventory
-          const { data: inventoryData } = await supabase
-            .from("inventory_items")
-            .select("*")
-            .eq("material_id", acquisitionForm.material_id)
-            .eq("user_id", user.id)
-            .maybeSingle();
+        const old = acquisitions.find(a => a.id === editingAcquisition.id) ?? editingAcquisition;
 
-          if (inventoryData) {
-            const { error: updateError } = await supabase
-              .from("inventory_items")
-              .update({
-                quantity_grams: inventoryData.quantity_grams + quantityDiff
-              })
-              .eq("id", inventoryData.id);
-
-            if (updateError) throw updateError;
-          }
-
-          // Register movement for edit
-          const { error: movementError } = await supabase
-            .from("inventory_movements")
-            .insert([
-              {
-                user_id: user.id,
-                material_id: acquisitionForm.material_id,
-                movement_type: "adjustment",
-                quantity_grams: Math.abs(quantityDiff),
-                notes: `Edición de adquisición. ${quantityDiff > 0 ? 'Incremento' : 'Reducción'}: ${Math.abs(quantityDiff)}g. ${acquisitionForm.notes || ''}`
-              }
-            ]);
-
-          if (movementError) throw movementError;
-        }
-
-        // Update acquisition
         const { error: updateError } = await supabase
           .from("material_acquisitions")
           .update({
@@ -274,10 +209,35 @@ const Acquisitions = () => {
             notes: acquisitionForm.notes || null
           })
           .eq("id", editingAcquisition.id);
-
         if (updateError) throw updateError;
+
+        if (old.material_id !== acquisitionForm.material_id) {
+          await adjustStock(old.material_id, -old.quantity_grams);
+          await logAdjustment(old.material_id, -old.quantity_grams, "Edición de adquisición: material cambiado (salida)");
+          await adjustStock(acquisitionForm.material_id, quantityGrams);
+          await logAdjustment(acquisitionForm.material_id, quantityGrams, "Edición de adquisición: material cambiado (entrada)");
+        } else {
+          const diff = quantityGrams - old.quantity_grams;
+          await adjustStock(acquisitionForm.material_id, diff);
+          await logAdjustment(acquisitionForm.material_id, diff, `Edición de adquisición. ${acquisitionForm.notes || ''}`.trim());
+        }
         toast.success('Adquisición actualizada');
       } else {
+        // El trigger trigger_log_acquisition registra el movimiento automáticamente
+        const { error: acquisitionError } = await supabase
+          .from("material_acquisitions")
+          .insert([{
+            user_id: user.id,
+            material_id: acquisitionForm.material_id,
+            quantity_grams: quantityGrams,
+            unit_price: unitPrice,
+            total_price: totalPrice,
+            supplier: acquisitionForm.supplier || null,
+            purchase_date: acquisitionForm.purchase_date,
+            notes: acquisitionForm.notes || null
+          }]);
+        if (acquisitionError) throw acquisitionError;
+        await adjustStock(acquisitionForm.material_id, quantityGrams);
         toast.success(t('inventory.messages.acquisitionRegistered'));
       }
       
