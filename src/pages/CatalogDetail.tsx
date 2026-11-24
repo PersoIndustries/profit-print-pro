@@ -270,7 +270,7 @@ export default function CatalogDetail() {
       
       // Guardar proyectos sin sección para mostrarlos al final
       const projectsWithoutSection = projectsWithProducts
-        .filter(p => p.catalog_section_id === null)
+        .filter(p => !p.catalog_section_id || !(sectionsData || []).some((sec: any) => sec.id === p.catalog_section_id))
         .sort((a, b) => a.position - b.position);
       
       // Si hay proyectos sin sección, crear una "sección" especial para ellos

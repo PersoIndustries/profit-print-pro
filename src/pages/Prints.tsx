@@ -891,6 +891,11 @@ const Prints = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {formData.status === 'failed' && (!editingPrint || editingPrint.status !== 'failed') && (
+                  <p className="text-sm rounded-md border border-destructive/40 bg-destructive/10 p-2 text-destructive">
+                    Impresión fallida: ajusta arriba las horas reales hasta el fallo y los gramos de material realmente gastados. Esos valores se descontarán del stock y se sumarán a la impresora.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2 md:col-span-2">

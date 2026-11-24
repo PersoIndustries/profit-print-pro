@@ -27,7 +27,11 @@ interface Material {
   type: string | null;
   color: string | null;
   display_mode: 'color' | 'icon';
+  unit_type?: string | null;
 }
+
+// Factor para pasar la cantidad introducida a la unidad base de stock
+const unitFactor = (unit?: string | null) => (unit === 'unidades' || unit === 'units') ? 1 : 1000;
 
 const getMaterialIcon = (type: string | null) => {
   const icons: Record<string, React.ReactNode> = {
@@ -107,7 +111,7 @@ const Acquisitions = () => {
     try {
       const { data, error } = await supabase
         .from("materials")
-        .select("id, name, type, color, display_mode, material_type_id")
+        .select("id, name, type, color, display_mode, material_type_id, unit_type")
         .eq("user_id", user.id)
         .order("name", { ascending: true });
 
@@ -155,7 +159,7 @@ const Acquisitions = () => {
     try {
       setIsSubmitting(true);
       const quantityKg = parseFloat(acquisitionForm.quantity_kg);
-      const quantityGrams = quantityKg * 1000; // Convertir kg a gramos
+      const quantityGrams = quantityKg * unitFactor(materials.find(m => m.id === acquisitionForm.material_id)?.unit_type);
       const unitPrice = parseFloat(acquisitionForm.unit_price);
       const totalPrice = quantityKg * unitPrice;
 
@@ -263,7 +267,7 @@ const Acquisitions = () => {
     setEditingAcquisition(acquisition);
     setAcquisitionForm({
       material_id: acquisition.material_id,
-      quantity_kg: (acquisition.quantity_grams / 1000).toString(),
+      quantity_kg: (acquisition.quantity_grams / unitFactor(materials.find(m => m.id === acquisition.material_id)?.unit_type)).toString(),
       unit_price: acquisition.unit_price.toString(),
       supplier: acquisition.supplier || "",
       purchase_date: acquisition.purchase_date.split('T')[0],

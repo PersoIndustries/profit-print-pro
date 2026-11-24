@@ -125,6 +125,12 @@ const Movements = () => {
     try {
       const quantityGrams = parseFloat(wasteForm.quantity_grams);
       const movementType = adjustmentType;
+      if (isNaN(quantityGrams) || quantityGrams === 0) {
+        toast.error('Cantidad inválida');
+        return;
+      }
+      // Desperdicio siempre resta; corrección/otros aceptan positivo (sumar) o negativo (restar)
+      const signedDelta = movementType === 'waste' ? -Math.abs(quantityGrams) : quantityGrams;
 
       const { data: inventoryData } = await supabase
         .from("inventory_items")
@@ -134,15 +140,13 @@ const Movements = () => {
         .maybeSingle();
 
       // Para ajustes, permitir incluso si no hay inventario (se creará en negativo si es necesario)
-      if (movementType === 'waste' && (!inventoryData || inventoryData.quantity_grams < quantityGrams)) {
+      if (movementType === 'waste' && (!inventoryData || inventoryData.quantity_grams < Math.abs(quantityGrams))) {
         toast.error(t('inventory.messages.insufficientStock'));
         return;
       }
 
       if (inventoryData) {
-        const newQuantity = movementType === 'waste' 
-          ? inventoryData.quantity_grams - quantityGrams
-          : inventoryData.quantity_grams + quantityGrams;
+        const newQuantity = inventoryData.quantity_grams + signedDelta;
 
         const { error: updateError } = await supabase
           .from("inventory_items")
@@ -159,7 +163,7 @@ const Movements = () => {
           .insert([{
             user_id: user.id,
             material_id: wasteForm.material_id,
-            quantity_grams: quantityGrams,
+            quantity_grams: signedDelta,
             min_stock_alert: 500
           }]);
 
@@ -173,7 +177,7 @@ const Movements = () => {
             user_id: user.id,
             material_id: wasteForm.material_id,
             movement_type: movementType,
-            quantity_grams: movementType === 'waste' ? quantityGrams : quantityGrams,
+            quantity_grams: signedDelta,
             notes: wasteForm.notes || null
           }
         ]);
@@ -285,7 +289,15 @@ const Movements = () => {
                       <Badge variant="outline">{getMovementTypeLabel(movement.movement_type)}</Badge>
                     </TableCell>
                     <TableCell>
-                      {movement.quantity_grams}g ({(movement.quantity_grams / 1000).toFixed(2)}kg)
+                      {(() => {
+                        const neg = ['print', 'waste'].includes(movement.movement_type) && movement.quantity_grams > 0;
+                        const q = neg ? -movement.quantity_grams : movement.quantity_grams;
+                        return (
+                          <span className={q < 0 ? 'text-destructive font-medium' : 'text-primary font-medium'}>
+                            {q > 0 ? '+' : ''}{q}g ({(q / 1000).toFixed(2)}kg)
+                          </span>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>{movement.notes || "-"}</TableCell>
                   </TableRow>
@@ -403,11 +415,11 @@ const Movements = () => {
                 value={wasteForm.quantity_grams}
                 onChange={(e) => setWasteForm({ ...wasteForm, quantity_grams: e.target.value })}
                 required
-                placeholder={adjustmentType === 'waste' ? 'Gramos a descontar' : 'Gramos a agregar'}
+                placeholder={adjustmentType === 'waste' ? 'Gramos a descontar' : 'Ej: 200 para sumar, -200 para restar'}
               />
               {adjustmentType !== 'waste' && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  Esta cantidad se agregará al inventario actual
+                  Usa un número positivo para sumar o negativo (con -) para restar del inventario actual
                 </p>
               )}
             </div>

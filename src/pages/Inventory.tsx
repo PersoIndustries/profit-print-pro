@@ -53,6 +53,7 @@ interface Material {
   color: string | null;
   type: string | null;
   material_type_id?: string | null;
+  unit_type?: string | null;
   is_favorite: boolean;
   display_mode: 'color' | 'icon';
 }
@@ -424,6 +425,12 @@ const Inventory = () => {
           .eq("id", editingMaterial.id);
 
         if (error) throw error;
+        const minAlert = parseFloat(materialForm.min_stock_alert);
+        if (!isNaN(minAlert)) {
+          await supabase.from("inventory_items")
+            .update({ min_stock_alert: minAlert })
+            .eq("material_id", editingMaterial.id).eq("user_id", user.id);
+        }
         toast.success(t('inventory.messages.materialUpdated'));
       } else {
         const { data: newMaterial, error } = await supabase
@@ -478,8 +485,8 @@ const Inventory = () => {
       color: material.color || "",
       type: material.type || "",
       display_mode: material.display_mode || "color",
-      unit_type: "g",
-      min_stock_alert: "500",
+      unit_type: material.unit_type || "g",
+      min_stock_alert: String(inventory.find(i => i.material_id === material.id)?.min_stock_alert ?? 500),
       material_type_id: material.material_type_id || null,
     });
     setIsMaterialDialogOpen(true);
@@ -723,7 +730,7 @@ const Inventory = () => {
         return;
       }
 
-      const quantityGrams = quantityKg * 1000;
+      const quantityGrams = quantityKg * ((acquisitionMaterial.unit_type === 'unidades' || acquisitionMaterial.unit_type === 'units') ? 1 : 1000);
       const unitPrice = parseFloat(acquisitionForm.unit_price);
       if (isNaN(unitPrice) || unitPrice <= 0) {
         toast.error(t('inventory.messages.invalidPrice') || 'Precio inválido');
@@ -2257,7 +2264,18 @@ const Inventory = () => {
               />
             </div>
 
-            {!editingMaterial && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="unit_type">Unidad</Label>
+                <Select value={materialForm.unit_type} onValueChange={(v) => setMaterialForm({ ...materialForm, unit_type: v })}>
+                  <SelectTrigger id="unit_type"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="g">g / Kg</SelectItem>
+                    <SelectItem value="L">L</SelectItem>
+                    <SelectItem value="unidades">Unidades</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <Label htmlFor="min_stock_alert">{t('inventory.formLabels.minStockAlert')}</Label>
                 <Input
@@ -2267,7 +2285,7 @@ const Inventory = () => {
                   onChange={(e) => setMaterialForm({ ...materialForm, min_stock_alert: e.target.value })}
                 />
               </div>
-            )}
+            </div>
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setIsMaterialDialogOpen(false)}>
